@@ -15,6 +15,12 @@ using Object = UnityEngine.Object;
 using zgock.ShapeSync.Editor;
 using zgock.ShapeSync.Materials;
 
+#if UNITY_6000_2_OR_NEWER
+using ShapeSyncTreeViewState = UnityEditor.IMGUI.Controls.TreeViewState<int>;
+#else
+using ShapeSyncTreeViewState = UnityEditor.IMGUI.Controls.TreeViewState;
+#endif
+
 namespace zgock.ShapeSync.Tests.EditMode.Spec20
 {
     public sealed class ShapeSyncDatabaseWindowTests
@@ -357,7 +363,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec20
                 Assert.That(registry.TryAddOutfit("Dye", "BlueDye", ShapeSyncDatabaseRegistry.OutfitKind.Material, out string materialDiagnostic), Is.True, materialDiagnostic);
                 string selectedIdentity = null;
                 var tree = new ShapeSyncDatabaseWindow.NavigationTreeView(
-                    new TreeViewState<int>(),
+                    new ShapeSyncTreeViewState(),
                     _ => true,
                     () => ShapeSyncDatabaseWindow.Section.General,
                     () => registry.Outfits,
@@ -558,7 +564,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec20
                     Assert.That(registry.TryAddOutfit("Mesh" + index, null, ShapeSyncDatabaseRegistry.OutfitKind.Mesh, out string meshDiagnostic), Is.True, meshDiagnostic);
                 Assert.That(registry.TryAddOutfit("Material", null, ShapeSyncDatabaseRegistry.OutfitKind.Material, out string materialDiagnostic), Is.True, materialDiagnostic);
                 string selectedIdentity = null;
-                var tree = new ShapeSyncDatabaseWindow.NavigationTreeView(new TreeViewState<int>(), _ => true, () => ShapeSyncDatabaseWindow.Section.General,
+                var tree = new ShapeSyncDatabaseWindow.NavigationTreeView(new ShapeSyncTreeViewState(), _ => true, () => ShapeSyncDatabaseWindow.Section.General,
                     () => registry.Outfits, identity => { selectedIdentity = identity; return true; });
                 tree.ApplySelectionChangeForTest(new[] { 8000 });
                 Assert.That(selectedIdentity, Is.EqualTo("Mesh1000"));
@@ -1889,7 +1895,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec20
             {
                 Assert.That(window.TrySetDatabase(database, out string bindingDiagnostic), Is.True, bindingDiagnostic);
                 ShapeSyncDatabaseWindow.NavigationTreeView treeView = new ShapeSyncDatabaseWindow.NavigationTreeView(
-                    new UnityEditor.IMGUI.Controls.TreeViewState<int>(), window.TryNavigateTo, () => window.SelectedSection);
+                    new ShapeSyncTreeViewState(), window.TryNavigateTo, () => window.SelectedSection);
                 treeView.ApplySelectionChangeForTest(new System.Collections.Generic.List<int> { 2 });
                 Assert.That(window.SelectedSection, Is.EqualTo(ShapeSyncDatabaseWindow.Section.Figure));
                 Assert.That(treeView.SelectedItemIdsForTest, Is.EqualTo(new[] { 2 }));
@@ -2065,7 +2071,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec20
             try
             {
                 ShapeSyncDatabaseWindow.NavigationTreeView treeView = new ShapeSyncDatabaseWindow.NavigationTreeView(
-                    new UnityEditor.IMGUI.Controls.TreeViewState<int>(), window.TryNavigateTo, () => window.SelectedSection);
+                    new ShapeSyncTreeViewState(), window.TryNavigateTo, () => window.SelectedSection);
                 treeView.ApplySelectionChangeForTest(new System.Collections.Generic.List<int> { 2 });
                 window.SetFigureInputsForTest("DraftFigure", candidate);
                 ShapeSyncDatabaseWindow.DisplayDirtyDialog = (_, _, _, _, _) => dialogChoice;
@@ -2115,7 +2121,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec20
                 ShapeSyncDatabaseWindow.DisplayDirtyDialog = (_, _, _, _, _) => 0;
                 Assert.That(window.TrySetDatabase(database, out string bindDiagnostic), Is.True, bindDiagnostic);
                 ShapeSyncDatabaseWindow.NavigationTreeView treeView = new ShapeSyncDatabaseWindow.NavigationTreeView(
-                    new UnityEditor.IMGUI.Controls.TreeViewState<int>(), window.TryNavigateTo, () => window.SelectedSection);
+                    new ShapeSyncTreeViewState(), window.TryNavigateTo, () => window.SelectedSection);
                 treeView.ApplySelectionChangeForTest(new System.Collections.Generic.List<int> { 2 });
                 window.SetFigureInputsForTest("DraftFigure", candidate);
                 Selection.activeObject = selectionSentinel;
@@ -2323,7 +2329,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec20
         [Test]
         public void NavigationTreeView_ExtraMorphsChildSelectsItsIndependentSection()
         {
-            var state = new TreeViewState<int>();
+            var state = new ShapeSyncTreeViewState();
             ShapeSyncDatabaseWindow.Section selected = ShapeSyncDatabaseWindow.Section.Figure;
             var tree = new ShapeSyncDatabaseWindow.NavigationTreeView(state, section => { selected = section; return true; }, () => selected);
             tree.ApplySelectionChangeForTest(new[] { 6 });
@@ -2334,7 +2340,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec20
         public void NavigationTreeView_FigureChildrenPlaceExtraMorphsLast()
         {
             var tree = new ShapeSyncDatabaseWindow.NavigationTreeView(
-                new TreeViewState<int>(),
+                new ShapeSyncTreeViewState(),
                 _ => true,
                 () => ShapeSyncDatabaseWindow.Section.Figure);
 
@@ -3499,7 +3505,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec20
                 ShapeSyncDatabaseWindow.DisplayDirtyDialog = (_, _, _, _, _) => 0;
                 Selection.activeObject = sentinel;
                 ShapeSyncDatabaseWindow.NavigationTreeView treeView = new ShapeSyncDatabaseWindow.NavigationTreeView(
-                    new UnityEditor.IMGUI.Controls.TreeViewState<int>(), window.TryNavigateTo, () => window.SelectedSection);
+                    new ShapeSyncTreeViewState(), window.TryNavigateTo, () => window.SelectedSection);
                 treeView.ApplySelectionChangeForTest(new List<int> { 1 });
 
                 Assert.That(window.SelectedSection, Is.EqualTo(ShapeSyncDatabaseWindow.Section.Textures));
@@ -5621,7 +5627,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec20
 
                 Assert.That(window.TrySetDatabase(database, out string bindingDiagnostic), Is.True, bindingDiagnostic);
                 ShapeSyncDatabaseWindow.NavigationTreeView treeView = new ShapeSyncDatabaseWindow.NavigationTreeView(
-                    new UnityEditor.IMGUI.Controls.TreeViewState<int>(), window.TryNavigateTo, () => window.SelectedSection);
+                    new ShapeSyncTreeViewState(), window.TryNavigateTo, () => window.SelectedSection);
                 treeView.ApplySelectionChangeForTest(new System.Collections.Generic.List<int> { 2 });
 
                 Assert.That(window.SelectedSection, Is.EqualTo(ShapeSyncDatabaseWindow.Section.General));

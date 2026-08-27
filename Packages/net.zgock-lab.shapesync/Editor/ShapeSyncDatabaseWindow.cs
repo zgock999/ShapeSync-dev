@@ -9,6 +9,16 @@ using System.Linq;
 using System.Collections.Generic;
 using zgock.ShapeSync.Materials;
 
+#if UNITY_6000_2_OR_NEWER
+using ShapeSyncTreeView = UnityEditor.IMGUI.Controls.TreeView<int>;
+using ShapeSyncTreeViewState = UnityEditor.IMGUI.Controls.TreeViewState<int>;
+using ShapeSyncTreeViewItem = UnityEditor.IMGUI.Controls.TreeViewItem<int>;
+#else
+using ShapeSyncTreeView = UnityEditor.IMGUI.Controls.TreeView;
+using ShapeSyncTreeViewState = UnityEditor.IMGUI.Controls.TreeViewState;
+using ShapeSyncTreeViewItem = UnityEditor.IMGUI.Controls.TreeViewItem;
+#endif
+
 namespace zgock.ShapeSync.Editor
 {
     /// <summary>Provides the authoring-only shell for the ShapeSync Database editor.</summary>
@@ -456,7 +466,7 @@ namespace zgock.ShapeSync.Editor
         [NonSerialized] private ShapeSyncDatabaseRegistry.ShapeEntry pendingShapeDraft;
         // Navigation uses stable, local integer IDs (1: General, 2: Figure, 3: Shapes),
         // rather than Unity instance IDs.
-        [SerializeField] private TreeViewState<int> treeViewState;
+        [SerializeField] private ShapeSyncTreeViewState treeViewState;
         private NavigationTreeView treeView;
 
         internal Section SelectedSection => selectedSection;
@@ -680,7 +690,7 @@ namespace zgock.ShapeSync.Editor
         internal void SetOutfitSourcePrefabDraftForTest(GameObject value) { outfitSourcePrefabDraft = value; }
         internal NavigationTreeView CreateNavigationTreeViewForTest()
         {
-            treeView = new NavigationTreeView(treeViewState ??= new TreeViewState<int>(), TryNavigateTreeItem, () => selectedSection, GetOutfitsForTreeView, TryNavigateToOutfit, TryNavigateToOutfitChild, GetShapesForTreeView, TryNavigateToShape, () => ShapeSyncDatabaseOptionalUiProvider.HasVrmNavigation);
+            treeView = new NavigationTreeView(treeViewState ??= new ShapeSyncTreeViewState(), TryNavigateTreeItem, () => selectedSection, GetOutfitsForTreeView, TryNavigateToOutfit, TryNavigateToOutfitChild, GetShapesForTreeView, TryNavigateToShape, () => ShapeSyncDatabaseOptionalUiProvider.HasVrmNavigation);
             return treeView;
         }
         internal string ResolveGenerationRootForTest(string selectedFolderPath) => ResolveGenerationRoot(selectedFolderPath);
@@ -1276,7 +1286,7 @@ namespace zgock.ShapeSync.Editor
         {
             selectedSection = Section.General;
             titleContent = new GUIContent(WindowTitle);
-            treeViewState ??= new TreeViewState<int>();
+            treeViewState ??= new ShapeSyncTreeViewState();
             treeView = new NavigationTreeView(treeViewState, TryNavigateTreeItem, () => selectedSection, GetOutfitsForTreeView, TryNavigateToOutfit, TryNavigateToOutfitChild, GetShapesForTreeView, TryNavigateToShape, () => ShapeSyncDatabaseOptionalUiProvider.HasVrmNavigation);
         }
 
@@ -1291,7 +1301,7 @@ namespace zgock.ShapeSync.Editor
 
         private void DrawTreeView()
         {
-            treeView ??= new NavigationTreeView(treeViewState ??= new TreeViewState<int>(), TryNavigateTreeItem, () => selectedSection, GetOutfitsForTreeView, TryNavigateToOutfit, TryNavigateToOutfitChild, GetShapesForTreeView, TryNavigateToShape, () => ShapeSyncDatabaseOptionalUiProvider.HasVrmNavigation);
+            treeView ??= new NavigationTreeView(treeViewState ??= new ShapeSyncTreeViewState(), TryNavigateTreeItem, () => selectedSection, GetOutfitsForTreeView, TryNavigateToOutfit, TryNavigateToOutfitChild, GetShapesForTreeView, TryNavigateToShape, () => ShapeSyncDatabaseOptionalUiProvider.HasVrmNavigation);
             treeView.OnGUI(GUILayoutUtility.GetRect(TreeViewWidth, TreeViewWidth, 0f, float.MaxValue, GUILayout.ExpandHeight(true)));
         }
 
@@ -5101,7 +5111,7 @@ namespace zgock.ShapeSync.Editor
             return TrySetDatabaseAtPath(assetPath, out openDiagnostic);
         }
 
-        internal sealed class NavigationTreeView : TreeView<int>
+        internal sealed class NavigationTreeView : ShapeSyncTreeView
         {
             private static readonly int[] FigureChildItemIds = { 3, 9, 7, 8, 6 };
             private static readonly string[] MeshOutfitChildLabels = { "Materials", "Normals", "FBMs", "PBMs", "Collections", "Figure Mask" };
@@ -5125,12 +5135,12 @@ namespace zgock.ShapeSync.Editor
             private readonly Dictionary<int, string> outfitChildLabelByItemId = new Dictionary<int, string>();
             private readonly Dictionary<int, string> shapeIdByItemId = new Dictionary<int, string>();
             private int lastAcceptedSelectionId = 1;
-            internal NavigationTreeView(TreeViewState<int> state, Func<Section, bool> onSelected, Func<Section> currentSection)
+            internal NavigationTreeView(ShapeSyncTreeViewState state, Func<Section, bool> onSelected, Func<Section> currentSection)
                 : this(state, id => id >= 1 && id <= 10 && onSelected((Section)(id - 1)), currentSection, null, null) { }
-            internal NavigationTreeView(TreeViewState<int> state, Func<int, bool> onSelected, Func<Section> currentSection,
+            internal NavigationTreeView(ShapeSyncTreeViewState state, Func<int, bool> onSelected, Func<Section> currentSection,
                 Func<IReadOnlyList<ShapeSyncDatabaseRegistry.OutfitEntry>> outfitProvider, Func<string, bool> outfitSelected)
                 : this(state, onSelected, currentSection, outfitProvider, outfitSelected, null) { }
-            internal NavigationTreeView(TreeViewState<int> state, Func<int, bool> onSelected, Func<Section> currentSection,
+            internal NavigationTreeView(ShapeSyncTreeViewState state, Func<int, bool> onSelected, Func<Section> currentSection,
                 Func<IReadOnlyList<ShapeSyncDatabaseRegistry.OutfitEntry>> outfitProvider, Func<string, bool> outfitSelected,
                 Func<string, string, bool> outfitChildSelected,
                 Func<IReadOnlyList<ShapeSyncDatabaseRegistry.ShapeEntry>> shapeProvider = null, Func<string, bool> shapeSelected = null,
@@ -5195,21 +5205,21 @@ namespace zgock.ShapeSync.Editor
                 SetSelection(new[] { itemId }, TreeViewSelectionOptions.RevealAndFrame);
             }
             /// <inheritdoc />
-            protected override TreeViewItem<int> BuildRoot()
+            protected override ShapeSyncTreeViewItem BuildRoot()
             {
                 outfitIdentityByItemId.Clear();
                 outfitChildLabelByItemId.Clear();
                 shapeIdByItemId.Clear();
                 int nextDynamicOutfitItemId = FirstDynamicOutfitItemId;
                 int nextDynamicShapeItemId = FirstDynamicShapeItemId;
-                TreeViewItem<int> root = new TreeViewItem<int> { id = 0, depth = -1, displayName = "Root", children = new System.Collections.Generic.List<TreeViewItem<int>>() };
-                root.children.Add(new TreeViewItem<int> { id = 1, depth = 0, displayName = TreeLabels[(int)Section.General] });
-                TreeViewItem<int> figure = new TreeViewItem<int> { id = 2, depth = 0, displayName = TreeLabels[(int)Section.Figure], children = new System.Collections.Generic.List<TreeViewItem<int>>() };
-                foreach (int id in GetFigureChildItemIds()) figure.children.Add(new TreeViewItem<int> { id = id, depth = 1, displayName = GetFigureChildDisplayName(id) });
+                ShapeSyncTreeViewItem root = new ShapeSyncTreeViewItem { id = 0, depth = -1, displayName = "Root", children = new System.Collections.Generic.List<ShapeSyncTreeViewItem>() };
+                root.children.Add(new ShapeSyncTreeViewItem { id = 1, depth = 0, displayName = TreeLabels[(int)Section.General] });
+                ShapeSyncTreeViewItem figure = new ShapeSyncTreeViewItem { id = 2, depth = 0, displayName = TreeLabels[(int)Section.Figure], children = new System.Collections.Generic.List<ShapeSyncTreeViewItem>() };
+                foreach (int id in GetFigureChildItemIds()) figure.children.Add(new ShapeSyncTreeViewItem { id = id, depth = 1, displayName = GetFigureChildDisplayName(id) });
                 root.children.Add(figure);
-                TreeViewItem<int> outfitRoot = new TreeViewItem<int> { id = OutfitsItemId, depth = 0, displayName = "Outfits", children = new List<TreeViewItem<int>>() };
-                TreeViewItem<int> meshOutfits = new TreeViewItem<int> { id = MeshOutfitsItemId, depth = 1, displayName = "Mesh Outfits", children = new List<TreeViewItem<int>>() };
-                TreeViewItem<int> materialOutfits = new TreeViewItem<int> { id = MaterialOutfitsItemId, depth = 1, displayName = "Material Outfits", children = new List<TreeViewItem<int>>() };
+                ShapeSyncTreeViewItem outfitRoot = new ShapeSyncTreeViewItem { id = OutfitsItemId, depth = 0, displayName = "Outfits", children = new List<ShapeSyncTreeViewItem>() };
+                ShapeSyncTreeViewItem meshOutfits = new ShapeSyncTreeViewItem { id = MeshOutfitsItemId, depth = 1, displayName = "Mesh Outfits", children = new List<ShapeSyncTreeViewItem>() };
+                ShapeSyncTreeViewItem materialOutfits = new ShapeSyncTreeViewItem { id = MaterialOutfitsItemId, depth = 1, displayName = "Material Outfits", children = new List<ShapeSyncTreeViewItem>() };
                 IReadOnlyList<ShapeSyncDatabaseRegistry.OutfitEntry> currentOutfits = outfits?.Invoke() ?? Array.Empty<ShapeSyncDatabaseRegistry.OutfitEntry>();
                 foreach (ShapeSyncDatabaseRegistry.OutfitEntry outfit in currentOutfits.Where(entry => entry != null))
                 {
@@ -5217,12 +5227,12 @@ namespace zgock.ShapeSync.Editor
                     {
                         int outfitItemId = nextDynamicOutfitItemId++;
                         outfitIdentityByItemId.Add(outfitItemId, outfit.Identity);
-                        TreeViewItem<int> meshOutfit = new TreeViewItem<int>
+                        ShapeSyncTreeViewItem meshOutfit = new ShapeSyncTreeViewItem
                         {
                             id = outfitItemId,
                             depth = 2,
                             displayName = outfit.DisplayName,
-                            children = new List<TreeViewItem<int>>()
+                            children = new List<ShapeSyncTreeViewItem>()
                         };
                         string[] childLabels = GetMeshOutfitChildLabels();
                         for (int childIndex = 0; childIndex < childLabels.Length; childIndex++)
@@ -5230,7 +5240,7 @@ namespace zgock.ShapeSync.Editor
                             int childItemId = nextDynamicOutfitItemId++;
                             outfitIdentityByItemId.Add(childItemId, outfit.Identity);
                             outfitChildLabelByItemId.Add(childItemId, childLabels[childIndex]);
-                            meshOutfit.children.Add(new TreeViewItem<int>
+                            meshOutfit.children.Add(new ShapeSyncTreeViewItem
                             {
                                 id = childItemId,
                                 depth = 3,
@@ -5243,28 +5253,28 @@ namespace zgock.ShapeSync.Editor
                     {
                         int outfitItemId = nextDynamicOutfitItemId++;
                         outfitIdentityByItemId.Add(outfitItemId, outfit.Identity);
-                        materialOutfits.children.Add(new TreeViewItem<int> { id = outfitItemId, depth = 2, displayName = outfit.DisplayName });
+                        materialOutfits.children.Add(new ShapeSyncTreeViewItem { id = outfitItemId, depth = 2, displayName = outfit.DisplayName });
                     }
                 }
                 outfitRoot.children.Add(meshOutfits);
                 outfitRoot.children.Add(materialOutfits);
                 root.children.Add(outfitRoot);
-                TreeViewItem<int> shapeRoot = new TreeViewItem<int> { id = ShapesItemId, depth = 0, displayName = TreeLabels[(int)Section.Shapes], children = new List<TreeViewItem<int>>() };
-                shapeRoot.children.Add(new TreeViewItem<int> { id = ShapeTagsItemId, depth = 1, displayName = "Tags" });
+                ShapeSyncTreeViewItem shapeRoot = new ShapeSyncTreeViewItem { id = ShapesItemId, depth = 0, displayName = TreeLabels[(int)Section.Shapes], children = new List<ShapeSyncTreeViewItem>() };
+                shapeRoot.children.Add(new ShapeSyncTreeViewItem { id = ShapeTagsItemId, depth = 1, displayName = "Tags" });
                 foreach (ShapeSyncDatabaseRegistry.ShapeKind kind in Enum.GetValues(typeof(ShapeSyncDatabaseRegistry.ShapeKind)))
                 {
-                    TreeViewItem<int> kindRoot = new TreeViewItem<int> { id = nextDynamicShapeItemId++, depth = 1, displayName = kind + " Shapes", children = new List<TreeViewItem<int>>() };
+                    ShapeSyncTreeViewItem kindRoot = new ShapeSyncTreeViewItem { id = nextDynamicShapeItemId++, depth = 1, displayName = kind + " Shapes", children = new List<ShapeSyncTreeViewItem>() };
                     foreach (ShapeSyncDatabaseRegistry.ShapeEntry shape in (shapes?.Invoke() ?? Array.Empty<ShapeSyncDatabaseRegistry.ShapeEntry>()).Where(entry => entry != null && entry.Kind == kind))
                     {
                         int shapeItemId = nextDynamicShapeItemId++;
                         shapeIdByItemId.Add(shapeItemId, shape.ShapeId);
-                        kindRoot.children.Add(new TreeViewItem<int> { id = shapeItemId, depth = 2, displayName = shape.DisplayName });
+                        kindRoot.children.Add(new ShapeSyncTreeViewItem { id = shapeItemId, depth = 2, displayName = shape.DisplayName });
                     }
                     shapeRoot.children.Add(kindRoot);
                 }
                 root.children.Add(shapeRoot);
-                root.children.Add(new TreeViewItem<int> { id = 5, depth = 0, displayName = TreeLabels[(int)Section.Textures] });
-                root.children.Add(new TreeViewItem<int> { id = 10, depth = 0, displayName = "Generation" });
+                root.children.Add(new ShapeSyncTreeViewItem { id = 5, depth = 0, displayName = TreeLabels[(int)Section.Textures] });
+                root.children.Add(new ShapeSyncTreeViewItem { id = 10, depth = 0, displayName = "Generation" });
                 return root;
             }
             private static string GetFigureChildDisplayName(int id) => id switch

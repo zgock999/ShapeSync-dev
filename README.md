@@ -11,6 +11,9 @@ expression baking, and SpringBone transport.
 - Universal Render Pipeline (URP) 17.0.0 or later. The validation baseline is
   `com.unity.render-pipelines.universal` 17.3.0; ShapeSync Phase0 supports URP
   only, and the URP package supplies the required Lit/Unlit shader identities.
+- A graphics API with async compute queue and fence support, such as D3D12 or
+  Vulkan. D3D11 is not a supported or guaranteed configuration for Texture
+  StackMachine processing.
 - Git 2.14 or later, with HTTPS access to the package repository
 - NuGetForUnity 4.5.0 for the R3 .NET core dependency
 - UniVRM 0.131.1 only when using the optional VRM Integration companion
@@ -57,7 +60,7 @@ Scopes: com.cysharp, com.vrmc, com.github-glitchenzo
 `com.github-glitchenzo` is required only to install NuGetForUnity from the
 same registry.
 
-### 2. Install NuGetForUnity and R3
+### 2. Install NuGetForUnity and the NuGet R3 package
 
 In Package Manager, add the package by name:
 
@@ -65,13 +68,20 @@ In Package Manager, add the package by name:
 com.github-glitchenzo.nugetforunity 4.5.0
 ```
 
-Open NuGetForUnity's package manager, search for `R3`, and install version
-`1.3.1`. Allow it to restore its .NET dependency closure into the consumer
-project. Do not copy R3 DLLs into this repository or into either ShapeSync
-package manually. This UI step creates or updates the consumer-side
-`Assets/packages.config` and `NuGet.config`; keep those files with the
-consumer project. For a command-line verification, `nugetforunity restore
-<project-path>` is equivalent to the UI restore step.
+Open the Unity menu **NuGet > Manage NuGet Packages**, search for the NuGet
+package `R3`, and install version `1.3.1` there. This is a different package
+from the `R3 1.3.1` entry shown by Unity Package Manager in step 3: the latter
+is the `com.cysharp.r3` Unity adapter. Do not treat that Package Manager entry
+as proof that the NuGet package was installed.
+
+Complete this step through the NuGetForUnity UI. It creates or updates the
+consumer-side `Assets/packages.config` and `NuGet.config` and restores the
+required .NET closure. Do not copy R3 DLLs into this repository or into either
+ShapeSync package manually. Verify the actual payload, rather than a fixed
+dependency count: `Assets/packages.config` contains `R3` version `1.3.1` with
+`manuallyInstalled="true"`, and
+`Assets/Packages/R3.1.3.1/lib/.../R3.dll` exists. The transitive package count
+is environment-dependent.
 
 ### 3. Install the R3 Unity adapter
 
@@ -101,15 +111,21 @@ For an application scene, assign a URP Render Pipeline Asset in the usual
 **Project Settings > Graphics** / **Quality** locations. Built-in RP, HDRP,
 and custom SRP are outside ShapeSync Phase0 support.
 
+For Windows, open **Edit > Project Settings > Player > Other Settings >
+Rendering > Graphics APIs for Windows** and confirm that D3D11 is not the
+first or only API. Select an async-compute-capable API such as D3D12 or Vulkan.
+The Texture StackMachine uses an async compute queue and `GraphicsFence`; D3D11
+is not supported or guaranteed.
+
 ### 5. Install ShapeSync Core from Git
 
 In Package Manager, choose **Add package from git URL** and enter:
 
 ```text
-https://github.com/zgock999/ShapeSync-dev.git?path=Packages/net.zgock-lab.shapesync#0.2.0-preview2
+https://github.com/zgock999/ShapeSync-dev.git?path=Packages/net.zgock-lab.shapesync#0.2.0-preview3
 ```
 
-The `?path=` subfolder must appear before `#0.2.0-preview2`. The revision is
+The `?path=` subfolder must appear before `#0.2.0-preview3`. The revision is
 the lockstep package tag and must not be replaced with an unverified short
 SHA.
 
@@ -137,7 +153,7 @@ Core-only projects skip this step.
 After Core is installed, add the companion from git:
 
 ```text
-https://github.com/zgock999/ShapeSync-dev.git?path=Packages/net.zgock-lab.shapesync.vrm#0.2.0-preview2
+https://github.com/zgock999/ShapeSync-dev.git?path=Packages/net.zgock-lab.shapesync.vrm#0.2.0-preview3
 ```
 
 Then add `SHAPESYNC_USE_UNIVRM` under **Project Settings > Player > Scripting
@@ -160,8 +176,25 @@ The type or namespace name 'Collections' does not exist in the namespace 'R3'
 The type or namespace name 'FrameProvider' could not be found
 ```
 
-NuGetForUnity or the NuGet `R3` package was skipped. Install NuGetForUnity,
-restore `R3 1.3.1`, and allow Unity to recompile before adding ShapeSync.
+or `Observable<>` / `Unit` errors inside `com.cysharp.r3`, the NuGet R3 package
+was not installed. If `Assets/packages.config` is empty or does not contain
+`R3` with `manuallyInstalled="true"`, step 2 was not completed; the similarly
+named `R3 1.3.1` in Unity Package Manager is only the step 3 adapter. Open
+**NuGet > Manage NuGet Packages**, install NuGet `R3 1.3.1`, verify
+`Assets/Packages/R3.1.3.1/lib/.../R3.dll`, and let Unity recompile.
+
+### Texture processing fails on Windows
+
+If the log contains an exception such as:
+
+```text
+NotSupportedException: Cannot determine if this AsyncQueueSynchronisation Graphics...
+```
+
+check **Player Settings > Other Settings > Rendering > Graphics APIs for
+Windows**. D3D11 does not provide the async compute queue/fence capability used
+by Texture StackMachine. Use D3D12 or Vulkan; D3D11 is not supported or
+guaranteed.
 
 ### The VRM companion cannot find Core
 
@@ -178,7 +211,7 @@ Cannot checkout repository ... pathspec ... did not match any file(s) known to g
 ```
 
 Use the exact URL above, including `.git`, the package subfolder, and the
-`#0.2.0-preview2` revision.
+`#0.2.0-preview3` revision.
 
 ## Documentation
 

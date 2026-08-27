@@ -12,6 +12,12 @@ using UnityEngine;
 using Object = UnityEngine.Object;
 using zgock.ShapeSync.Editor;
 
+#if UNITY_6000_2_OR_NEWER
+using ShapeSyncTreeViewState = UnityEditor.IMGUI.Controls.TreeViewState<int>;
+#else
+using ShapeSyncTreeViewState = UnityEditor.IMGUI.Controls.TreeViewState;
+#endif
+
 namespace zgock.ShapeSync.Tests.EditMode.Spec20
 {
     public sealed class ShapeSyncShapeAuthoringTests
@@ -306,7 +312,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec20
             Assert.That(registry.TrySetShapeTags(System.Array.Empty<string>(), out string tagDiagnostic), Is.True, tagDiagnostic);
             Assert.That(registry.TryAddShape("hair-id", string.Empty, ShapeSyncDatabaseRegistry.ShapeKind.Hair, 0, System.Array.Empty<string>(), out string shapeDiagnostic), Is.True, shapeDiagnostic);
             string selectedId = null;
-            var tree = new ShapeSyncDatabaseWindow.NavigationTreeView(new TreeViewState<int>(), _ => true,
+            var tree = new ShapeSyncDatabaseWindow.NavigationTreeView(new ShapeSyncTreeViewState(), _ => true,
                 () => ShapeSyncDatabaseWindow.Section.General, null, null, null, () => registry.Shapes,
                 id => { selectedId = id; return true; });
 

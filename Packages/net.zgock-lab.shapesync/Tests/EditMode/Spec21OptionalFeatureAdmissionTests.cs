@@ -8,6 +8,12 @@ using UnityEditor.IMGUI.Controls;
 using zgock.ShapeSync;
 using zgock.ShapeSync.Editor;
 
+#if UNITY_6000_2_OR_NEWER
+using ShapeSyncTreeViewState = UnityEditor.IMGUI.Controls.TreeViewState<int>;
+#else
+using ShapeSyncTreeViewState = UnityEditor.IMGUI.Controls.TreeViewState;
+#endif
+
 namespace zgock.ShapeSync.Tests.EditMode
 {
     public sealed class Spec21OptionalFeatureAdmissionTests
@@ -64,7 +70,7 @@ namespace zgock.ShapeSync.Tests.EditMode
         public void NavigationTree_WithoutOptionalProvider_HidesVrmNodes()
         {
             ShapeSyncDatabaseWindow.NavigationTreeView tree = new ShapeSyncDatabaseWindow.NavigationTreeView(
-                new TreeViewState<int>(),
+                new ShapeSyncTreeViewState(),
                 _ => true,
                 () => ShapeSyncDatabaseWindow.Section.General);
 
