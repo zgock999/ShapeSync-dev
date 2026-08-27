@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShapeSync チュートリアルガイド</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #38bdf8;
+            --primary-glow: rgba(56, 189, 248, 0.15);
+            --accent: #818cf8;
+            --code-bg: #090d16;
+            --quote-border: #38bdf8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.7;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 300px;
+            background-color: #090d16;
+            border-right: 1px solid var(--card-border);
+            padding: 30px 20px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .sidebar-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toc-list {
+            list-style: none;
+        }
+
+        .toc-item {
+            margin-bottom: 8px;
+        }
+
+        .toc-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: block;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .toc-link:hover {
+            color: var(--primary);
+            background-color: rgba(56, 189, 248, 0.1);
+        }
+
+        .toc-sublist {
+            list-style: none;
+            padding-left: 15px;
+            margin-top: 4px;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex-grow: 1;
+            padding: 40px 60px;
+            max-width: 1000px;
+        }
+
+        header {
+            margin-bottom: 40px;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #ffffff 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .doc-lead {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+        }
+
+        h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-top: 50px;
+            margin-bottom: 20px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        p {
+            margin-bottom: 16px;
+            color: #cbd5e1;
+        }
+
+        ul, ol {
+            margin-bottom: 20px;
+            padding-left: 24px;
+            color: #cbd5e1;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        strong {
+            color: #ffffff;
+        }
+
+        hr {
+            border: 0;
+            height: 1px;
+            background: var(--card-border);
+            margin: 40px 0;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+        }
+
+        th, td {
+            padding: 12px 18px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #1e293b;
+            color: var(--primary);
+            font-weight: 600;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        td {
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            color: #cbd5e1;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Blockquotes / Callouts */
+        blockquote {
+            background-color: var(--card-bg);
+            border-left: 4px solid var(--quote-border);
+            padding: 18px 24px;
+            margin: 24px 0;
+            border-radius: 0 8px 8px 0;
+            color: #e2e8f0;
+        }
+
+        blockquote p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Code Blocks */
+        pre {
+            background-color: var(--code-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 24px 0;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.9rem;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            background-color: rgba(56, 189, 248, 0.1);
+            color: var(--primary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.88em;
+        }
+
+        pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+        }
+
+        /* Image Display Card */
+        .image-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 28px 0;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .image-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .image-caption {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            margin-top: 12px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        footer {
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px solid var(--card-border);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: static;
+            }
+            .main-content {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                ShapeSync Guide
+            </div>
+            <ul class="toc-list">
+                <li class="toc-item"><a href="#section-1" class="toc-link">1. はじめに</a>
+                    <ul class="toc-sublist">
+                        <li><a href="#section-1-1" class="toc-link">1.1 ShapeSync の概要</a></li>
+                        <li><a href="#section-1-2" class="toc-link">1.2 コア概念</a></li>
+                    </ul>
+                </li>
+                <li class="toc-item"><a href="#section-2" class="toc-link">2. Quick Start</a>
+                    <ul class="toc-sublist">
+                        <li><a href="#section-2-step1" class="toc-link">ステップ 1: サンプルシーン</a></li>
+                        <li><a href="#section-2-step2" class="toc-link">ステップ 2: シーン構成確認</a></li>
+                        <li><a href="#section-2-step3" class="toc-link">ステップ 3: Play モード & FBM</a></li>
+                        <li><a href="#section-2-step4" class="toc-link">ステップ 4: 衣装アタッチ/デタッチ</a></li>
+                    </ul>
+                </li>
+                <li class="toc-item"><a href="#section-3" class="toc-link">3. 実践ガイド 1: Figure アセット作成</a>
+                    <ul class="toc-sublist">
+                        <li><a href="#section-3-step1" class="toc-link">ステップ 1: メッシュ結合</a></li>
+                        <li><a href="#section-3-step2" class="toc-link">ステップ 2: Figure Builder</a></li>
+                        <li><a href="#section-3-step3" class="toc-link">ステップ 3: 動作確認</a></li>
+                    </ul>
+                </li>
+                <li class="toc-item"><a href="#section-4" class="toc-link">4. 実践ガイド 2: Outfit アセット作成</a>
+                    <ul class="toc-sublist">
+                        <li><a href="#section-4-step1" class="toc-link">ステップ 1: 衣装分離抽出</a></li>
+                        <li><a href="#section-4-step2" class="toc-link">ステップ 2: Outfit Builder 参照</a></li>
+                        <li><a href="#section-4-step3" class="toc-link">ステップ 3: ビルド</a></li>
+                    </ul>
+                </li>
+                <li class="toc-item"><a href="#section-5" class="toc-link">5. 実践ガイド 3: C# Runtime API</a></li>
+                <li class="toc-item"><a href="#section-6" class="toc-link">6. トラブルシューティング</a></li>
+                <li class="toc-item"><a href="#section-7" class="toc-link">7. 次のステップ (Next Steps)</a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header>
+                <h1>ShapeSync チュートリアルガイド (tutorial.html)</h1>
+                <p class="doc-lead">本ガイドは、Unity 向け 3D アバター着せ替え・体型変形ミドルウェア <strong>ShapeSync</strong> を使用して、アバターの素体化 (Figure) およびリアルタイム体型変形 (Full Body Morph: FBM) を導入・制御する手順を解説する Getting Started チュートリアルドキュメントです。</p>
+            </header>
+
+            <!-- SECTION 1 -->
+            <section id="section-1">
+                <h2>1. はじめに</h2>
+                
+                <h3 id="section-1-1">1.1 ShapeSync の概要</h3>
+                <p>ShapeSync は、Unity 上で 3D アバターの衣装着せ替えと動的な体型変更を高度に制御するためのミドルウェアです。<br>
+                UniVRM 等の外部ライブラリに依存せず、Core Package 単体で Figure Builder や Mesh Utility、<code>DynamicBoneBlender</code> による Figure 化および FBM 機能が独立して動作します。</p>
+
+                <ul>
+                    <li><strong>対象環境</strong>: Unity 6.0 LTS 以上（基本レンダリング環境: Universal Render Pipeline / URP）</li>
+                    <li><strong>Core Package</strong>: <code>net.zgock-lab.shapesync</code> （UniVRM なしで単独動作可能）</li>
+                    <li><strong>VRM Companion</strong>: <code>net.zgock-lab.shapesync.vrm</code> （ShapeSync VRM サポートオプション）</li>
+                </ul>
+
+                <h3 id="section-1-2">1.2 コア概念</h3>
+                <p>ShapeSync を理解するための基本概念です。</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>概念</th>
+                            <th>説明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Figure (フィギュア)</strong></td>
+                            <td>着せ替えや体型変形の土台となるキャラクター素体 Prefab です。ベースとなる <code>SkinnedMeshRenderer</code> やボーン構造、変形定義を保持します。</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Outfit (アウトフィット)</strong></td>
+                            <td>Figure に着用させる衣装、髪型、アクセサリーなどの各種アセットです。Figure の体型変化に連動して形状やボーンが自動変形します。</td>
+                        </tr>
+                        <tr>
+                            <td><strong>FBM (Full Body Morph)</strong></td>
+                            <td>Mesh の BlendShape、Bindpose（バインドポーズ）、Humanoid Avatar を統合制御し、メッシュだけでなくボーンスケールや位置を含めてキャラクターの体型全体を動的に変形・調整するシステムです。</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 2 -->
+            <section id="section-2">
+                <h2>2. Quick Start (サンプルシーンの実行)</h2>
+                <p>まずはプロジェクトに同梱されているサンプルシーンを起動し、ShapeSync によるリアルタイム体型変形 (FBM) と衣装のアタッチ / デタッチ動作を体験してみましょう。</p>
+
+                <h3 id="section-2-step1">ステップ 1: サンプルシーンを開く</h3>
+                <ol>
+                    <li>Unity エディタの Project フォルダから <code>Assets/Scenes/SampleScene.unity</code> をダブルクリックして開きます。</li>
+                </ol>
+
+                <h3 id="section-2-step2">ステップ 2: シーン構成を確認する</h3>
+                <p>Hierarchy ウィンドウで <strong><code>[BasicFemale_ShapeSync]</code></strong> を選択し、Inspector ウィンドウを確認します。</p>
+                <p><code>[BasicFemale_ShapeSync]</code> の GameObject には、ShapeSync の基幹となる 2 つの Runtime コンポーネントがアタッチされています。</p>
+                <ul>
+                    <li><strong><code>DynamicBoneBlender</code></strong>: FBM の Weight 変形、ボーンスケール、バインドポーズ調整を一元管理するコンポーネント。</li>
+                    <li><strong><code>OutfitAttacher</code></strong>: 衣装 (Outfit) のアタッチ・デタッチ、および Figure の FBM Weight 変化を Outfit へ同期制御するコンポーネント。</li>
+                </ul>
+
+                <!-- IMAGE CARD 1 -->
+                <div class="image-card">
+                    <img src="images/Tut-Fig1.png" alt="サンプルシーンの起動とコンポーネント構造の確認">
+                    <div class="image-caption">図 1: サンプルキャラクター [BasicFemale_ShapeSync] と DynamicBoneBlender / OutfitAttacher コンポーネントの構造</div>
+                </div>
+
+                <h3 id="section-2-step3">ステップ 3: プレイモードの開始と FBM (体型変形) のテスト</h3>
+                <ol>
+                    <li>Unity エディタ上部の <strong>Play ボタン (再生ボタン)</strong> を押して Play モードに入ります。</li>
+                    <li>Hierarchy で <strong><code>[BasicFemale_ShapeSync]</code></strong> を選択します。</li>
+                    <li>Inspector の <code>DynamicBoneBlender</code> コンポーネント内にある Morph / Target Weight スライダーを動かします。</li>
+                    <li>キャラクターのメッシュとボーン構造がリアルタイムかつ自然に変形することを確認してください。</li>
+                </ol>
+
+                <h3 id="section-2-step4">ステップ 4: 衣装 (Outfit) の着せ替えとデタッチのテスト</h3>
+                <ol>
+                    <li>Play モードのまま、Project ウィンドウの <code>Assets/Models/</code> フォルダ内にある <strong><code>Shirt_ShapeSyncOutfit.prefab</code></strong> を探します。</li>
+                    <li>Inspector ウィンドウの <code>OutfitAttacher</code> コンポーネント内にある <strong>「Drop Outfit Prefab Here」</strong> と書かれたエリア内に <code>Shirt_ShapeSyncOutfit.prefab</code> をドラッグ＆ドロップします。</li>
+                    <li>キャラクターにシャツが着用され、<code>DynamicBoneBlender</code> の FBM 変形に合わせてシャツも追従・変形することを確認します。</li>
+                    <li>着用中の衣装は <code>OutfitAttacher</code> の <strong>Attached Outfits</strong> リストに追加されます。リスト内の衣装項目の横にある <strong>「Delete (Detach)」</strong> ボタンをクリックするとデタッチされます。</li>
+                </ol>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 3 -->
+            <section id="section-3">
+                <h2>3. 実践ガイド 1: Figure アセットの作成</h2>
+                <p>自身の 3D アバターモデルから ShapeSync 対応の Figure アセットを作成し、歩行アニメーション中に FBM をリアルタイム適用する標準ワークフローを解説します。</p>
+
+                <blockquote>
+                    このチュートリアルでは VRoid Studio 出力の .vrm を Unity の入力 Prefab として使うため、対応する UniVRM を事前に導入します。UniVRM は VRM の import にのみ用い、Mesh Utility / Figure Builder / FBM の ShapeSync Core ワークフロー自体は <code>SHAPESYNC_USE_UNIVRM</code> を必要としません。
+                </blockquote>
+
+                <blockquote>
+                    <p><strong>事前準備（アバターとアニメーションの用意）</strong></p>
+                    <ul>
+                        <li><strong>ベース素体 (Base)</strong>: <code>Assets/Models/VRM/BasicFemale.vrm</code></li>
+                        <li><strong>FBM ターゲット (Target)</strong>: <code>Assets/Models/VRM/BasicGirl.vrm</code> （Base とトポロジーが同一で体型が異なるアバター）</li>
+                        <li><strong>歩行アニメーション</strong>: Quaternius 氏作 <a href="https://opengameart.org/content/universal-animation-library" target="_blank">Universal Animation Library</a> (CC0) 等の Humanoid 対応アニメーションクリップ。</li>
+                    </ul>
+                    <p>※ 入力モデルとして使用するアバターデータのライセンス（CC0 等）は各自で事前にご確認ください。</p>
+                </blockquote>
+
+                <h3 id="section-3-step1">ステップ 1: Mesh Utility によるメッシュ結合 (Preprocess)</h3>
+                <p>体パーツ（Body, Face, Hair 等）が複数の <code>SkinnedMeshRenderer</code> に分かれているアバターは、事前処理として Mesh Utility を用いて 1 つのメッシュに結合します。</p>
+                <ol>
+                    <li>メニューバーから <strong><code>Tools > zgock > ShapeSync > Mesh Utility</code></strong> を開きます。</li>
+                    <li>ウィンドウ上部の <strong><code>Mesh Assembly</code></strong> タブを選択します。</li>
+                    <li><strong>Root Object</strong> フィールドに <code>Assets/Models/VRM/BasicFemale.vrm</code> をドラッグ＆ドロップします。</li>
+                    <li><strong>「Collect Skinned Mesh Renderers From Root」</strong> ボタンをクリックし、分解されているメッシュをリストに収集します。</li>
+                    <li><strong>「Generate Merged Prefab」</strong> ボタンを押して、結合済みの素体 Prefab を出力します（<code>Assets/Models/Base/</code> 内などに保存）。</li>
+                    <li>同様に、FBM ターゲットアバター <code>Assets/Models/VRM/BasicGirl.vrm</code> についても Mesh Assembly を実行し、結合済み Prefab を作成します。</li>
+                </ol>
+
+                <!-- IMAGE CARD 2 (Tut-Fig3.png) -->
+                <div class="image-card">
+                    <img src="images/Tut-Fig3.png" alt="Mesh Utility でのメッシュ結合">
+                    <div class="image-caption">図 2: Mesh Utility (Mesh Assembly タブ) での「Collect」と「Generate Merged Prefab」の操作</div>
+                </div>
+
+                <h3 id="section-3-step2">ステップ 2: Figure Builder による Figure Prefab の生成</h3>
+                <p>結合されたメッシュデータから ShapeSync の Figure アセットを構築します。</p>
+                <ol>
+                    <li>メニューバーから <strong><code>Tools > zgock > ShapeSync > Figure Builder</code></strong> を開きます。</li>
+                    <li><strong>Base Renderer</strong> にステップ 1 で結合した <code>BasicFemale</code> の <code>SkinnedMeshRenderer</code> を設定します。</li>
+                    <li><strong>Target FBM Entries</strong> セクションの <strong>「Add Target」</strong> ボタンをクリックします。</li>
+                    <li>追加された Target 項目に、FBM ターゲット (<code>BasicGirl</code>) の <code>SkinnedMeshRenderer</code> を割り当て、BlendName に <code>BasicGirl</code> と入力します。</li>
+                    <li><strong>「Generate BlendShape Prefab」</strong> ボタンをクリックします。</li>
+                    <li>必要な FBM BlendShape、<code>CharacterBoneRegistry</code>、および Runtime コンポーネント (<code>DynamicBoneBlender</code>, <code>OutfitAttacher</code>) が自動設定された <strong>Figure Prefab</strong>（<code>Assets/Models/</code> 内）が生成されます。</li>
+                </ol>
+
+                <!-- IMAGE CARD 3 (Tut-Fig4.png) -->
+                <div class="image-card">
+                    <img src="images/Tut-Fig4.png" alt="Figure Builder ウィンドウ">
+                    <div class="image-caption">図 3: Figure Builder での Base Renderer と Target FBM Entry の割り当て設定</div>
+                </div>
+
+                <h3 id="section-3-step3">ステップ 3: シーン配置・アニメーション適用と動作確認</h3>
+                <ol>
+                    <li>生成された Figure Prefab をシーンに配置します。</li>
+                    <li>Figure の <code>Animator</code> コンポーネントに Animator Controller を割り当て、歩行アニメーションクリップを設定します。</li>
+                    <li>Play モードを開始します。</li>
+                    <li>キャラクターが歩行動作を行っている状態で、Inspector 上の <code>DynamicBoneBlender</code> の <code>BasicGirl</code> Weight スライダーを変更します。</li>
+                    <li><strong>達成条件</strong>: 歩行アニメーションの動作を崩すことなく、キャラクターの体型（メッシュおよびボーン）が安定して変化することを確認します。</li>
+                </ol>
+
+                <!-- IMAGE CARD 4 (Tut-Fig2.png) -->
+                <div class="image-card">
+                    <img src="images/Tut-Fig2.png" alt="アニメーション再生中の FBM リアルタイム体型変形">
+                    <div class="image-caption">図 4: 歩行アニメーション再生中における FBM (BasicGirl) のリアルタイム Weight 変更検証</div>
+                </div>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 4 -->
+            <section id="section-4">
+                <h2>4. 実践ガイド 2: Outfit アセットの作成</h2>
+                <p>服を着たアバターモデルから衣装部分のみを抽出分離し、Figure の FBM（体型変化）に同期して自動変形する ShapeSync 対応の Outfit アセットを生成します。</p>
+
+                <h3 id="section-4-step1">ステップ 1: Mesh Utility (Separator) による衣装メッシュの分離抽出 (Preprocess)</h3>
+                <p>服を着たアバターモデルから衣装のみを抽出・独立した Prefab として切り出します。</p>
+                <ol>
+                    <li>メニューバーから <strong><code>Tools > zgock > ShapeSync > Mesh Utility</code></strong> を開きます。</li>
+                    <li>ウィンドウ上部の <strong><code>Mesh Separation</code></strong> タブを選択します。</li>
+                    <li><strong>Source Renderer</strong> に、服を着用したアバターモデルの <code>SkinnedMeshRenderer</code> を設定します。</li>
+                    <li>下部に表示されるマテリアルリストから、衣装に対応する Material slot を選択してチェックを入れます（※本チュートリアル用教材モデルでは <code>*_CLOTH_*</code> という名称が含まれるマテリアルが該当します。複数存在する場合は該当するすべてを選択します）。</li>
+                    <li><strong>「Generate Separated Mesh Prefab」</strong> ボタンをクリックし、衣装部分のみが切り出された <strong>Base Outfit Prefab</strong> を出力します。</li>
+                    <li>同様に、FBM ターゲット体型用の衣装モデルについても Mesh Separation を行い、ターゲット用の衣装 Prefab を作成します。</li>
+                </ol>
+
+                <!-- IMAGE CARD 5 (Tut-Fig5.png) -->
+                <div class="image-card">
+                    <img src="images/Tut-Fig5.png" alt="Mesh Separation による衣装マテリアルの分離抽出">
+                    <div class="image-caption">図 5: Mesh Separation タブでの衣装対応マテリアル (*_CLOTH_*) の選択と分離 Prefab の生成</div>
+                </div>
+
+                <h3 id="section-4-step2">ステップ 2: Outfit Builder の起動と参照指定</h3>
+                <ol>
+                    <li>メニューバーから <strong><code>Tools > zgock > ShapeSync > Outfit Builder</code></strong> を開きます。</li>
+                    <li><strong>Figure Root</strong>: 実践ガイド 1 で作成した Figure Prefab のルート GameObject を指定します。</li>
+                    <li><strong>Figure Animator</strong>: Figure の <code>Animator</code> コンポーネントを指定します。</li>
+                    <li><strong>Base Outfit Root</strong>: ステップ 1 で分離抽出した <strong>Base Outfit Prefab</strong> のルート GameObject を指定します。</li>
+                    <li><strong>Registry Id</strong>: 服の ID（システム上でユニークであること。例: <code>shirt-1</code>）を入力します。</li>
+                    <li><strong>Registry Name</strong>: わかりやすい名前（例: <code>White Shirt</code>）を入力します。</li>
+                </ol>
+
+                <h3 id="section-4-step3">ステップ 3: FBM Target の追加とビルド</h3>
+                <ol>
+                    <li><strong>FBM Outfit Roots</strong> セクションで <strong>「Add FBM Target」</strong> ボタンをクリックします。</li>
+                    <li>Figure 側の FBM 名（<code>BasicGirl</code>）を入力し、ステップ 1 で分離抽出したターゲット用の衣装 Prefab を割り当てます。</li>
+                    <li>ウィンドウ下部の <strong>「Generate Skinned Mesh Outfit Prefab」</strong> ボタンをクリックし、ShapeSync 対応の <strong>Outfit Prefab</strong>（例: <code>Shirt_ShapeSyncOutfit.prefab</code>）を出力します。</li>
+                </ol>
+
+                <!-- IMAGE CARD 6 (Tut-Fig6.png) -->
+                <div class="image-card">
+                    <img src="images/Tut-Fig6.png" alt="Outfit Builder での参照指定と Outfit ビルド">
+                    <div class="image-caption">図 6: Outfit Builder での Figure Root、Base Outfit Root、Registry Id / Name、および FBM Target の設定画面</div>
+                </div>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 5 -->
+            <section id="section-5">
+                <h2>5. 実践ガイド 3: スクリプトからの制御 (Runtime API)</h2>
+                <p>C# スクリプトを用いて、ゲームプレイ中に動的に FBM Weight の変更や衣装のアタッチ (<code>TryAttach</code>) / デタッチ (<code>Detach</code>) を行う安全な実装例です。</p>
+
+<pre><code class="language-csharp">using UnityEngine;
+using zgock.ShapeSync;
+
+/// &lt;summary&gt;
+/// ShapeSync の Runtime API (OutfitAttacher / DynamicBoneBlender) を操作するサンプルスクリプト
+/// &lt;/summary&gt;
+public class ShapeSyncRuntimeController : MonoBehaviour
+{
+    [Header("Target References")]
+    [SerializeField] private DynamicBoneBlender dynamicBoneBlender;
+    [SerializeField] private OutfitAttacher outfitAttacher;
+
+    [Header("Outfit Prefab to Attach")]
+    [SerializeField] private ShapeSyncOutfit outfitPrefab; // 例: Shirt_ShapeSyncOutfit Prefab に付与された ShapeSyncOutfit
+
+    // アタッチ成功時に保持する Registry ID
+    private string attachedRegistryId;
+
+    private void Start()
+    {
+        if (dynamicBoneBlender == null) dynamicBoneBlender = GetComponent&lt;DynamicBoneBlender&gt;();
+        if (outfitAttacher == null) outfitAttacher = GetComponent&lt;OutfitAttacher&gt;();
+    }
+
+    /// &lt;summary&gt;
+    /// FBM (体型モーフ) の Weight を変更する
+    /// &lt;/summary&gt;
+    /// &lt;param name="targetIndex"&gt;FBM ターゲットのインデックス&lt;/param&gt;
+    /// &lt;param name="weight"&gt;モーフの強さ (0.0f ~ 1.0f)&lt;/param&gt;
+    public void SetBodyMorphWeight(int targetIndex, float weight)
+    {
+        if (dynamicBoneBlender == null || dynamicBoneBlender.Targets == null) return;
+
+        if (targetIndex &gt;= 0 &amp;&amp; targetIndex &lt; dynamicBoneBlender.Targets.Count)
+        {
+            // FBM Target の Weight を更新
+            dynamicBoneBlender.Targets[targetIndex].weight = Mathf.Clamp01(weight);
+        }
+    }
+
+    /// &lt;summary&gt;
+    /// 衣装 Prefab を動的にアタッチ (着用) する
+    /// &lt;/summary&gt;
+    public void AttachOutfit()
+    {
+        if (outfitAttacher == null || outfitPrefab == null) return;
+
+        // ShapeSyncOutfit コンポーネントを持つ Prefab を指定してアタッチを試行
+        bool success = outfitAttacher.TryAttach(outfitPrefab);
+        if (success)
+        {
+            // アタッチ成功時、Prefab の RegistryId を保存して確実にデタッチできるようにする
+            attachedRegistryId = outfitPrefab.RegistryId;
+            Debug.Log($"Outfit attached successfully. Registry ID: {attachedRegistryId}");
+        }
+        else
+        {
+            Debug.LogWarning($"Failed to attach outfit: {outfitPrefab.name}");
+        }
+    }
+
+    /// &lt;summary&gt;
+    /// アタッチ中の衣装を Registry ID を指定してデタッチ (脱着) する
+    /// &lt;/summary&gt;
+    public void DetachOutfit()
+    {
+        if (outfitAttacher == null || string.IsNullOrEmpty(attachedRegistryId)) return;
+
+        // 保存しておいた Registry ID を指定してデタッチを試行
+        bool success = outfitAttacher.Detach(attachedRegistryId);
+        if (success)
+        {
+            Debug.Log($"Outfit detached successfully. Registry ID: {attachedRegistryId}");
+            attachedRegistryId = null;
+        }
+        else
+        {
+            Debug.LogWarning($"Failed to detach outfit. Registry ID: {attachedRegistryId}");
+        }
+    }
+}</code></pre>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 6 -->
+            <section id="section-6">
+                <h2>6. トラブルシューティング＆前提条件</h2>
+                <p>動作に問題が発生した場合は、以下の前提条件を確認してください。</p>
+
+                <ul>
+                    <li><strong>Humanoid Avatar の確認</strong>:
+                        <ul><li>ベース素体および FBM ターゲットアバターの Model Import Settings において、Rig タイプが <code>Humanoid</code> に正しく設定されているか。</li></ul>
+                    </li>
+                    <li><strong>トポロジー（メッシュ構造）の一致</strong>:
+                        <ul><li>Base と Target の頂点数およびメッシュの構造（トポロジー）が一致しているか。構造の異なるメッシュ間ではビルドエラーになります。</li></ul>
+                    </li>
+                    <li><strong>Animator Controller と Animation Clip の割当</strong>:
+                        <ul><li>Play モードでモーションが再生されない場合、<code>Animator</code> に有効な Controller および Clip が割り当てられているか。</li></ul>
+                    </li>
+                    <li><strong>FBM 操作対象の確認</strong>:
+                        <ul><li><code>DynamicBoneBlender</code> コンポーネントがアタッチされている正確な Figure オブジェクトを選択しているか。</li></ul>
+                    </li>
+                </ul>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 7 -->
+            <section id="section-7">
+                <h2>7. 次のステップ / 発展的なトピック (Next Steps)</h2>
+                <p>ShapeSync の基礎的な Figure 化と FBM リアルタイム制御をマスターした後は、必要に応じて以下の高度な機能を利用できます。これらについては別冊の発展ガイドを参照してください。</p>
+
+                <ul>
+                    <li><strong>Bone Correction Profile (BC Profile)</strong>:
+                        <ul><li>特定のボーン構造に対する高度な補正パラメータの設定。</li></ul>
+                    </li>
+                    <li><strong>Profile Controlled Morph (PCM)</strong>:
+                        <ul><li>プロファイル制御による複雑な部位別モーフ・ペイロードワークフロー。</li></ul>
+                    </li>
+                    <li><strong>Partial Body Morph (PBM) / 表情ベイク / VRM 連携</strong>:
+                        <ul><li>部位限定モーフや VRM 特有の Expression 連携機能。</li></ul>
+                    </li>
+                </ul>
+
+                <div style="background-color: var(--card-bg); border: 1px solid var(--primary); border-radius: 10px; padding: 20px; margin-top: 25px; text-align: center;">
+                    <p style="margin-bottom: 12px; font-weight: 600; color: #ffffff;">次のステップ: PBM・BC Profile・PCM 等の応用機能を学ぶ</p>
+                    <a href="advanced.html" style="display: inline-block; background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%); color: #0f172a; font-weight: 700; text-decoration: none; padding: 12px 28px; border-radius: 8px; transition: transform 0.2s ease;">ShapeSync 高度な機能ガイド (advanced.html) へ進む →</a>
+                </div>
+            </section>
+
+            <footer>
+                &copy; 2026 ShapeSync Documentation Team. Single-page Tutorial HTML with Embedded High-Res Figures.
+            </footer>
+        </main>
+    </div>
+</body>
+</html>

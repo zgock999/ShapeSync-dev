@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShapeSync 高度な機能ガイド (advanced.html)</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #38bdf8;
+            --primary-glow: rgba(56, 189, 248, 0.15);
+            --accent: #818cf8;
+            --code-bg: #090d16;
+            --quote-border: #38bdf8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.7;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+            min-height: 100vh;
+        }
+
+        /* サイドバーナビゲーション */
+        .sidebar {
+            width: 300px;
+            background-color: #090d16;
+            border-right: 1px solid var(--card-border);
+            padding: 30px 20px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .sidebar-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toc-list {
+            list-style: none;
+        }
+
+        .toc-item {
+            margin-bottom: 8px;
+        }
+
+        .toc-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: block;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .toc-link:hover {
+            color: var(--primary);
+            background-color: rgba(56, 189, 248, 0.1);
+        }
+
+        .toc-sublist {
+            list-style: none;
+            padding-left: 15px;
+            margin-top: 4px;
+        }
+
+        /* メインコンテンツ */
+        .main-content {
+            flex-grow: 1;
+            padding: 40px 60px;
+            max-width: 1000px;
+        }
+
+        header {
+            margin-bottom: 40px;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #ffffff 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .doc-lead {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+        }
+
+        h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-top: 50px;
+            margin-bottom: 20px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        h4 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        p {
+            margin-bottom: 16px;
+            color: #cbd5e1;
+        }
+
+        ul, ol {
+            margin-bottom: 20px;
+            padding-left: 24px;
+            color: #cbd5e1;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        strong {
+            color: #ffffff;
+        }
+
+        hr {
+            border: 0;
+            height: 1px;
+            background: var(--card-border);
+            margin: 40px 0;
+        }
+
+        /* テーブル */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+        }
+
+        th, td {
+            padding: 12px 18px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #1e293b;
+            color: var(--primary);
+            font-weight: 600;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        td {
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            color: #cbd5e1;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* 引用・コールアウト */
+        blockquote {
+            background-color: var(--card-bg);
+            border-left: 4px solid var(--quote-border);
+            padding: 18px 24px;
+            margin: 24px 0;
+            border-radius: 0 8px 8px 0;
+            color: #e2e8f0;
+        }
+
+        blockquote p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* コードブロック */
+        pre {
+            background-color: var(--code-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 24px 0;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.9rem;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            background-color: rgba(56, 189, 248, 0.1);
+            color: var(--primary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.88em;
+        }
+
+        pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+        }
+
+        /* Image Display Card */
+        .image-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 28px 0;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .image-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .image-caption {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            margin-top: 12px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        footer {
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px solid var(--card-border);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: static;
+            }
+            .main-content {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- サイドバーナビゲーション -->
+        <nav class="sidebar">
+            <div class="sidebar-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                ShapeSync Advanced
+            </div>
+            <ul class="toc-list">
+                <li class="toc-item"><a href="#section-1" class="toc-link">1. 概要と発展機能の全貌</a></li>
+                <li class="toc-item"><a href="#section-2" class="toc-link">2. 部位別モーフ (PBM) の組み込みと連動</a>
+                    <ul class="toc-sublist">
+                        <li><a href="#section-2-step1" class="toc-link">ステップ 1: メッシュ素材の用意</a></li>
+                        <li><a href="#section-2-step2" class="toc-link">ステップ 2: Figure への PBM 焼き込み</a></li>
+                        <li><a href="#section-2-step3" class="toc-link">ステップ 3: Outfit への PBM 焼き込み</a></li>
+                        <li><a href="#section-2-step4" class="toc-link">ステップ 4: シーンでの連動検証</a></li>
+                    </ul>
+                </li>
+                <li class="toc-item"><a href="#section-3" class="toc-link">3. 靴のアタッチとポーズ補正 (BCP)</a>
+                    <ul class="toc-sublist">
+                        <li><a href="#section-3-step1" class="toc-link">ステップ 1: 靴 Prefab 作成と問題発見</a></li>
+                        <li><a href="#section-3-step2" class="toc-link">ステップ 2: ポーズズレ特定と BCP の役割</a></li>
+                        <li><a href="#section-3-step3" class="toc-link">ステップ 3: BC Profile の作成</a></li>
+                        <li><a href="#section-3-step4" class="toc-link">ステップ 4: Outfit Builder 再作成と問題発見</a></li>
+                    </ul>
+                </li>
+                <li class="toc-item"><a href="#section-4" class="toc-link">4. メッシュはみ出し解消 (PCM & Surface Fit)</a>
+                    <ul class="toc-sublist">
+                        <li><a href="#section-4-step1" class="toc-link">ステップ 1: PCM の必要性</a></li>
+                        <li><a href="#section-4-step2" class="toc-link">ステップ 2: PCM Builder 2段階生成手順</a></li>
+                        <li><a href="#section-4-step3" class="toc-link">ステップ 3: Outfit Builder 最終組み込み・動作検証</a></li>
+                    </ul>
+                </li>
+                <li class="toc-item"><a href="#section-5" class="toc-link">5. まとめ</a></li>
+            </ul>
+        </nav>
+
+        <!-- メインコンテンツ -->
+        <main class="main-content">
+            <header>
+                <h1>ShapeSync 高度な機能ガイド (advanced.html)</h1>
+                <p class="doc-lead">本ドキュメントは、Unity 向け 3D アバター着せ替え・体型変形ミドルウェア <strong>ShapeSync</strong> の応用・発展機能（PBM, BC Profile, PCM, Surface Fit）を解説する第 2 章ガイドです。<strong><a href="tutorial.html" style="color:var(--primary);">tutorial.html</a></strong> で学んだ基本的な Figure 化や FBM 制御をベースに、高度な着せ替えワークフローをマスターします。</p>
+            </header>
+
+            <!-- SECTION 1 -->
+            <section id="section-1">
+                <h2>1. 概要と発展機能の全貌</h2>
+                <p>基本の FBM (Full Body Morph) は Figure 全体の体型変化に合わせて衣装を追従変形させますが、局所的な部位変形や、厚底靴・ハイヒール等の特殊衣装に伴うボーンポーズ補正、メッシュ突き抜け防止を行うために ShapeSync では 3 つの高度な機能を提供しています。</p>
+                <p>これらの設定（BC Profile、PBM、PCM など）はすべてアタッチ時に ShapeSync の内部メカニズムによって<strong>全自動で Figure 側へ適用・同期</strong> されます。</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>機能</th>
+                            <th>紐づき先</th>
+                            <th>ツール / コンポーネント</th>
+                            <th>用途・効果</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Partial Body Morph (PBM)</strong></td>
+                            <td><strong>Figure / Outfit 双方</strong></td>
+                            <td><code>PBM Baker</code><br>(<code>Tools > zgock > ShapeSync > PBM Baker</code>)</td>
+                            <td>胸部や腰部など、特定部位のみを選択的に変形させる部位別モーフを既存の Figure / Outfit に焼き込む。</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Bone Correction Profile (BC Profile)</strong></td>
+                            <td><strong>Outfit 側</strong></td>
+                            <td><code>BC Profile Builder</code><br>(<code>Tools > zgock > ShapeSync > BC Profile Builder</code>)</td>
+                            <td>ハイヒールやブーツ着用時の「つま先立ち」など、衣装着用時に Figure 側の Humanoid ボーンポーズ/スケールを補正。</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Profile Controlled Morph (PCM)</strong></td>
+                            <td><strong>Outfit 側</strong></td>
+                            <td><code>Figure PCM Builder</code><br>(<code>Tools > zgock > ShapeSync > Figure PCM Builder</code>)</td>
+                            <td>衣装着用時に Figure 側へ自動適用し、足の裏や腕などのメッシュ突き抜け（Clipping）を防止するモーフ。</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Surface Fit (表面投影)</strong></td>
+                            <td><strong>PCM 生成オプション</strong></td>
+                            <td><code>Figure PCM Builder</code><br>(Surface Fit タブ / オプション)</td>
+                            <td>装着ポーズと Figure のメッシュトポロジーが異なる場合に、表面投影によって形状をフィッティングさせた PCM Target を構築。</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 2 -->
+            <section id="section-2">
+                <h2>2. 部位別モーフ (Partial Body Morph: PBM) の組み込みと連動</h2>
+                <p>PBM (Partial Body Morph) は、全体的な FBM（体型変更）とは独立して、胸部（<code>BreastSize</code>）などの局所的な部位変化を選択的に適用し、Figure と Outfit を連動変形させる機能です。Figure Builder / Outfit Builder などのビルドツールを通さず、エディタツール <strong><code>PBM Baker</code></strong> を使用して既存の Figure や Outfit に対して直接 PBM を焼き込み（ベイク）ます。</p>
+
+                <h3 id="section-2-step1">ステップ 1: PBM 用メッシュ素材の用意</h3>
+                <p>PBM のベイクに必要な以下のメッシュ素材（いずれも Scene 上のオブジェクト）を用意します。</p>
+                <ul>
+                    <li><strong>Figure 用素材</strong>:
+                        <ul>
+                            <li><code>Source Figure / Outfit</code>: 第一章で作成した既存の Figure オブジェクト</li>
+                            <li><code>Source Renderer</code>: Figure のベース形状 <code>SkinnedMeshRenderer</code></li>
+                            <li><code>Base PBM Renderer</code>: <code>BasicFemaleBreastSize</code> (ベース FBM 状態での胸部調整メッシュ Renderer)</li>
+                            <li><code>Target Renderer</code>: <code>BasicGirlBreastSize</code> (各 FBM ターゲット状態での胸部調整メッシュ Renderer)</li>
+                        </ul>
+                    </li>
+                    <li><strong>Outfit 用素材</strong>:
+                        <ul>
+                            <li><code>Source Figure / Outfit</code>: 第一章で作成した既存の Outfit オブジェクト</li>
+                            <li><code>Source Renderer</code>: Outfit のベース形状 <code>SkinnedMeshRenderer</code></li>
+                            <li><code>Base PBM Renderer</code>: <code>BasicFemaleShirt2BreastSize</code> (ベース FBM 状態での衣装胸部調整メッシュ Renderer)</li>
+                            <li><code>Target Renderer</code>: <code>BasicGirlBreastSize</code> (各 FBM ターゲット状態での衣装胸部調整メッシュ Renderer)</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <h3 id="section-2-step2">ステップ 2: PBM Baker による Figure への PBM 焼き込み</h3>
+                <ol>
+                    <li>メニューバーから <strong><code>Tools > zgock > ShapeSync > PBM Baker</code></strong> を開きます。</li>
+                    <li><strong>Mode</strong>: <code>Figure</code> を選択します。</li>
+                    <li><strong>Source Figure / Outfit</strong>: 第一章で作成した Scene 上の Figure オブジェクトを指定します。</li>
+                    <li><strong>Source Renderer</strong>: Figure のベース形状 <code>SkinnedMeshRenderer</code> を指定します。</li>
+                    <li><strong>Base PBM Renderer</strong>: ベース FBM での PBM 形状 <code>BasicFemaleBreastSize</code> の <code>SkinnedMeshRenderer</code> を指定します。</li>
+                    <li><strong>PBM Name</strong>: <code>"BreastSize"</code> と入力します。</li>
+                    <li><strong>FBM Target Renderers</strong> セクションの <strong>「Generate Target Entries」</strong> ボタンをクリックするか <strong>「Add FBM Target」</strong> ボタンをクリックします。</li>
+                    <li>追加された項目の <strong>FBM Name</strong> に <code>BasicGirl</code> と入力し、<strong>Target Renderer</strong> に <code>BasicGirlBreastSize</code> の <code>SkinnedMeshRenderer</code> を割り当てます。</li>
+                    <li>ウィンドウ下部の <strong>「Bake PBM Output Prefab」</strong> ボタンをクリックします。PBM (<code>BreastSize</code>) が組み込まれた Figure Prefab が出力されます。</li>
+                </ol>
+
+                <h3 id="section-2-step3">ステップ 3: PBM Baker による Outfit への PBM 焼き込み</h3>
+                <ol>
+                    <li>再度 <strong><code>Tools > zgock > ShapeSync > PBM Baker</code></strong> を開きます。</li>
+                    <li><strong>Mode</strong>: <code>Outfit</code> を選択します。</li>
+                    <li><strong>Source Figure / Outfit</strong>: 第一章で作成した Scene 上の Outfit オブジェクトを指定します。</li>
+                    <li><strong>Source Renderer</strong>: Outfit のベース形状 <code>SkinnedMeshRenderer</code> を指定します。</li>
+                    <li><strong>Base PBM Renderer</strong>: ベース FBM での衣装 PBM 形状 <code>BasicFemaleShirt2BreastSize</code> の <code>SkinnedMeshRenderer</code> を指定します。</li>
+                    <li><strong>PBM Name</strong>: Figure 側と同一の <code>"BreastSize"</code> と入力します。</li>
+                    <li><strong>FBM Target Renderers</strong> セクションの <strong>「Generate Target Entries」</strong> または <strong>「Add FBM Target」</strong> ボタンをクリックします。</li>
+                    <li><strong>FBM Name</strong> に <code>BasicGirl</code> と入力し、<strong>Target Renderer</strong> に衣装 PBM 形状 <code>BasicGirlBreastSize</code> の <code>SkinnedMeshRenderer</code> を割り当てます。</li>
+                    <li>ウィンドウ下部の <strong>「Bake PBM Output Prefab」</strong> ボタンをクリックします。PBM (<code>BreastSize</code>) が組み込まれた Outfit Prefab が出力されます。</li>
+                </ol>
+
+                <!-- IMAGE CARD 1 -->
+                <div class="image-card">
+                    <img src="images/adv-Fig1.png" alt="PBM Baker GUI 画面">
+                    <div class="image-caption">図 1: PBM Baker GUI 画面（Figure / Outfit モード設定）</div>
+                </div>
+
+                <h3 id="section-2-step4">ステップ 4: シーンでの着用とリアルタイム PBM 変形検証</h3>
+                <ol>
+                    <li>シーン上に PBM を焼き込んだ Figure Prefab を配置し、Play モードで PBM 組み込み済み Outfit をアタッチ（着用）させます。</li>
+                    <li>Hierarchy 上で Figure を選択し、Inspector ウィンドウの <strong><code>DynamicBoneBlender</code> (DBB)</strong> コンポーネントを確認します。</li>
+                    <li><strong>項目増加の確認</strong>: DBB の Targets リスト内に <strong><code>PBM_BreastSize</code></strong> という新しい Target 項目が増加し、自動認識されていることを確認します。</li>
+                    <li><strong>変形検証</strong>: 追加された <code>PBM_BreastSize</code> の Weight スライダーを動かします。</li>
+                    <li><strong>達成条件</strong>: <code>PBM_BreastSize</code> スライダーの操作に追従して、Figure（素体）と Outfit（衣装）の胸部サイズが同期して動的に変形することを確認します。</li>
+                </ol>
+
+                <!-- IMAGE CARD 2 -->
+                <div class="image-card">
+                    <img src="images/adv-Fig2.png" alt="DynamicBoneBlender での PBM_BreastSize スライダーとリアルタイム変形">
+                    <div class="image-caption">図 2: DynamicBoneBlender での PBM_BreastSize スライダーとリアルタイム変形</div>
+                </div>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 3 -->
+            <section id="section-3">
+                <h2>3. 靴のアタッチとポーズのズレ：BC Profile (BCP) の導入</h2>
+                <p>厚底靴や靴アセットの着せ替えを例に、ボーンポーズの補正 (BC Profile) がなぜ必要なのか、どのように作成・適用するのかを順を追って解説します。</p>
+
+                <h3 id="section-3-step1">ステップ 1: 靴 Prefab の作成と問題の発見</h3>
+                <ol>
+                    <li><code>BasicFemale</code> / <code>BasicFemaleShoes1</code> を Mesh Utility の <code>Mesh Separation</code> タブで分解し、靴 <code>Shoes1</code> Prefab を作成します。</li>
+                    <li>シーン上で Figure に靴 Prefab をアタッチしてみます。</li>
+                    <li><strong>問題発生</strong>: 靴の位置や角度が Figure の足に対して大きくズレていることに気づきます。</li>
+                </ol>
+
+                <!-- IMAGE CARD 3 -->
+                <div class="image-card">
+                    <img src="images/adv-Fig3.png" alt="ずれた靴の状態">
+                    <div class="image-caption">図 3: ずれた靴の状態（初期アタッチ時の不整合）</div>
+                </div>
+
+                <h3 id="section-3-step2">ステップ 2: 原因の特定（ポーズのズレ）と BC Profile の役割</h3>
+                <ol>
+                    <li>靴を作った時と同じ手順で <code>Mesh Separation</code> を使い、靴用の身体メッシュを取り出してシーンに配置し、Figure の座標を揃えて比較してみます。</li>
+                    <li><strong>原因判明</strong>: 装着時の靴専用ポーズと Figure のデフォルト素体ポーズがそもそも異なっており、靴に合わせるためには Figure を「軽くつま先立ち」させるポーズ補正が必要であることがわかります。</li>
+                    <li><strong>BC Profile の役割</strong>: この足の角度や高さを補正するために <strong>BC Profile (Bone Correction Profile)</strong> が必要となります。</li>
+                </ol>
+
+                <!-- IMAGE CARD 4 -->
+                <div class="image-card">
+                    <img src="images/adv-Fig4.png" alt="Separator での身体メッシュ取り出しとポーズ比較">
+                    <div class="image-caption">図 4: Separator での身体メッシュ取り出しとポーズ比較</div>
+                </div>
+
+                <h3 id="section-3-step3">ステップ 3: BC Profile Builder によるプロファイル作成</h3>
+                <ol>
+                    <li><strong>元の Base Figure は変更せず</strong>、Hierarchy 上で Base Figure を複製します。</li>
+                    <li>複製した Base Figure 側の Hip の位置（分解した靴用の身体の Hip の Y Pos をコピー）および左右 Foot の X Rot を手動調整して、靴に合わせたつま先立ちの装着ポーズを作成します。</li>
+                    <li>メニューバーから <strong><code>Tools > zgock > ShapeSync > BC Profile Builder</code></strong> を開きます。</li>
+                    <li>ウィンドウ内の参照フィールドを以下のように設定します：
+                        <ul>
+                            <li><strong>Base Figure Root</strong>: 元の Base Figure オブジェクトを指定します（未変更のもの）。</li>
+                            <li><strong>Current Pose Figure Root</strong>: 手動ポーズ（つま先立ち）を付けた <strong>Base Figure の複製オブジェクト</strong>を指定します。</li>
+                        </ul>
+                    </li>
+                    <li><strong>「Capture Current Pose as Profile」</strong> ボタンをクリックします。</li>
+                    <li>ベースポーズとつま先立ちポーズの Humanoid ボーン差分（TRS）が自動キャプチャされ、<code>ShapeSyncHumanoidBoneCorrectionProfile</code> アセット（<code>BasicFemale_BCProfile</code>）として保存されます。</li>
+                    <li><strong>BasicGirl についても同様の手順</strong>（複製・ポーズ調整・キャプチャ）を行い、<code>BasicGirl_BCProfile</code> を作成・保存します。</li>
+                </ol>
+
+                <!-- IMAGE CARD 5 -->
+                <div class="image-card">
+                    <img src="images/adv-Fig5.png" alt="BC Profile Builder GUI 設定画面">
+                    <div class="image-caption">図 5: BC Profile Builder GUI 設定画面（ステップ 3-4）</div>
+                </div>
+
+                <h3 id="section-3-step4">ステップ 4: Outfit Builder での BC Profile 設定・再作成と問題の発見</h3>
+                <ol>
+                    <li>メニューバーから <strong><code>Tools > zgock > ShapeSync > Outfit Builder</code></strong> を開きます。</li>
+                    <li>各フィールドを設定します：
+                        <ul>
+                            <li><strong>Figure Root</strong>: Figure Prefab のルート GameObject</li>
+                            <li><strong>Figure Animator</strong>: Figure の <code>Animator</code> コンポーネント</li>
+                            <li><strong>Base Outfit Root</strong>: 分離抽出した Base 靴 Prefab のルート GameObject</li>
+                            <li><strong>Registry Id</strong>: <code>shoes-1</code></li>
+                            <li><strong>Registry Name</strong>: <code>Shoes1</code></li>
+                            <li><strong>Base Outfit BC Profile (Optional)</strong>: ステップ 3 で作成した <code>BasicFemale_BCProfile</code> を指定</li>
+                        </ul>
+                    </li>
+                    <li><strong>FBM Outfit Roots</strong> セクションでターゲット (<code>BasicGirl</code>) の項目を追加し、対応する BC Profile フィールドに <code>BasicGirl_BCProfile</code> を指定します。</li>
+                    <li>ウィンドウ下部の <strong>「Generate SkinnedMesh Outfit Prefab」</strong> ボタンをクリックし、BC Profile が組み込まれた靴 Prefab を再作成（出力）します。</li>
+                    <li><strong>新しい問題の発見（メッシュはみ出し）</strong>:
+                        <ul>
+                            <li>シーンで Figure に新しく作成した靴 Prefab をアタッチしてみます。</li>
+                            <li>今度は足の角度や位置はピッタリ合いますが、<strong>「足の裏や側面が靴からはみ出している（素体メッシュが貫通している）」</strong> という新たな問題に気づきます。</li>
+                        </ul>
+                    </li>
+                </ol>
+
+                <!-- IMAGE CARD 6 -->
+                <div class="image-card">
+                    <img src="images/adv-Fig6.png" alt="BCP 設定後の靴アタッチとメッシュ貫通問題">
+                    <div class="image-caption">図 6: BCP 設定後の靴アタッチとメッシュ貫通（はみ出し）問題</div>
+                </div>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 4 -->
+            <section id="section-4">
+                <h2>4. メッシュはみ出し解消：PCM と Surface Fit (表面投影)</h2>
+
+                <h3 id="section-4-step1">ステップ 1: PCM (Profile Controlled Morph) の必要性</h3>
+                <ol>
+                    <li>第 3 章のステップ 4 で発見した「メッシュのはみ出し（貫通）」は、ボーン角度の補正 (BCP) だけでは解決できません。</li>
+                    <li>靴装着ポーズの身体と Figure を詳細に比較すると、足の裏や側面を少し引っ込めた（凹ませた）形状になっていることがわかります。</li>
+                    <li>衣服から素体が貫通するのを防ぐため、衣装着用時に Figure 側のメッシュ形状を動的に凹ませて補正する <strong>PCM (Profile Controlled Morph)</strong> が必要となります。</li>
+                </ol>
+
+                <h3 id="section-4-step2">ステップ 2: Figure PCM Builder によるターゲット生成手順</h3>
+                <p><code>Figure PCM Builder</code> を用いた PCM Payload の構築は、以下の <strong>2 段階（Two-Stage）手順</strong> で行います。</p>
+
+                <ol>
+                    <li>メニューバーから <strong><code>Tools > zgock > ShapeSync > Figure PCM Builder</code></strong> を開きます。</li>
+                    <li>基本フィールドを設定します：
+                        <ul>
+                            <li><strong>Source Figure Root</strong>: Figure のルート GameObject</li>
+                            <li><strong>Source Renderer</strong>: Figure のベース形状 <code>SkinnedMeshRenderer</code></li>
+                            <li><strong>Outfit Name</strong>: <code>Shoes1</code></li>
+                        </ul>
+                    </li>
+                </ol>
+
+                <h4>1 段階目: 同トポロジー target Prefab の生成</h4>
+                <p>BC Profile と必要な Surface Fit Target から、Base 用・FBM Target 用の同トポロジー target Prefab を生成する段階です。</p>
+                <ol>
+                    <li><strong>Base BC Profile</strong> に <code>BasicFemale_BCProfile</code>、<strong>Base Surface Fit Target (optional)</strong> に靴装着ポーズの身体メッシュ <code>SkinnedMeshRenderer</code> を設定します。</li>
+                    <li><strong>「Generate Base Target from BC Profile」</strong> ボタンをクリックし、生成された同トポロジー target Prefab（例: <code>BasicFemale_Shoes1_BaseTarget.prefab</code>）を保存します。</li>
+                    <li><strong>FBM Target SkinnedMeshes</strong> セクションで <strong>「Add FBM Target」</strong> をクリックし、<strong>FBM Name</strong> に <code>BasicGirl</code>、<strong>Target BC Profile</strong> に <code>BasicGirl_BCProfile</code>、<strong>Surface Fit Target (optional)</strong> に <code>BasicGirl</code> 側の靴装着ポーズ身体メッシュを指定します。</li>
+                    <li><strong>「Generate Target from BC Profile」</strong> ボタンをクリックし、生成された同トポロジー target Prefab（例: <code>BasicGirl_Shoes1_Target.prefab</code>）を保存します。</li>
+                </ol>
+
+                <!-- IMAGE CARD 7 -->
+                <div class="image-card">
+                    <img src="images/adv-Fig7.png" alt="1段階目の Figure PCM Builder GUI 画面">
+                    <div class="image-caption">図 7: 1段階目の Figure PCM Builder GUI 画面（同トポロジー target メッシュの生成）</div>
+                </div>
+
+                <h4>2 段階目: 生成済み target Prefab の指定と PCM Payload の出力</h4>
+                <p>生成済み target Prefab の <code>SkinnedMeshRenderer</code> を <code>Base Target Renderer</code> / <code>Target Renderer</code> へ指定し、PCM Payload を生成する段階です。</p>
+                <ol start="5">
+                    <li>1 段階目で生成した各 Prefab の <code>SkinnedMeshRenderer</code> を、<strong><code>Base Target Renderer</code></strong> および FBM Target エントリの <strong><code>Target Renderer</code></strong> フィールドにそれぞれ設定します。</li>
+                    <li>ウィンドウ最下部の <strong>「Generate Figure PCM Prefab」</strong> ボタンをクリックします。</li>
+                    <li>表面投影を反映した Plugable PCM Payload (<code>ProfileControlledMorphAsset</code>) が正しく出力・保存されます。</li>
+                </ol>
+
+                <!-- IMAGE CARD 8 -->
+                <div class="image-card">
+                    <img src="images/adv-Fig8.png" alt="2段階目の Figure PCM Builder GUI 画面">
+                    <div class="image-caption">図 8: 2段階目の Figure PCM Builder GUI 画面（生成済み Target 割当と PCM Payload 出力）</div>
+                </div>
+
+                <h3 id="section-4-step3">ステップ 3: Outfit Builder での最終組み込みと動作検証</h3>
+                <ol>
+                    <li>メニューバーから <strong><code>Tools > zgock > ShapeSync > Outfit Builder</code></strong> を開きます。</li>
+                    <li>各フィールドを設定・確認します：
+                        <ul>
+                            <li><strong>Figure Root</strong>: Figure Prefab のルート GameObject</li>
+                            <li><strong>Figure Animator</strong>: Figure の <code>Animator</code> コンポーネント</li>
+                            <li><strong>Base Outfit Root</strong>: 分離抽出した Base 靴 Prefab のルート GameObject</li>
+                            <li><strong>Registry Id</strong>: <code>shoes-1</code></li>
+                            <li><strong>Registry Name</strong>: <code>Shoes1</code></li>
+                            <li><strong>Base Outfit BC Profile (Optional)</strong>: <code>BasicFemale_BCProfile</code></li>
+                            <li><strong>Plugable PCM Payload (optional)</strong>: ステップ 2 で生成した PCM Payload (<code>ProfileControlledMorphAsset</code>) を指定</li>
+                        </ul>
+                    </li>
+                    <li><strong>FBM Outfit Roots</strong> セクションで <code>BasicGirl</code> ターゲットの参照と BC Profile (<code>BasicGirl_BCProfile</code>) が指定されていることを確認します。</li>
+                    <li>ウィンドウ下部の <strong>「Generate SkinnedMesh Outfit Prefab」</strong> ボタンをクリックし、完成版の靴 Prefab を出力します。</li>
+                </ol>
+
+                <!-- IMAGE CARD 9 -->
+                <div class="image-card">
+                    <img src="images/adv-Fig9.png" alt="Outfit Builder での PCM Payload + BCP 割り当てと最終ビルド">
+                    <div class="image-caption">図 9: Outfit Builder での PCM Payload + BCP 割り当てと最終ビルド</div>
+                </div>
+
+                <ol start="5">
+                    <li><strong>動作検証（実機確認の達成条件）</strong>:
+                        <ul>
+                            <li>シーンで Figure に完成した靴 Prefab をアタッチします。</li>
+                            <li>靴の角度や位置が正確に合っていること、および足の裏や側面のはみ出しが解消されてフィットしていることを確認します。</li>
+                        </ul>
+                    </li>
+                </ol>
+
+                <!-- IMAGE CARD 10 -->
+                <div class="image-card">
+                    <img src="images/adv-Fig10.png" alt="最終状態の靴アタッチ結果">
+                    <div class="image-caption">図 10: 最終状態の靴アタッチ結果（角度・位置適合および貫通解消の完全フィット）</div>
+                </div>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 5 -->
+            <section id="section-5">
+                <h2>5. まとめ</h2>
+                <p>ShapeSync の高度な機能を活用することで、単なる体型追従にとどまらず、特殊な靴・厚底アセットのポーズ補正 (BC Profile)、衣装着用時の素体突き抜け防止 (PCM)、トポロジーの異なるモデルへの面適応 (Surface Fit)、および部位別モーフ (PBM) を実現できます。</p>
+
+                <blockquote>
+                    <strong>※ VRM 関連の高度な機能について</strong><br>
+                    VRM 特有の揺れもの物理 (SpringBone) の自動再構築や VRM Expression (表情) の連動機能については、別の <strong>VRM Integration ガイド</strong> にて詳しく解説します。
+                </blockquote>
+            </section>
+
+            <footer>
+                &copy; 2026 ShapeSync Documentation Team. Advanced Features HTML Guide (advanced.html).
+            </footer>
+        </main>
+    </div>
+</body>
+</html>

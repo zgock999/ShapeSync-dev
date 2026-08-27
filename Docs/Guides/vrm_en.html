@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShapeSync VRM Integration Guide (vrm_en.html) - Chapter 3</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #38bdf8;
+            --primary-glow: rgba(56, 189, 248, 0.15);
+            --accent: #818cf8;
+            --code-bg: #090d16;
+            --quote-border: #38bdf8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.7;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 300px;
+            background-color: #090d16;
+            border-right: 1px solid var(--card-border);
+            padding: 30px 20px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .sidebar-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toc-list {
+            list-style: none;
+        }
+
+        .toc-item {
+            margin-bottom: 8px;
+        }
+
+        .toc-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: block;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .toc-link:hover {
+            color: var(--primary);
+            background-color: rgba(56, 189, 248, 0.1);
+        }
+
+        .toc-sublist {
+            list-style: none;
+            padding-left: 15px;
+            margin-top: 4px;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex-grow: 1;
+            padding: 40px 60px;
+            max-width: 1000px;
+        }
+
+        header {
+            margin-bottom: 40px;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #ffffff 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .doc-lead {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+        }
+
+        h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-top: 50px;
+            margin-bottom: 20px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        h4 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-top: 24px;
+            margin-bottom: 12px;
+        }
+
+        p {
+            margin-bottom: 16px;
+            color: #cbd5e1;
+        }
+
+        ul, ol {
+            margin-bottom: 20px;
+            padding-left: 24px;
+            color: #cbd5e1;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        hr {
+            border: 0;
+            height: 1px;
+            background: var(--card-border);
+            margin: 40px 0;
+        }
+
+        /* Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+        }
+
+        th, td {
+            padding: 12px 18px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #1e293b;
+            color: var(--primary);
+            font-weight: 600;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        td {
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            color: #cbd5e1;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Blockquote / Callout */
+        blockquote {
+            background-color: var(--card-bg);
+            border-left: 4px solid var(--quote-border);
+            padding: 18px 24px;
+            margin: 24px 0;
+            border-radius: 0 8px 8px 0;
+            color: #e2e8f0;
+        }
+
+        blockquote p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Code Blocks */
+        pre {
+            background-color: var(--code-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 24px 0;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.9rem;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            background-color: rgba(56, 189, 248, 0.1);
+            color: var(--primary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.88em;
+        }
+
+        pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+        }
+
+        /* Image Display Card */
+        .image-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 28px 0;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .image-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .image-caption {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            margin-top: 12px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        footer {
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px solid var(--card-border);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: static;
+            }
+            .main-content {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-title">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                ShapeSync Docs
+            </div>
+            <ul class="toc-list">
+                <li class="toc-item"><a href="#section-1" class="toc-link">1. Overview & Workflow Architecture</a></li>
+                <li class="toc-item"><a href="#section-2" class="toc-link">2. Prerequisites (UniGLTF & UniVRM)</a></li>
+                <li class="toc-item"><a href="#section-3" class="toc-link">3. VRM Transporter Overview</a></li>
+                <li class="toc-item"><a href="#section-4" class="toc-link">4. Step 1: VRM Initialize</a></li>
+                <li class="toc-item"><a href="#section-5" class="toc-link">5. Step 2: Expression Baker</a></li>
+                <li class="toc-item"><a href="#section-6" class="toc-link">6. VRM Physics Asset Separation & Outfit Creation</a></li>
+                <li class="toc-item"><a href="#section-7" class="toc-link">7. Step 3: Physics Transporter</a></li>
+                <li class="toc-item"><a href="#section-8" class="toc-link">8. Final Integration Checklist</a></li>
+                <li class="toc-item"><a href="#section-9" class="toc-link">9. Troubleshooting & Key Notes</a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header>
+                <h1>ShapeSync VRM Integration Guide (vrm_en.html) - Chapter 3</h1>
+                <p class="doc-lead">This document is Chapter 3 of the ShapeSync documentation flow, covering the <strong>VRM avatar integration features (UniVRM Integration, VRM Initialize, Expression Baker, and Physics Transporter)</strong> for the 3D avatar dressing and body deformation middleware <strong>ShapeSync</strong>. Building upon the core concepts learned in <strong><a href="tutorial_en.html" style="color:var(--primary);">tutorial_en.html</a></strong> (FBM foundation) and <strong><a href="advanced_en.html" style="color:var(--primary);">advanced_en.html</a></strong> (PBM / BCP / PCM), this guide explains the step-by-step workflow for VRM 1.0 structuration, MCM expression baking, and SpringBone physics transport.</p>
+            </header>
+
+            <!-- SECTION 1 -->
+            <section id="section-1">
+                <h2>1. Overview & Workflow Architecture</h2>
+                <p>The official ShapeSync documentation is structured into the following 3 chapters:</p>
+
+                <pre><code>Chapter 1: tutorial_en.html (Getting Started)
+  └ Basic Figure creation, FBM (Full Body Morph) control, and basic Outfit (Shirt) attachment
+
+Chapter 2: advanced_en.html (Advanced Features)
+  └ Advanced topics: Partial Body Morph (PBM), Bone Correction Profile (BC Profile), and Mesh Clipping Prevention (PCM)
+
+Chapter 3: vrm_en.html (VRM Integration) ← This Document
+  └ VRM 1.0 structuration, MCM expression baking, and SpringBone physics transport & synchronization</code></pre>
+
+                <p>The workflow directly maps to the 3-tab UI of the editor tool <strong><code>Tools > zgock > ShapeSync > VRM Transporter</code></strong> and the asset separation/transfer pipeline.</p>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 2 -->
+            <section id="section-2">
+                <h2>2. Prerequisites (UniGLTF & UniVRM)</h2>
+                <p>To use ShapeSync VRM integration features, the following prerequisites are required in addition to the Core features:</p>
+                <ol>
+                    <li><strong>UniGLTF & UniVRM Package Installation</strong>:<br>Ensure compatible <strong>UniGLTF</strong> and <strong>UniVRM 1.0</strong> (<code>UniVRM10</code>) packages are installed in your project (UniGLTF is included as a dependency of UniVRM).</li>
+                    <li><strong>Scripting Define Symbol Configuration</strong>:<br>Add <strong><code>SHAPESYNC_USE_UNIVRM</code></strong> to <code>Project Settings > Player > Script Compilation > Scripting Define Symbols</code>, then click Apply.</li>
+                    <li><strong>Launch Editor Tool</strong>:<br>Open the editor window from the menu bar via <strong><code>Tools > zgock > ShapeSync > VRM Transporter</code></strong>.</li>
+                </ol>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 3 -->
+            <section id="section-3">
+                <h2>3. VRM Transporter Overview & Recommended Workflow</h2>
+                <p>The <code>VRM Transporter</code> window consists of the following 3 ordered steps structured as tabs:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tab Order</th>
+                            <th>Tab Name</th>
+                            <th>Primary Purpose & Process</th>
+                            <th>Default Candidate Name</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Step 1</strong></td>
+                            <td><strong><code>VRM Initialize</code></strong></td>
+                            <td>Builds <code>VRM10Object</code>, <code>Vrm10Instance</code>, and empty standard Expressions on ShapeSync Figure.</td>
+                            <td><code>&lt;InputName&gt;_VRMInit.prefab</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Step 2</strong></td>
+                            <td><strong><code>Expression Baker</code></strong></td>
+                            <td>Bakes MorphTarget Expressions shared between Base and FBM target VRMs using MCM mechanism.</td>
+                            <td><code>&lt;InputName&gt;_ExpressionBaked.prefab</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Step 3</strong></td>
+                            <td><strong><code>Physics Transporter</code></strong></td>
+                            <td>Transports <code>Vrm10Instance.SpringBone</code> physics and <code>VRM10SpringBoneColliderGroup</code> to Figure / Outfit.</td>
+                            <td><code>&lt;DestinationName&gt;_Physics.prefab</code><br><code>&lt;DestinationName&gt;_PhysicsOutfit.prefab</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <blockquote>
+                    <p><strong>[Important Note on Technical Prerequisite]</strong><br>
+                    While the recommended workflow order in this guide is <code>VRM Initialize → Expression Baker → Physics Transporter</code>, the **technical prerequisite for executing Physics Transporter is an "Initialized Figure (VRM Initialize completed)"**. Completing Expression Baker is recommended, but is not a strict technical prerequisite for running Physics Transporter.</p>
+                </blockquote>
+
+                <!-- IMAGE CARD 1 -->
+                <div class="image-card">
+                    <img src="images/vrm-Fig1.png" alt="VRM Transporter GUI Window">
+                    <div class="image-caption">Figure 1: VRM Transporter GUI Window (3-Tab Layout: Initialize / Expression Baker / Physics Transporter)</div>
+                </div>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 4 -->
+            <section id="section-4">
+                <h2>4. Step 1: VRM Initialize (VRM Structure Setup)</h2>
+                <p>To run a ShapeSync Figure created with Figure Builder as a VRM avatar, it requires a component structure matching the UniVRM 1.0 specification (<code>VRM10Object</code> asset, <code>Vrm10Instance</code>, <code>Humanoid</code> Avatar, and empty standard <code>VRM10Expression</code> assets).</p>
+
+                <blockquote>
+                    <p><strong>* Note</strong>: <code>VRM Initialize</code> is a process that creates a clone of the input Figure and builds the VRM 1.0 structure from scratch. It <strong>does NOT transfer expression data from the source VRM</strong>. Expression data baking is performed in the next step, <code>Expression Baker</code>.</p>
+                </blockquote>
+
+                <h4>Operating Procedure (<code>VRM Initialize</code> Tab)</h4>
+                <ol>
+                    <li>Open the <strong><code>VRM Transporter</code></strong> window and select the <strong><code>VRM Initialize</code></strong> tab.</li>
+                    <li>Configure the fields:
+                        <ul>
+                            <li><strong>Source ShapeSync Figure</strong>: Specify the Figure created in Chapter 1 (Tutorial), or if inheriting PBM / BCP / PCM for final integration, specify the Figure updated/regenerated in Chapter 2 (Advanced) in the Scene.</li>
+                            <li><strong>VRM Asset Relative Folder</strong>: <code>VRM/</code> (relative output folder path)</li>
+                        </ul>
+                    </li>
+                    <li>Click the <strong>"Create ShapeSync Ready VRM"</strong> button.</li>
+                    <li>A Save file dialog appears. Select your desired output path and filename (Default candidate: <code>&lt;InputName&gt;_VRMInit.prefab</code>).</li>
+                    <li><strong>Result</strong>: Without modifying any BlendShapes or FBM data on the Figure, an Init Prefab containing <code>VRM10Object</code>, <code>Vrm10Instance</code>, <code>Humanoid</code>, and empty standard Expression assets is output and saved.</li>
+                </ol>
+
+                <!-- IMAGE CARD 2 -->
+                <div class="image-card">
+                    <img src="images/vrm-Fig2.png" alt="VRM Initialize Setup Window">
+                    <div class="image-caption">Figure 2: VRM Initialize Tab Setup & Parameter Configuration</div>
+                </div>
+
+                <!-- IMAGE CARD 3 -->
+                <div class="image-card">
+                    <img src="images/vrm-Fig3.png" alt="VRM Initialize Output Prefab Inspector Window">
+                    <div class="image-caption">Figure 3: Inspector View of Output Init Prefab & Vrm10Instance Component after VRM Initialize</div>
+                </div>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 5 -->
+            <section id="section-5">
+                <h2>5. Step 2: Expression Baker (MCM Expression Baking)</h2>
+                <p>When the character's face or head shape changes due to an FBM (e.g. <code>BasicGirl</code>), eye and mouth expression BlendShapes can conflict with body deformation. ShapeSync provides the <code>Expression Baker</code> to solve this. Using the <strong>MCM (Morph Controlled Morph)</strong> pipeline, <code>Expression Baker</code> analyzes and synthesizes expression assets between the Base VRM and all FBM target VRMs, ensuring expressions naturally conform to body shape changes across Base / FBM VRM configurations.</p>
+
+                <h4>Specifications & Constraints</h4>
+                <ul>
+                    <li><strong>Applicable Scope</strong>: The baking process strictly targets **MorphTarget (BlendShape) Expressions shared across the Base VRM and all FBM source VRMs** (material-only or UV-only expressions are excluded). Custom expressions that do not exist in all FBM source VRMs are listed as skip candidates in the UI.</li>
+                    <li><strong>Face Renderer Alignment</strong>: The face Renderers of the Base VRM and all FBM source VRMs must correspond in vertex count and vertex positions with the Base and FBM face vertices of the Figure.</li>
+                    <li><strong>Generated BlendShapes</strong>: Synthesized BlendShapes with prefixes <code>VRM_*</code> and <code>MCM_*</code> are generated on the output mesh. Existing baked shapes with matching names are replaced on the output Prefab.</li>
+                </ul>
+
+                <h4>Operating Procedure (<code>Expression Baker</code> Tab)</h4>
+                <ol>
+                    <li>Select the <strong><code>Expression Baker</code></strong> tab.</li>
+                    <li>Configure the base references:
+                        <ul>
+                            <li><strong>ShapeSync Ready Figure</strong>: Scene <code>VRMInit</code> Figure object created in Step 1</li>
+                            <li><strong>Figure Renderer</strong>: Face/Head <code>SkinnedMeshRenderer</code> of the Figure</li>
+                            <li><strong>Base VRM Renderer</strong>: Face/Head <code>SkinnedMeshRenderer</code> of <code>BasicFemale</code></li>
+                            <li><strong>Base Source VRM</strong>: Original <code>BasicFemaleHairAndSkirt.vrm</code> object</li>
+                        </ul>
+                    </li>
+                    <li>In the <strong>FBM Source VRMs</strong> section, click <strong>"Generate Target Entries"</strong>.</li>
+                    <li>For the generated entry, set <strong>FBM BlendName</strong> to <code>BasicGirl</code>, <strong>Target VRM Renderer</strong> to the face Renderer of <code>BasicGirl</code>, and <strong>Source VRM</strong> to <code>BasicGirlHairAndSkirt.vrm</code>.</li>
+                    <li>Click the <strong>"Bake Expressions and Create Baked Prefab"</strong> button.</li>
+                    <li>A Save file dialog appears. Select your desired output path and filename (Default candidate: <code>&lt;InputName&gt;_ExpressionBaked.prefab</code>).</li>
+                    <li><strong>Result</strong>: MCM expression baking completes, saving a baked Prefab where expressions stay naturally synchronized during FBM body deformations.</li>
+                </ol>
+
+                <!-- IMAGE CARD 4 -->
+                <div class="image-card">
+                    <img src="images/vrm-Fig4.png" alt="Expression Baker Setup Window">
+                    <div class="image-caption">Figure 4: Expression Baker Tab Reference Configuration & FBM Source VRMs Setup</div>
+                </div>
+
+                <!-- IMAGE CARD 5 -->
+                <div class="image-card">
+                    <img src="images/vrm-Fig5.png" alt="Expression Baker Inspector BlendShapes Display">
+                    <div class="image-caption">Figure 5: Inspector View of Generated VRM_* / MCM_* BlendShapes on Baked Mesh</div>
+                </div>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 6 -->
+            <section id="section-6">
+                <h2>6. VRM Physics Asset Separation & Outfit Creation (Preparation)</h2>
+                <p>Before transferring physics data with <code>Physics Transporter</code>, extract and separate the hair and skirt sway parts from the tutorial assets <code>BasicFemaleHairAndSkirt.vrm</code> and <code>BasicGirlHairAndSkirt.vrm</code>, and build them as independent ShapeSync Outfit Prefabs.</p>
+
+                <blockquote>
+                    <p><strong>* Note on Single Renderer Constraint</strong>: The current Outfit Builder does not support Outfits containing multiple <code>SkinnedMeshRenderer</code> components. Therefore, the Hair and Skirt prefabs created in this procedure must be structured with a **single <code>SkinnedMeshRenderer</code> under each Outfit Root**.</p>
+                </blockquote>
+
+                <h4>Step 1: Hair Mesh Extraction & Prefab Creation</h4>
+                <ol>
+                    <li>Right-click <code>BasicFemaleHairAndSkirt.vrm</code> placed in the scene and execute <strong><code>Prefab > Unpack Completely</code></strong>.</li>
+                    <li>Delete unneeded objects except the <code>Hair</code> mesh and its corresponding hair bone hierarchy, leaving an independent GameObject containing a single <code>SkinnedMeshRenderer</code>.</li>
+                    <li>Drag and drop it into the Project window to save it as the hair prefab <strong><code>BasicFemale_Hair.prefab</code></strong>.</li>
+                </ol>
+
+                <h4>Step 2: Skirt Separation via Mesh Separation</h4>
+                <ol>
+                    <li>Open <strong><code>Tools > zgock > ShapeSync > Mesh Utility</code></strong> from the menu bar.</li>
+                    <li>Select the <strong><code>Mesh Separation</code></strong> tab.</li>
+                    <li>Assign the Body <code>SkinnedMeshRenderer</code> of <code>BasicFemaleHairAndSkirt</code> to the <strong><code>Source Renderer</code></strong> field.</li>
+                    <li>Select the target material slots (tutorial asset examples: <code>Skirt</code> or <code>*_CLOTH_*</code>).</li>
+                    <li>Click <strong>"Generate Separated Mesh Prefab"</strong> to save the single-renderer skirt prefab <strong><code>BasicFemale_Skirt.prefab</code></strong>.</li>
+                </ol>
+
+                <!-- IMAGE CARD 6 -->
+                <div class="image-card">
+                    <img src="images/vrm-Fig6.png" alt="Mesh Separation Setup Window">
+                    <div class="image-caption">Figure 6: Material Separation Setup in Mesh Separation (Separator) Tab</div>
+                </div>
+
+                <h4>Step 3: Target VRM (<code>BasicGirl</code>) Asset Separation</h4>
+                <ol>
+                    <li>Perform Step 1 (Hair extraction) and Step 2 (Skirt separation) on the target <code>BasicGirlHairAndSkirt.vrm</code>.</li>
+                    <li>Save single-renderer prefabs <strong><code>BasicGirl_Hair.prefab</code></strong> and <strong><code>BasicGirl_Skirt.prefab</code></strong>.</li>
+                </ol>
+
+                <h4>Step 4: Outfit Creation via Outfit Builder</h4>
+                <ol>
+                    <li>Open <strong><code>Tools > zgock > ShapeSync > Outfit Builder</code></strong> from the menu bar.</li>
+                    <li>Configure the common Figure reference fields:
+                        <ul>
+                            <li><strong>Figure Root</strong>: Specify the ShapeSync Figure used for final integration (Chapter 1 Figure, or the Figure updated in Chapter 2 Advanced if inheriting PBM / BCP / PCM).</li>
+                            <li><strong>Figure Animator</strong>: Specify the Humanoid <code>Animator</code> of the selected Figure.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Hair Outfit Creation Order</strong>:
+                        <ol>
+                            <li>Configure <strong>Figure Root</strong> and <strong>Figure Animator</strong>.</li>
+                            <li>Set <strong>Base Outfit Root</strong> to <code>BasicFemale_Hair</code>, <strong>Registry Id</strong> to <code>hair-1</code>, and <strong>Registry Name</strong> to <code>Hair1</code>.</li>
+                            <li>Click the <strong>"Generate Target Entries"</strong> button.</li>
+                            <li>In the generated <code>BasicGirl</code> row, assign <code>BasicGirl_Hair</code> to the <strong>Target Outfit Root</strong> field.</li>
+                            <li>Click <strong>"Generate SkinnedMesh Outfit Prefab"</strong> to build and save <strong><code>Hair_ShapeSyncOutfit.prefab</code></strong>.</li>
+                        </ol>
+                    </li>
+                    <li><strong>Skirt Outfit Creation Order</strong>:
+                        <ol>
+                            <li>Configure <strong>Figure Root</strong> and <strong>Figure Animator</strong>.</li>
+                            <li>Set <strong>Base Outfit Root</strong> to <code>BasicFemale_Skirt</code>, <strong>Registry Id</strong> to <code>skirt-1</code>, and <strong>Registry Name</strong> to <code>Skirt1</code>.</li>
+                            <li>Click the <strong>"Generate Target Entries"</strong> button.</li>
+                            <li>In the generated <code>BasicGirl</code> row, assign <code>BasicGirl_Skirt</code> to the <strong>Target Outfit Root</strong> field.</li>
+                            <li>Click <strong>"Generate SkinnedMesh Outfit Prefab"</strong> to build and save <strong><code>Skirt_ShapeSyncOutfit.prefab</code></strong>.</li>
+                        </ol>
+                    </li>
+                </ol>
+
+                <!-- IMAGE CARD 7 -->
+                <div class="image-card">
+                    <img src="images/vrm-Fig7.png" alt="Outfit Builder Configuration Window">
+                    <div class="image-caption">Figure 7: Hair & Skirt Outfit Configuration and Target Outfit Root Assignment in Outfit Builder</div>
+                </div>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 7 -->
+            <section id="section-7">
+                <h2>7. Step 3: Physics Transporter (SpringBone Transport & Verification)</h2>
+                <p>Use the <code>Physics Transporter</code> tab to transfer and apply Source VRM <code>Vrm10Instance.SpringBone</code> physics data (<code>VRM10SpringBoneJoint</code> and <code>VRM10SpringBoneColliderGroup</code>) to the Figure and Outfit Prefabs.</p>
+
+                <h4>Operating Conditions & Attachment Specs</h4>
+                <ul>
+                    <li><strong>Source VRM Requirement</strong>: Must possess a valid <code>Vrm10Instance</code> and <code>Vrm10Instance.SpringBone</code> data.</li>
+                    <li><strong>Figure Mode Destination Requirement</strong>: Must be an Initialized Figure holding a valid <code>Vrm10Instance</code> and <code>Animator</code>.</li>
+                    <li><strong>Outfit Mode Destination Requirement</strong>: Must be a Scene Object, Scene Prefab instance, or Root in Prefab Mode (Project window Prefab assets cannot be assigned directly).</li>
+                    <li><strong><code>Canonical Spring Bone Source</code></strong>: Parameter for Figure Mode only (disabled in Outfit Mode).</li>
+                    <li><strong>Asset Storage & Embedded Specs</strong>: Transferred SpringBone data is directly embedded into the output Figure Prefab in Figure Mode, and embedded as Outfit SpringBone data in Outfit Mode (automatically connected by ShapeSync's companion system upon attachment). **No standalone physics sub-asset files are generated**.</li>
+                </ul>
+
+                <h4>Step 1: SpringBone Physics Transfer to Figure</h4>
+                <ol>
+                    <li>Open the <strong><code>Physics Transporter</code></strong> tab in the <strong><code>VRM Transporter</code></strong> window.</li>
+                    <li>Configure the fields:
+                        <ul>
+                            <li><strong>Source VRM Root</strong>: Original <code>BasicFemaleHairAndSkirt.vrm</code></li>
+                            <li><strong>Destination Figure Root</strong>: Scene Figure object created in Step 1 (or Step 2)</li>
+                            <li><strong>Destination Mode</strong>: <code>Figure</code></li>
+                            <li><strong>Canonical Spring Bone Source</strong>: <code>SourceVrm</code></li>
+                        </ul>
+                    </li>
+                    <li><strong>[Mandatory Verification] Click the "Validate / Dry Run"</strong> button. Confirm in the log dialog that there are no errors in SpringBone or ColliderGroup counts.</li>
+                    <li>Click the <strong>"Transfer"</strong> button. Select output path and filename in the Save dialog (Default candidate: <code>&lt;DestinationName&gt;_Physics.prefab</code>).</li>
+                    <li><strong>Result</strong>: A Figure Prefab embedded with validated Spring / ColliderGroup physics structures is output and saved.</li>
+                </ol>
+
+                <!-- IMAGE CARD 8 -->
+                <div class="image-card">
+                    <img src="images/vrm-Fig8.png" alt="Physics Transporter Setup Window">
+                    <div class="image-caption">Figure 8: Source / Destination Configuration in Physics Transporter Tab</div>
+                </div>
+
+                <!-- IMAGE CARD 9 -->
+                <div class="image-card">
+                    <img src="images/vrm-Fig9.png" alt="Physics Transporter Validate Log Window">
+                    <div class="image-caption">Figure 9: Validation Log Dialog Displayed during "Validate / Dry Run" Execution</div>
+                </div>
+
+                <h4>Step 2: SpringBone Physics Transfer to Hair Outfit</h4>
+                <ol>
+                    <li>Change references in the <code>Physics Transporter</code> tab:
+                        <ul>
+                            <li><strong>Source VRM Root</strong>: Original <code>BasicFemaleHairAndSkirt.vrm</code></li>
+                            <li><strong>Destination Outfit Root</strong>: Scene <code>Hair_ShapeSyncOutfit</code> object created in Section 6</li>
+                            <li><strong>Destination Mode</strong>: <code>Outfit</code></li>
+                        </ul>
+                    </li>
+                    <li><strong>[Mandatory Verification] Execute "Validate / Dry Run"</strong> to verify.</li>
+                    <li>Click <strong>"Transfer"</strong> and save via the Save dialog (Default candidate: <code>&lt;DestinationName&gt;_PhysicsOutfit.prefab</code>).</li>
+                </ol>
+
+                <h4>Step 3: [Interim Verification] Figure + Hair Outfit Runtime Check</h4>
+                <ol>
+                    <li>Place the physics-transported Figure in the scene and enter Play mode.</li>
+                    <li>Attach <code>Hair_PhysicsOutfit</code> using <code>OutfitAttacher.TryAttach()</code>.</li>
+                    <li><strong>Check Point</strong>: During walk animation playback, adjust the <code>BasicGirl</code> FBM slider (0.0 → 1.0) in <code>DynamicBoneBlender</code> and confirm hair sways dynamically according to <code>Vrm10Instance.SpringBone</code> physics calculations while conforming to body morphs.</li>
+                </ol>
+
+                <h4>Step 4: SpringBone Physics Transfer to Skirt Outfit</h4>
+                <ol>
+                    <li>Change references in the <code>Physics Transporter</code> tab:
+                        <ul>
+                            <li><strong>Destination Outfit Root</strong>: Scene <code>Skirt_ShapeSyncOutfit</code> object created in Section 6</li>
+                            <li><strong>Destination Mode</strong>: <code>Outfit</code></li>
+                        </ul>
+                    </li>
+                    <li><strong>[Mandatory Verification] Execute "Validate / Dry Run"</strong>, then click <strong>"Transfer"</strong> to save via the Save dialog.</li>
+                </ol>
+
+                <h4>Step 5: Physics Normalization for Shirt Outfit</h4>
+                <blockquote>
+                    <p><strong>* Note (Physics Normalization)</strong>: For final integration combined with a VRM Physics Figure, pass the Shirt through <code>Physics Transporter</code> in <code>Outfit</code> Mode as well. This normalizes remaining VRM-derived physics data and auxiliary bone information in the Outfit to only the actually used bones. Use this normalized output even if the Shirt itself contains no active SpringBones.</p>
+                </blockquote>
+
+                <ol>
+                    <li>Change references in the <code>Physics Transporter</code> tab:
+                        <ul>
+                            <li><strong>Source VRM Root</strong>: Original <code>BasicFemaleHairAndSkirt.vrm</code></li>
+                            <li><strong>Destination Outfit Root</strong>: Scene <code>Shirt_ShapeSyncOutfit</code> object created in Chapters 1 & 2</li>
+                            <li><strong>Destination Mode</strong>: <code>Outfit</code></li>
+                        </ul>
+                    </li>
+                    <li><strong>[Mandatory Verification] Execute "Validate / Dry Run"</strong> to verify.</li>
+                    <li>Click <strong>"Transfer"</strong> and save the normalized physics outfit prefab as <strong><code>Shirt_PhysicsOutfit.prefab</code></strong> via the Save dialog.</li>
+                </ol>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 8 -->
+            <section id="section-8">
+                <h2>8. Final Integration Checklist</h2>
+                <p>As the conclusion to the guides up to this point, attach all parts constructed in Chapter 1 (<a href="tutorial_en.html" style="color:var(--primary);">tutorial_en.html</a>), Chapter 2 (<a href="advanced_en.html" style="color:var(--primary);">advanced_en.html</a>), and Chapter 3 (<a href="vrm_en.html" style="color:var(--primary);">vrm_en.html</a>) in a scene to verify that each feature functions correctly in combination.</p>
+
+                <blockquote>
+                    <p><strong>* Note</strong>: PBM (BreastSize morph), BC Profile (shoe pose correction), and PCM (foot clipping prevention) created in Chapter 2 (Advanced) are optional advanced features. They are not strict prerequisites for the VRM Guide itself.</p>
+                </blockquote>
+
+                <h4>Full Outfit Attachment Procedure</h4>
+                <ol>
+                    <li>Place the physics-transported VRM Figure in the scene.</li>
+                    <li>Enter Play mode and execute outfit attachment using <code>OutfitAttacher</code>:
+                        <ul>
+                            <li><strong>Shirt (Tutorial)</strong>: <code>Shirt_PhysicsOutfit</code> (normalized for physics in Step 5 of this chapter)</li>
+                            <li><strong>Shoes (Advanced - Optional)</strong>: <code>Shoes1_ShapeSyncOutfit</code> (+ BCP + PCM created in Chapter 2)</li>
+                            <li><strong>Hair (VRM)</strong>: <code>Hair_PhysicsOutfit</code> (+ SpringBone physics)</li>
+                            <li><strong>Skirt (VRM)</strong>: <code>Skirt_PhysicsOutfit</code> (+ SpringBone physics)</li>
+                        </ul>
+                    </li>
+                </ol>
+
+                <h4>Individual Verification Checklist</h4>
+                <p>During walk animation playback in Play mode, verify each item individually and in combination:</p>
+                <ul>
+                    <li><strong>FBM Body Deformation Check</strong>: Modify the <code>BasicGirl</code> FBM slider (0.0 ↔ 1.0) in <code>DynamicBoneBlender</code> and verify body and outfits deform seamlessly without mesh tearing.</li>
+                    <li><strong>VRM Expression Synchronization Check</strong>: Toggle expressions (e.g. <code>Joy</code>, <code>Blink</code>, <code>AA</code>) and verify facial expressions stay aligned without distortion even during FBM body morph changes.</li>
+                    <li><strong>SpringBone Swaying Physics Check</strong>: Verify hair and skirt <code>Vrm10Instance.SpringBone</code> physics sway naturally with walking movement and body shape changes.</li>
+                    <li><strong>Existing Outfit Attachment Check</strong>: Verify Chapter 1 Shirt and Chapter 2 Shoes attach to correct bone positions and conform to body deformation.</li>
+                </ul>
+
+                <p><strong>[Integration Success Result]</strong>:<br>
+                An avatar equipped with all elements demonstrates seamless coordination: hair and skirt SpringBones sway naturally during walk animations, body morphs (FBM) and chest morphs (PBM) blend smoothly, shoe pose correction (BCP) and clipping prevention (PCM) function perfectly, and VRM expressions stay synchronized without breaking. Experience the complete, high-quality 3D avatar dressing system built across all 3 guides!</p>
+
+                <!-- IMAGE CARD 10 -->
+                <div class="image-card">
+                    <img src="images/vrm-Fig10.png" alt="Final Integration Play Mode Verification">
+                    <div class="image-caption">Figure 10: Final Integration Play Mode Verification (Simultaneous Walk Animation, FBM, VRM Expression, and SpringBone Physics Coordination)</div>
+                </div>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 9 -->
+            <section id="section-9">
+                <h2>9. Troubleshooting & Key Notes</h2>
+                <ul>
+                    <li><strong><code>SHAPESYNC_USE_UNIVRM</code> Symbol Missing Error</strong>:<br>
+                    If the <code>VRM Transporter</code> window fails to open or compile errors occur, verify that <code>SHAPESYNC_USE_UNIVRM</code> is added to Scripting Define Symbols in <code>Player Settings</code>.</li>
+                    <li><strong>Scene Object Reference Requirement</strong>:<br>
+                    For the <code>ShapeSync Ready Figure</code>, <code>Base / FBM source VRM</code>, and <code>Renderers</code> in <code>Expression Baker</code>, as well as <code>Destination</code> in <code>Physics Transporter</code>, assign Scene Objects or Prefab Mode roots. Project window Prefab assets cannot be assigned directly.</li>
+                    <li><strong>Asset Output Relative Folder Restriction</strong>:<br>
+                    The <code>VRM Asset Relative Folder</code> restriction (disallowing leading <code>Assets/</code> or parent references <code>../</code>) applies to asset output configuration in <code>VRM Initialize</code> and <code>Expression Baker</code> (<code>Physics Transporter</code> uses its own Save file panel to select output destinations).</li>
+                </ul>
+            </section>
+
+            <footer>
+                <p>&copy; ShapeSync Development Team. All rights reserved.</p>
+            </footer>
+        </main>
+    </div>
+</body>
+</html>

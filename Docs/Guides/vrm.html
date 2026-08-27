@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShapeSync VRM Integration ガイド (vrm.html) - 第 3 章</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #38bdf8;
+            --primary-glow: rgba(56, 189, 248, 0.15);
+            --accent: #818cf8;
+            --code-bg: #090d16;
+            --quote-border: #38bdf8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.7;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+            min-height: 100vh;
+        }
+
+        /* サイドバーナビゲーション */
+        .sidebar {
+            width: 300px;
+            background-color: #090d16;
+            border-right: 1px solid var(--card-border);
+            padding: 30px 20px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .sidebar-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toc-list {
+            list-style: none;
+        }
+
+        .toc-item {
+            margin-bottom: 8px;
+        }
+
+        .toc-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: block;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .toc-link:hover {
+            color: var(--primary);
+            background-color: rgba(56, 189, 248, 0.1);
+        }
+
+        .toc-sublist {
+            list-style: none;
+            padding-left: 15px;
+            margin-top: 4px;
+        }
+
+        /* メインコンテンツ */
+        .main-content {
+            flex-grow: 1;
+            padding: 40px 60px;
+            max-width: 1000px;
+        }
+
+        header {
+            margin-bottom: 40px;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #ffffff 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .doc-lead {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+        }
+
+        h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-top: 50px;
+            margin-bottom: 20px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        h4 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-top: 24px;
+            margin-bottom: 12px;
+        }
+
+        p {
+            margin-bottom: 16px;
+            color: #cbd5e1;
+        }
+
+        ul, ol {
+            margin-bottom: 20px;
+            padding-left: 24px;
+            color: #cbd5e1;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        hr {
+            border: 0;
+            height: 1px;
+            background: var(--card-border);
+            margin: 40px 0;
+        }
+
+        /* テーブル */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+        }
+
+        th, td {
+            padding: 12px 18px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #1e293b;
+            color: var(--primary);
+            font-weight: 600;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        td {
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            color: #cbd5e1;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* 引用・コールアウト */
+        blockquote {
+            background-color: var(--card-bg);
+            border-left: 4px solid var(--quote-border);
+            padding: 18px 24px;
+            margin: 24px 0;
+            border-radius: 0 8px 8px 0;
+            color: #e2e8f0;
+        }
+
+        blockquote p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* コードブロック */
+        pre {
+            background-color: var(--code-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 24px 0;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.9rem;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            background-color: rgba(56, 189, 248, 0.1);
+            color: var(--primary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.88em;
+        }
+
+        pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+        }
+
+        /* Image Display Card */
+        .image-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 28px 0;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .image-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .image-caption {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            margin-top: 12px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        footer {
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px solid var(--card-border);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: static;
+            }
+            .main-content {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- サイドバーナビゲーション -->
+        <nav class="sidebar">
+            <div class="sidebar-title">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                ShapeSync Docs
+            </div>
+            <ul class="toc-list">
+                <li class="toc-item"><a href="#section-1" class="toc-link">1. 概要とワークフローの全貌</a></li>
+                <li class="toc-item"><a href="#section-2" class="toc-link">2. 前提条件 (UniGLTF & UniVRM)</a></li>
+                <li class="toc-item"><a href="#section-3" class="toc-link">3. VRM Transporter の全貌</a></li>
+                <li class="toc-item"><a href="#section-4" class="toc-link">4. ステップ 1: VRM Initialize</a></li>
+                <li class="toc-item"><a href="#section-5" class="toc-link">5. ステップ 2: Expression Baker</a></li>
+                <li class="toc-item"><a href="#section-6" class="toc-link">6. VRM 物理の分離と Outfit 化</a></li>
+                <li class="toc-item"><a href="#section-7" class="toc-link">7. ステップ 3: Physics Transporter</a></li>
+                <li class="toc-item"><a href="#section-8" class="toc-link">8. 最終統合検証</a></li>
+                <li class="toc-item"><a href="#section-9" class="toc-link">9. トラブルシューティング</a></li>
+            </ul>
+        </nav>
+
+        <!-- メインコンテンツ -->
+        <main class="main-content">
+            <header>
+                <h1>ShapeSync VRM Integration ガイド (vrm.html) - 第 3 章</h1>
+                <p class="doc-lead">本ドキュメントは、Unity 向け 3D アバター着せ替え・体型変形ミドルウェア <strong>ShapeSync</strong> における <strong>VRM アバター連携機能（UniVRM 統合・VRM Initialize・Expression Baker・Physics Transporter）</strong> を解説する第 3 章ガイドです。<strong><a href="tutorial.html" style="color:var(--primary);">tutorial.html</a></strong>（基盤 FBM）および <strong><a href="advanced.html" style="color:var(--primary);">advanced.html</a></strong>（PBM / BCP / PCM）の概念をベースに、VRM 特有の構造化、MCM 表情ベイク、および SpringBone 揺れもの物理の転送手順を解説します。</p>
+            </header>
+
+            <!-- SECTION 1 -->
+            <section id="section-1">
+                <h2>1. 概要とワークフローの全貌</h2>
+                <p>ShapeSync の公式ドキュメントは、以下の 3 章構成で記述されています。</p>
+
+                <pre><code>第一章: tutorial.html (Getting Started)
+  └ 基本的な Figure 化、FBM (Full Body Morph) 制御、および Outfit (シャツ) の基礎アタッチ
+
+第二章: advanced.html (Advanced Features)
+  └ 応用機能: 部位別モーフ (PBM)、ボーンポーズ補正 (BC Profile)、突き抜け防止 (PCM)
+
+第三章: vrm.html (VRM Integration) ← 本ドキュメント
+  └ VRM10 構造化、MCM 機構による表情ベイク、および SpringBone 揺れもの物理の転送・連動</code></pre>
+
+                <p>エディタツール <strong><code>Tools > zgock > ShapeSync > VRM Transporter</code></strong> ウィンドウの 3 つのタブ UI、および物理アセットの分離・転送ワークフローに対応した構成です。</p>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 2 -->
+            <section id="section-2">
+                <h2>2. 前提条件 (UniGLTF & UniVRM)</h2>
+                <p>ShapeSync で VRM 連携機能を利用するには、Core 機能に加えて以下の前提環境が必要です。</p>
+                <ol>
+                    <li><strong>UniGLTF および UniVRM パッケージの導入</strong>:<br>プロジェクトに適合する <strong>UniGLTF</strong> および <strong>UniVRM 1.0</strong> (<code>UniVRM10</code>) パッケージが導入されていること（UniVRM の依存パッケージとして UniGLTF が含まれます）。</li>
+                    <li><strong>スクリプトコンパイルシンボルの追加</strong>:<br><code>Project Settings > Player > Script Compilation > Scripting Define Symbols</code> に <strong><code>SHAPESYNC_USE_UNIVRM</code></strong> を追加し、Apply します。</li>
+                    <li><strong>エディタツールの起動</strong>:<br>メニューバーから <strong><code>Tools > zgock > ShapeSync > VRM Transporter</code></strong> を開きます。</li>
+                </ol>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 3 -->
+            <section id="section-3">
+                <h2>3. VRM Transporter の全貌と推奨ワークフロー</h2>
+                <p><code>VRM Transporter</code> ウィンドウは、タブ形式で順序立てられた以下の 3 つのステップで構成されています。</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>タブ順序</th>
+                            <th>タブ名</th>
+                            <th>主な目的・処理内容</th>
+                            <th>デフォルト候補名</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>ステップ 1</strong></td>
+                            <td><strong><code>VRM Initialize</code></strong></td>
+                            <td>ShapeSync Figure に <code>VRM10Object</code> / <code>Vrm10Instance</code> / 空の標準 Expression を構築。</td>
+                            <td><code>&lt;入力名&gt;_VRMInit.prefab</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>ステップ 2</strong></td>
+                            <td><strong><code>Expression Baker</code></strong></td>
+                            <td>MCM 機構を用いて、Base と FBM ターゲット間で共通する MorphTarget Expression を一括ベイク。</td>
+                            <td><code>&lt;入力名&gt;_ExpressionBaked.prefab</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>ステップ 3</strong></td>
+                            <td><strong><code>Physics Transporter</code></strong></td>
+                            <td><code>Vrm10Instance.SpringBone</code> 物理や <code>VRM10SpringBoneColliderGroup</code> を Figure / Outfit に転送。</td>
+                            <td><code>&lt;宛先名&gt;_Physics.prefab</code><br><code>&lt;宛先名&gt;_PhysicsOutfit.prefab</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <blockquote>
+                    <p><strong>【技術的必須前提に関する重要な注記】</strong><br>
+                    ガイド上の推奨作業順序は <code>VRM Initialize → Expression Baker → Physics Transporter</code> ですが、<code>Physics Transporter</code> を実行するための<strong>技術的必須前提条件は「<code>VRM Initialize</code> が完了した Figure」</strong>です。<code>Expression Baker</code> による表情ベイクの完了は推奨手順ですが、物理転送の実行における技術的必須前提ではありません。</p>
+                </blockquote>
+
+                <!-- IMAGE CARD 1 -->
+                <div class="image-card">
+                    <img src="images/vrm-Fig1.png" alt="VRM Transporter GUI 画面">
+                    <div class="image-caption">図 1: VRM Transporter GUI 画面（3タブ構成: Initialize / Expression Baker / Physics Transporter）</div>
+                </div>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 4 -->
+            <section id="section-4">
+                <h2>4. ステップ 1: VRM Initialize による VRM 構造の初期化</h2>
+                <p>Figure Builder で生成した ShapeSync Figure を VRM アバターとして動作させるためには、UniVRM 1.0 規格に適合するコンポーネント構造（<code>VRM10Object</code> アセット、<code>Vrm10Instance</code>、<code>Humanoid</code>、および空の標準 <code>VRM10Expression</code> アセット）が必要です。</p>
+
+                <blockquote>
+                    <p><strong>※ 注意</strong>: <code>VRM Initialize</code> は、入力 Figure のクローンに対して上記の VRM 1.0 構造を新規構築する工程であり、<strong>元 VRM から表情データを転送・取り込む工程ではありません</strong>。表情データのベイク処理は次の <code>Expression Baker</code> で行います。</p>
+                </blockquote>
+
+                <h4>操作手順 (<code>VRM Initialize</code> タブ)</h4>
+                <ol>
+                    <li><strong><code>VRM Transporter</code></strong> ウィンドウを開き、<strong><code>VRM Initialize</code></strong> タブを選択します。</li>
+                    <li>フィールドを設定します：
+                        <ul>
+                            <li><strong>Source ShapeSync Figure</strong>: 第一章（Tutorial）で作成した Figure、または最終統合で PBM / BCP / PCM を引き継ぐ場合は、第二章（Advanced）で更新・再生成した Scene 上の Figure を指定します。</li>
+                            <li><strong>VRM Asset Relative Folder</strong>: <code>VRM/</code>（生成フォルダ相対パス）</li>
+                        </ul>
+                    </li>
+                    <li><strong>「Create ShapeSync Ready VRM」</strong> ボタンをクリックします。</li>
+                    <li>Save ダイアログが表示されます。任意の出力パス・ファイル名を選択して保存します（デフォルト候補名: <code>&lt;入力名&gt;_VRMInit.prefab</code>）。</li>
+                    <li><strong>結果</strong>: Figure の BlendShape や FBM を一切書き換えることなく、<code>VRM10Object</code> / <code>Vrm10Instance</code> / <code>Humanoid</code> および空の標準 Expression アセットが正しく組み込まれた Init Prefab が出力・保存されます。</li>
+                </ol>
+
+                <!-- IMAGE CARD 2 -->
+                <div class="image-card">
+                    <img src="images/vrm-Fig2.png" alt="VRM Initialize 設定画面">
+                    <div class="image-caption">図 2: VRM Initialize タブでの参照指定とパラメータ設定画面</div>
+                </div>
+
+                <!-- IMAGE CARD 3 -->
+                <div class="image-card">
+                    <img src="images/vrm-Fig3.png" alt="VRM Initialize 出力 Prefab Inspector 画面">
+                    <div class="image-caption">図 3: VRM Initialize 実行後の生成 Init Prefab および Vrm10Instance Inspector 表示</div>
+                </div>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 5 -->
+            <section id="section-5">
+                <h2>5. ステップ 2: Expression Baker による MCM 表情ベイク</h2>
+                <p>素体の頭部や顔つきが FBM（<code>BasicGirl</code> 等）によって変化した際、目や口の表情 BlendShape と体型変形が干渉することを防ぐため、ShapeSync では <code>Expression Baker</code> を使用します。<code>Expression Baker</code> は <strong>MCM (Morph Controlled Morph)</strong> パイプラインにより、Base VRM とすべての FBM ターゲット VRM の表情アセットを解析・合成し、MCM ベイクによって対応する Base / FBM VRM 間で表情が体型変化へ自然に追従する状態を構築します。</p>
+
+                <h4>仕様および制約事項</h4>
+                <ul>
+                    <li><strong>適用対象の範囲</strong>: ベイクの対象となるのは、<strong>MorphTarget（BlendShape）を使用する Base および全 FBM source VRM に共通して定義されている Expression のみ</strong>です（材質変更や UV 移動のみの Expression は対象外です）。全 FBM source VRM に存在しないカスタム Expression がある場合、その Expression はスキップ候補として UI 上に表示されます。</li>
+                    <li><strong>顔 Renderer の対応条件</strong>: Base VRM および各 FBM source VRM の顔 Renderer は、頂点数と Figure の Base / FBM 顔頂点位置が対応している必要があります。</li>
+                    <li><strong>生成 BlendShape</strong>: 出力メッシュには <code>VRM_*</code> および <code>MCM_*</code> の BlendShape が生成されます。既存の同名ベイク済み Shape が存在する場合は、新しい出力 Prefab 側で置き換えられます。</li>
+                </ul>
+
+                <h4>操作手順 (<code>Expression Baker</code> タブ)</h4>
+                <ol>
+                    <li><strong><code>Expression Baker</code></strong> タブを選択します。</li>
+                    <li>基本参照を設定します：
+                        <ul>
+                            <li><strong>ShapeSync Ready Figure</strong>: ステップ 1 で作成した Scene 上の <code>VRMInit</code> Figure オブジェクト</li>
+                            <li><strong>Figure Renderer</strong>: Figure の顔/頭部 <code>SkinnedMeshRenderer</code></li>
+                            <li><strong>Base VRM Renderer</strong>: <code>BasicFemale</code> の顔/頭部 <code>SkinnedMeshRenderer</code></li>
+                            <li><strong>Base Source VRM</strong>: 元の <code>BasicFemaleHairAndSkirt.vrm</code> オブジェクト</li>
+                        </ul>
+                    </li>
+                    <li><strong>FBM Source VRMs</strong> セクションで <strong>「Generate Target Entries」</strong> をクリックします。</li>
+                    <li>追加された項目の <strong>FBM BlendName</strong> に <code>BasicGirl</code>、<strong>Target VRM Renderer</strong> に <code>BasicGirl</code> の顔 Renderer、<strong>Source VRM</strong> に <code>BasicGirlHairAndSkirt.vrm</code> を指定します。</li>
+                    <li><strong>「Bake Expressions and Create Baked Prefab」</strong> ボタンをクリックします。</li>
+                    <li>Save ダイアログが表示されます。任意の出力パス・ファイル名を選択して保存します（デフォルト候補名: <code>&lt;入力名&gt;_ExpressionBaked.prefab</code>）。</li>
+                    <li><strong>結果</strong>: MCM 表情ベイクが完了し、FBM 体型変形を行っても表情が自然に追従・同期する表情ベイク済み Prefab が出力・保存されます。</li>
+                </ol>
+
+                <!-- IMAGE CARD 4 -->
+                <div class="image-card">
+                    <img src="images/vrm-Fig4.png" alt="Expression Baker 設定画面">
+                    <div class="image-caption">図 4: Expression Baker タブでの参照指定と FBM Source VRMs 設定画面</div>
+                </div>
+
+                <!-- IMAGE CARD 5 -->
+                <div class="image-card">
+                    <img src="images/vrm-Fig5.png" alt="Expression Baker 生成 BlendShape Inspector 画面">
+                    <div class="image-caption">図 5: Expression Baker ベイク後の Mesh での VRM_* / MCM_* BlendShape Inspector 表示</div>
+                </div>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 6 -->
+            <section id="section-6">
+                <h2>6. VRM 物理アセットの分離と Outfit 化 (事前準備)</h2>
+                <p><code>Physics Transporter</code> で物理を転送する前に、教材用アセット <code>BasicFemaleHairAndSkirt.vrm</code> および <code>BasicGirlHairAndSkirt.vrm</code> から、髪とスカートの揺れものパーツを抽出・分離し、ShapeSync Outfit Prefab として独立構築します。</p>
+
+                <blockquote>
+                    <p><strong>※ 単一 Renderer 制約の注意</strong>: 現行の Outfit Builder は複数の <code>SkinnedMeshRenderer</code> を含む Outfit には対応していません。そのため、本手順で作成する Hair および Skirt の各 Prefab は、各 Outfit Root の配下に<strong>単一の <code>SkinnedMeshRenderer</code> のみを保持する構成</strong>とします。</p>
+                </blockquote>
+
+                <h4>手順 1: 髪 (<code>Hair</code>) メッシュの抽出と Prefab 化</h4>
+                <ol>
+                    <li>シーン上に配置した <code>BasicFemaleHairAndSkirt.vrm</code> を右クリックし、<strong><code>Prefab > Unpack Completely</code></strong> を実行します。</li>
+                    <li><code>Hair</code> メッシュおよび該当する髪のボーン階層以外の不要なオブジェクトを削除し、<code>Hair</code> メッシュのみの独立した GameObject（単一 <code>SkinnedMeshRenderer</code>）とします。</li>
+                    <li>Project ウィンドウにドラッグ＆ドロップし、髪専用 Prefab <strong><code>BasicFemale_Hair.prefab</code></strong> として保存します。</li>
+                </ol>
+
+                <h4>手順 2: Mesh Separation によるスカート (<code>Skirt</code>) の分離抽出</h4>
+                <ol>
+                    <li>メニューバーから <strong><code>Tools > zgock > ShapeSync > Mesh Utility</code></strong> を開きます。</li>
+                    <li><strong><code>Mesh Separation</code></strong> タブを選択します。</li>
+                    <li><strong><code>Source Renderer</code></strong> フィールドに <code>BasicFemaleHairAndSkirt</code> の Body <code>SkinnedMeshRenderer</code> を指定します。</li>
+                    <li>対象のマテリアルスロット（本教材アセットにおける選択例: <code>Skirt</code> または <code>*_CLOTH_*</code>）を選択します。</li>
+                    <li><strong>「Generate Separated Mesh Prefab」</strong> ボタンをクリックし、単一 Renderer のスカート Prefab <strong><code>BasicFemale_Skirt.prefab</code></strong> として保存します。</li>
+                </ol>
+
+                <!-- IMAGE CARD 6 -->
+                <div class="image-card">
+                    <img src="images/vrm-Fig6.png" alt="Mesh Separation 設定画面">
+                    <div class="image-caption">図 6: Mesh Separation (Separator) タブでの衣装マテリアル分離指定画面</div>
+                </div>
+
+                <h4>手順 3: ターゲット VRM (<code>BasicGirl</code>) の分離処理</h4>
+                <ol>
+                    <li>ターゲットとなる <code>BasicGirlHairAndSkirt.vrm</code> に対しても、同様に手順 1（髪抽出）および手順 2（スカート分離）を実行します。</li>
+                    <li>それぞれ単一 Renderer 構成の <strong><code>BasicGirl_Hair.prefab</code></strong> および <strong><code>BasicGirl_Skirt.prefab</code></strong> を生成・保存します。</li>
+                </ol>
+
+                <h4>手順 4: Outfit Builder による Outfit 化</h4>
+                <ol>
+                    <li>メニューバーから <strong><code>Tools > zgock > ShapeSync > Outfit Builder</code></strong> を開きます。</li>
+                    <li>共通フィールド（Figure 参照）を設定します：
+                        <ul>
+                            <li><strong>Figure Root</strong>: 最終統合に使用する ShapeSync Figure（第一章の Figure、または PBM / BCP / PCM を含める最終統合では第二章 Advanced で更新・再生成した Figure）を指定します。</li>
+                            <li><strong>Figure Animator</strong>: 上記で指定した Figure の Humanoid <code>Animator</code> を指定します。</li>
+                        </ul>
+                    </li>
+                    <li><strong>髪 (<code>Hair</code>) Outfit の作成順序</strong>:
+                        <ol>
+                            <li><strong>Figure Root</strong> と <strong>Figure Animator</strong> を設定します。</li>
+                            <li><strong>Base Outfit Root</strong>: <code>BasicFemale_Hair</code>、<strong>Registry Id</strong>: <code>hair-1</code>、<strong>Registry Name</strong>: <code>Hair1</code> を設定します。</li>
+                            <li><strong>「Generate Target Entries」</strong> ボタンをクリックします。</li>
+                            <li>生成された <code>BasicGirl</code> 行の <strong>Target Outfit Root</strong> フィールドに、対応する <code>BasicGirl_Hair</code> を設定します。</li>
+                            <li><strong>「Generate SkinnedMesh Outfit Prefab」</strong> を実行し、<strong><code>Hair_ShapeSyncOutfit.prefab</code></strong> を出力・保存します。</li>
+                        </ol>
+                    </li>
+                    <li><strong>スカート (<code>Skirt</code>) Outfit の作成順序</strong>:
+                        <ol>
+                            <li><strong>Figure Root</strong> と <strong>Figure Animator</strong> を設定します。</li>
+                            <li><strong>Base Outfit Root</strong>: <code>BasicFemale_Skirt</code>、<strong>Registry Id</strong>: <code>skirt-1</code>、<strong>Registry Name</strong>: <code>Skirt1</code> を設定します。</li>
+                            <li><strong>「Generate Target Entries」</strong> ボタンをクリックします。</li>
+                            <li>生成された <code>BasicGirl</code> 行の <strong>Target Outfit Root</strong> フィールドに、対応する <code>BasicGirl_Skirt</code> を設定します。</li>
+                            <li><strong>「Generate SkinnedMesh Outfit Prefab」</strong> を実行し、<strong>`Skirt_ShapeSyncOutfit.prefab`</strong> を出力・保存します。</li>
+                        </ol>
+                    </li>
+                </ol>
+
+                <!-- IMAGE CARD 7 -->
+                <div class="image-card">
+                    <img src="images/vrm-Fig7.png" alt="Outfit Builder 参照指定画面">
+                    <div class="image-caption">図 7: Outfit Builder での髪・スカート Outfit 設定と Target Outfit Root 割当画面</div>
+                </div>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 7 -->
+            <section id="section-7">
+                <h2>7. ステップ 3: Physics Transporter による物理転送と段階的検証</h2>
+                <p><code>Physics Transporter</code> タブを使用して、Source VRM の <code>Vrm10Instance.SpringBone</code> 物理データ（<code>VRM10SpringBoneJoint</code> や <code>VRM10SpringBoneColliderGroup</code>）を Figure および各 Outfit Prefab へ転送・適用します。</p>
+
+                <h4>動作条件およびアタッチメント仕様</h4>
+                <ul>
+                    <li><strong>Source VRM 条件</strong>: 有効な <code>Vrm10Instance</code> および <code>Vrm10Instance.SpringBone</code> データを保持している必要があります。</li>
+                    <li><strong>Figure Mode の宛先条件</strong>: 有効な <code>Vrm10Instance</code> と <code>Animator</code> を保持する Initialize 済み Figure である必要があります。</li>
+                    <li><strong>Outfit Mode の宛先条件</strong>: Scene Object、Scene 上の Prefab インスタンス、または Prefab Mode の Root を指定します（Project ウィンドウ上の Prefab アセットを直接指定することはできません）。</li>
+                    <li><strong><code>Canonical Spring Bone Source</code></strong>: Figure Mode 専用のパラメータです（Outfit Mode では無効化されます）。</li>
+                    <li><strong>アセット保存と非独立仕様</strong>: 転送された SpringBone データは、Figure Mode では出力 Figure Prefab 内に組み込まれ、Outfit Mode では Outfit 側の SpringBone データとして埋め込まれます（着用時に ShapeSync のコンパニオン機能が自動接続します）。<strong>独立した物理 sub-asset ファイルは生成されません</strong>。</li>
+                </ul>
+
+                <h4>手順 1: Figure への SpringBone 物理転送</h4>
+                <ol>
+                    <li><strong><code>VRM Transporter</code></strong> ウィンドウの <strong><code>Physics Transporter</code></strong> タブを開きます。</li>
+                    <li>フィールドを設定します：
+                        <ul>
+                            <li><strong>Source VRM Root</strong>: 元の <code>BasicFemaleHairAndSkirt.vrm</code></li>
+                            <li><strong>Destination Figure Root</strong>: ステップ 1（またはステップ 2）で作成した Scene 上の Figure オブジェクト</li>
+                            <li><strong>Destination Mode</strong>: <code>Figure</code></li>
+                            <li><strong>Canonical Spring Bone Source</strong>: <code>SourceVrm</code></li>
+                        </ul>
+                    </li>
+                    <li><strong>【必須確認手順】「Validate / Dry Run」</strong> ボタンをクリックします。ポップアップダイアログで SpringBone 数や ColliderGroup 数にエラーがないことを確認します。</li>
+                    <li><strong>「Transfer」</strong> ボタンをクリックします。Save ダイアログで出力先とファイル名を選択します（デフォルト候補名: <code>&lt;宛先名&gt;_Physics.prefab</code>）。</li>
+                    <li><strong>結果</strong>: Validate を通過した Spring / ColliderGroup が転送・組み込まれた Figure Prefab が出力保存されます。</li>
+                </ol>
+
+                <!-- IMAGE CARD 8 -->
+                <div class="image-card">
+                    <img src="images/vrm-Fig8.png" alt="Physics Transporter 設定画面">
+                    <div class="image-caption">図 8: Physics Transporter タブでの Source / Destination 設定画面</div>
+                </div>
+
+                <!-- IMAGE CARD 9 -->
+                <div class="image-card">
+                    <img src="images/vrm-Fig9.png" alt="Physics Transporter Validate ログ画面">
+                    <div class="image-caption">図 9: Physics Transporter の「Validate / Dry Run」実行時の検証ログダイアログ画面</div>
+                </div>
+
+                <h4>手順 2: 髪 (<code>Hair</code>) Outfit への SpringBone 物理転送</h4>
+                <ol>
+                    <li><code>Physics Transporter</code> タブの参照を変更します：
+                        <ul>
+                            <li><strong>Source VRM Root</strong>: 元の <code>BasicFemaleHairAndSkirt.vrm</code></li>
+                            <li><strong>Destination Outfit Root</strong>: 第 6 章で作成した Scene 上の <code>Hair_ShapeSyncOutfit</code> オブジェクト</li>
+                            <li><strong>Destination Mode</strong>: <code>Outfit</code></li>
+                        </ul>
+                    </li>
+                    <li><strong>【必須確認手順】「Validate / Dry Run」</strong> を実行して検証します。</li>
+                    <li><strong>「Transfer」</strong> をクリックし、Save ダイアログで出力保存します（デフォルト候補名: <code>&lt;宛先名&gt;_PhysicsOutfit.prefab</code>）。</li>
+                </ol>
+
+                <h4>手順 3: 【中間実機確認】Figure + 髪 Outfit での動作チェック</h4>
+                <ol>
+                    <li>シーン上に物理転送済み Figure を配置し、Play モードを開始します。</li>
+                    <li><code>OutfitAttacher.TryAttach()</code> で <code>Hair_PhysicsOutfit</code> を着用させます。</li>
+                    <li><strong>確認ポイント</strong>: 歩行アニメーション再生中、<code>DynamicBoneBlender</code> の <code>BasicGirl</code> FBM スライダー（0.0 → 1.0）を操作した際、髪の毛が体型変更に追従しながら <code>Vrm10Instance.SpringBone</code> の計算に従って揺れ動くことを確認します。</li>
+                </ol>
+
+                <h4>手順 4: スカート (<code>Skirt</code>) Outfit への SpringBone 物理転送</h4>
+                <ol>
+                    <li><code>Physics Transporter</code> タブの参照を変更します：
+                        <ul>
+                            <li><strong>Destination Outfit Root</strong>: 第 6 章で作成した Scene 上の <code>Skirt_ShapeSyncOutfit</code> オブジェクト</li>
+                            <li><strong>Destination Mode</strong>: <code>Outfit</code></li>
+                        </ul>
+                    </li>
+                    <li><strong>【必須確認手順】「Validate / Dry Run」</strong> を実行後、<strong>「Transfer」</strong> をクリックして Save ダイアログで出力保存します。</li>
+                </ol>
+
+                <h4>手順 5: シャツ (<code>Shirt</code>) Outfit の Physics 向け正規化</h4>
+                <blockquote>
+                    <p><strong>※ 注意（物理対応への正規化）</strong>: VRM Physics Figure と組み合わせる最終統合では、Shirt も <code>Physics Transporter</code> の <code>Outfit</code> Mode を通してください。これにより、Outfit に残存する VRM 由来の物理情報と補助ボーン情報が、実際に使用するボーンだけへ正規化されます。Shirt 自体に有効な SpringBone がない場合でも、この正規化出力を使用します。</p>
+                </blockquote>
+
+                <ol>
+                    <li><code>Physics Transporter</code> タブの参照を変更します：
+                        <ul>
+                            <li><strong>Source VRM Root</strong>: 元の <code>BasicFemaleHairAndSkirt.vrm</code></li>
+                            <li><strong>Destination Outfit Root</strong>: 第一章・第二章で作成した Scene 上の <code>Shirt_ShapeSyncOutfit</code> オブジェクト</li>
+                            <li><strong>Destination Mode</strong>: <code>Outfit</code></li>
+                        </ul>
+                    </li>
+                    <li><strong>【必須確認手順】「Validate / Dry Run」</strong> を実行して検証します。</li>
+                    <li><strong>「Transfer」</strong> をクリックし、Save ダイアログで Physics 正規化版の <strong><code>Shirt_PhysicsOutfit.prefab</code></strong> として出力・保存します。</li>
+                </ol>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 8 -->
+            <section id="section-8">
+                <h2>8. 最終統合検証 (ここまでのガイドの総仕上げチェックリスト)</h2>
+                <p>ここまでのガイドの締めくくりとして、第一章（<a href="tutorial.html" style="color:var(--primary);">tutorial.html</a>）、第二章（<a href="advanced.html" style="color:var(--primary);">advanced.html</a>）、および第三章（<a href="vrm.html" style="color:var(--primary);">vrm.html</a>）で構築した各種パーツをシーン上でアタッチし、それぞれの機能が個別に正常動作することを確認する検証チェックリストです。</p>
+
+                <blockquote>
+                    <p><strong>※ 注意</strong>: 第二章 (Advanced) で作成した PBM（胸部モーフ）、BC Profile（靴のポーズ補正）、PCM（足の裏貫通防止）は任意で組み合わせ可能な応用要素です。VRM ガイド単独の必須前提条件ではありません。</p>
+                </blockquote>
+
+                <h4>全身アタッチ手順</h4>
+                <ol>
+                    <li>シーン上に物理転送済み VRM Figure を配置します。</li>
+                    <li>Play モードを開始し、<code>OutfitAttacher</code> を使用して以下の衣装アタッチを実行します：
+                        <ul>
+                            <li><strong>シャツ (Tutorial)</strong>: 本章の手順 5 で Physics 対応に正規化した <code>Shirt_PhysicsOutfit</code></li>
+                            <li><strong>靴 (Advanced - 任意)</strong>: 第二章で作成した <code>Shoes1_ShapeSyncOutfit</code> (+ BCP + PCM)</li>
+                            <li><strong>髪 (VRM)</strong>: 本章で作成した <code>Hair_PhysicsOutfit</code> (+ SpringBone)</li>
+                            <li><strong>スカート (VRM)</strong>: 本章で作成した <code>Skirt_PhysicsOutfit</code> (+ SpringBone)</li>
+                        </ul>
+                    </li>
+                </ol>
+
+                <h4>個別機能動作チェックリスト</h4>
+                <p>Play モードでの歩行アニメーション再生中、以下の各項目を個別および複合して確認します：</p>
+                <ul>
+                    <li><strong>歩行中の FBM 体型変更確認</strong>: <code>DynamicBoneBlender</code> で <code>BasicGirl</code> FBM スライダー（0.0 ↔ 1.0）を動かした際、素体・衣装が破綻なく追従変形するか。</li>
+                    <li><strong>VRM Expression (表情) 切り替え確認</strong>: <code>Joy</code> / <code>Blink</code> / <code>AA</code> などの表情を切り替えた際、FBM 体型変形中であっても表情がズレずに正常同期するか。</li>
+                    <li><strong>SpringBone 揺れもの物理確認</strong>: 歩行や体型変更に伴い、髪およびスカートの <code>Vrm10Instance.SpringBone</code> が自然に揺れ動くか。</li>
+                    <li><strong>既存 Outfit (シャツ / 靴) の着せ替え確認</strong>: 第一章のシャツや第二章の靴が正確な位置にアタッチされ、変形に追従するか。</li>
+                </ul>
+
+                <p><strong>【感動の統合達成成果】</strong>:<br>
+                すべての要素が揃ったアバターは、歩行動作にあわせて髪とスカートの SpringBone がしなやかに跳ね、体型スライダー（FBM）や胸部スライダー（PBM）の変更、靴のポーズ補正（BCP）とメッシュ貫通防止（PCM）、そして VRM 表情の連動がすべて調和して同時に機能します。3 つのガイドを通じて構築した、完成度の高い 3D アバター着せ替えシステムの全貌を実機で体験できます！</p>
+
+                <!-- IMAGE CARD 10 -->
+                <div class="image-card">
+                    <img src="images/vrm-Fig10.png" alt="Play モードでの最終統合動作検証">
+                    <div class="image-caption">図 10: Play モードでの最終統合動作検証（歩行・FBM・VRM 表情・SpringBone 物理の同時連動）</div>
+                </div>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 9 -->
+            <section id="section-9">
+                <h2>9. トラブルシューティング & 注意事項</h2>
+                <ul>
+                    <li><strong><code>SHAPESYNC_USE_UNIVRM</code> シンボル未定義エラー</strong>:<br>
+                    <code>VRM Transporter</code> ウィンドウが開かない、またはビルドエラーが発生する場合は、<code>Player Settings</code> の Scripting Define Symbols に <code>SHAPESYNC_USE_UNIVRM</code> が追加されているか確認してください。</li>
+                    <li><strong>Scene Object の参照制限</strong>:<br>
+                    <code>Expression Baker</code> の ShapeSync Ready Figure、Base / FBM source VRM、各 Renderer、および <code>Physics Transporter</code> の Destination 参照フィールドには、Scene Object または Prefab Mode root を指定します。Project ウィンドウ上の Prefab asset を直接指定することはできません。</li>
+                    <li><strong>アセット出力フォルダ制限</strong>:<br>
+                    <code>VRM Asset Relative Folder</code> のフォルダ制限（<code>Assets/</code> や <code>../</code> の指定不可）は、<code>VRM Initialize</code> および <code>Expression Baker</code> でのアセット出力先設定に関する項目です（<code>Physics Transporter</code> は専用の Save ダイアログで出力先を選択します）。</li>
+                </ul>
+            </section>
+
+            <footer>
+                <p>&copy; ShapeSync Development Team. All rights reserved.</p>
+            </footer>
+        </main>
+    </div>
+</body>
+</html>

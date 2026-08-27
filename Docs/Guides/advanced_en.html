@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShapeSync Advanced Features Guide</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #38bdf8;
+            --primary-glow: rgba(56, 189, 248, 0.15);
+            --accent: #818cf8;
+            --code-bg: #090d16;
+            --quote-border: #38bdf8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.7;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 300px;
+            background-color: #090d16;
+            border-right: 1px solid var(--card-border);
+            padding: 30px 20px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .sidebar-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toc-list {
+            list-style: none;
+        }
+
+        .toc-item {
+            margin-bottom: 8px;
+        }
+
+        .toc-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: block;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .toc-link:hover {
+            color: var(--primary);
+            background-color: rgba(56, 189, 248, 0.1);
+        }
+
+        .toc-sublist {
+            list-style: none;
+            padding-left: 15px;
+            margin-top: 4px;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex-grow: 1;
+            padding: 40px 60px;
+            max-width: 1000px;
+        }
+
+        header {
+            margin-bottom: 40px;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #ffffff 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .doc-lead {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+        }
+
+        h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-top: 50px;
+            margin-bottom: 20px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        h4 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        p {
+            margin-bottom: 16px;
+            color: #cbd5e1;
+        }
+
+        ul, ol {
+            margin-bottom: 20px;
+            padding-left: 24px;
+            color: #cbd5e1;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        strong {
+            color: #ffffff;
+        }
+
+        hr {
+            border: 0;
+            height: 1px;
+            background: var(--card-border);
+            margin: 40px 0;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+        }
+
+        th, td {
+            padding: 12px 18px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #1e293b;
+            color: var(--primary);
+            font-weight: 600;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        td {
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            color: #cbd5e1;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Blockquotes / Callouts */
+        blockquote {
+            background-color: var(--card-bg);
+            border-left: 4px solid var(--quote-border);
+            padding: 18px 24px;
+            margin: 24px 0;
+            border-radius: 0 8px 8px 0;
+            color: #e2e8f0;
+        }
+
+        blockquote p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Code Blocks */
+        pre {
+            background-color: var(--code-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 24px 0;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.9rem;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            background-color: rgba(56, 189, 248, 0.1);
+            color: var(--primary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.88em;
+        }
+
+        pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+        }
+
+        /* Image Display Card */
+        .image-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 28px 0;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .image-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .image-caption {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            margin-top: 12px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        footer {
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px solid var(--card-border);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: static;
+            }
+            .main-content {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                ShapeSync Advanced
+            </div>
+            <ul class="toc-list">
+                <li class="toc-item"><a href="#section-1" class="toc-link">1. Overview & Feature Matrix</a></li>
+                <li class="toc-item"><a href="#section-2" class="toc-link">2. Partial Body Morph (PBM) Integration</a>
+                    <ul class="toc-sublist">
+                        <li><a href="#section-2-step1" class="toc-link">Step 1: Preparing Mesh Assets</a></li>
+                        <li><a href="#section-2-step2" class="toc-link">Step 2: Baking PBM into Figure</a></li>
+                        <li><a href="#section-2-step3" class="toc-link">Step 3: Baking PBM into Outfit</a></li>
+                        <li><a href="#section-2-step4" class="toc-link">Step 4: Runtime Synchronization</a></li>
+                    </ul>
+                </li>
+                <li class="toc-item"><a href="#section-3" class="toc-link">3. Shoe Attachment & BC Profile (BCP)</a>
+                    <ul class="toc-sublist">
+                        <li><a href="#section-3-step1" class="toc-link">Step 1: Creating Shoe Prefab</a></li>
+                        <li><a href="#section-3-step2" class="toc-link">Step 2: Identifying Misalignment</a></li>
+                        <li><a href="#section-3-step3" class="toc-link">Step 3: Capturing BC Profile</a></li>
+                        <li><a href="#section-3-step4" class="toc-link">Step 4: Rebuilding in Outfit Builder</a></li>
+                    </ul>
+                </li>
+                <li class="toc-item"><a href="#section-4" class="toc-link">4. Eliminating Clipping (PCM & Surface Fit)</a>
+                    <ul class="toc-sublist">
+                        <li><a href="#section-4-step1" class="toc-link">Step 1: Necessity of PCM</a></li>
+                        <li><a href="#section-4-step2" class="toc-link">Step 2: Two-Stage PCM Building</a></li>
+                        <li><a href="#section-4-step3" class="toc-link">Step 3: Final Assembly & Testing</a></li>
+                    </ul>
+                </li>
+                <li class="toc-item"><a href="#section-5" class="toc-link">5. Summary</a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header>
+                <h1>ShapeSync Advanced Features Guide</h1>
+                <p class="doc-lead">This document serves as Chapter 2 of the guide for <strong>ShapeSync</strong>, a Unity middleware for 3D avatar dressing and body deformation. Building upon the foundational Figure setup and Full Body Morph (FBM) controls learned in <strong><a href="tutorial_en.html" style="color:var(--primary);">tutorial_en.html</a></strong>, this guide covers advanced workflows: Partial Body Morphs (PBM), Bone Correction Profiles (BC Profile), Profile Controlled Morphs (PCM), and Surface Fit projection.</p>
+            </header>
+
+            <!-- SECTION 1 -->
+            <section id="section-1">
+                <h2>1. Overview & Feature Matrix</h2>
+                <p>While basic Full Body Morphs (FBM) conform clothing to overall body shape changes, ShapeSync provides three advanced features for localized deformations, bone pose corrections for specialized footwear (e.g., high heels/platform shoes), and body mesh anti-clipping controls.</p>
+                <p>All of these settings (BC Profile, PBM, PCM, etc.) are <strong>automatically applied and synchronized to the Figure</strong> at runtime by ShapeSync's internal attachment mechanism.</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Target Binding</th>
+                            <th>Tools / Components</th>
+                            <th>Purpose & Effect</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Partial Body Morph (PBM)</strong></td>
+                            <td><strong>Both Figure & Outfit</strong></td>
+                            <td><code>PBM Baker</code><br>(<code>Tools > zgock > ShapeSync > PBM Baker</code>)</td>
+                            <td>Bakes localized body morphs (e.g., chest or waist adjustments) into existing Figure / Outfit prefabs.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Bone Correction Profile (BC Profile)</strong></td>
+                            <td><strong>Outfit Side</strong></td>
+                            <td><code>BC Profile Builder</code><br>(<code>Tools > zgock > ShapeSync > BC Profile Builder</code>)</td>
+                            <td>Corrects Humanoid bone poses/scales on the Figure when wearing specific outfits (e.g., tiptoe stance for heels).</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Profile Controlled Morph (PCM)</strong></td>
+                            <td><strong>Outfit Side</strong></td>
+                            <td><code>Figure PCM Builder</code><br>(<code>Tools > zgock > ShapeSync > Figure PCM Builder</code>)</td>
+                            <td>Automatically applies forced morphs onto the Figure mesh to prevent body mesh penetration/clipping through clothes.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Surface Fit (Surface Projection)</strong></td>
+                            <td><strong>PCM Generation Option</strong></td>
+                            <td><code>Figure PCM Builder</code><br>(Surface Fit Tab / Optional)</td>
+                            <td>Builds PCM targets via surface projection when the target pose mesh has a different topology from the Figure.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 2 -->
+            <section id="section-2">
+                <h2>2. Partial Body Morph (PBM) Integration & Synchronization</h2>
+                <p>Partial Body Morphing (PBM) applies localized body shape modifications (such as <code>BreastSize</code>) independently of global FBM body shape changes, deforming both Figure and Outfit in sync. Instead of building via Figure Builder or Outfit Builder, PBMs are baked directly into existing Figure and Outfit assets using the <strong><code>PBM Baker</code></strong> editor tool.</p>
+
+                <h3 id="section-2-step1">Step 1: Preparing Mesh Assets for PBM</h3>
+                <p>Prepare the following mesh assets (all present as GameObjects in the Scene) required for baking PBMs:</p>
+                <ul>
+                    <li><strong>Assets for Figure</strong>:
+                        <ul>
+                            <li><code>Source Figure / Outfit</code>: Existing Figure object created in Chapter 1</li>
+                            <li><code>Source Renderer</code>: Figure base shape <code>SkinnedMeshRenderer</code></li>
+                            <li><code>Base PBM Renderer</code>: <code>BasicFemaleBreastSize</code> (Chest adjustment mesh Renderer in base FBM state)</li>
+                            <li><code>Target Renderer</code>: <code>BasicGirlBreastSize</code> (Chest adjustment mesh Renderer in target FBM state)</li>
+                        </ul>
+                    </li>
+                    <li><strong>Assets for Outfit</strong>:
+                        <ul>
+                            <li><code>Source Figure / Outfit</code>: Existing Outfit object created in Chapter 1</li>
+                            <li><code>Source Renderer</code>: Outfit base shape <code>SkinnedMeshRenderer</code></li>
+                            <li><code>Base PBM Renderer</code>: <code>BasicFemaleShirt2BreastSize</code> (Outfit chest adjustment mesh Renderer in base FBM state)</li>
+                            <li><code>Target Renderer</code>: <code>BasicGirlBreastSize</code> (Outfit chest adjustment mesh Renderer in target FBM state)</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <h3 id="section-2-step2">Step 2: Baking PBM into Figure using PBM Baker</h3>
+                <ol>
+                    <li>Open <strong><code>Tools > zgock > ShapeSync > PBM Baker</code></strong> from the menu bar.</li>
+                    <li>Set <strong>Mode</strong> to <code>Figure</code>.</li>
+                    <li>Assign <strong>Source Figure / Outfit</strong> to your Scene's Figure object.</li>
+                    <li>Assign <strong>Source Renderer</strong> to the Figure's base <code>SkinnedMeshRenderer</code>.</li>
+                    <li>Assign <strong>Base PBM Renderer</strong> to <code>BasicFemaleBreastSize</code>'s <code>SkinnedMeshRenderer</code>.</li>
+                    <li>Set <strong>PBM Name</strong> to <code>"BreastSize"</code>.</li>
+                    <li>In the <strong>FBM Target Renderers</strong> section, click <strong>"Generate Target Entries"</strong> or <strong>"Add FBM Target"</strong>.</li>
+                    <li>For the newly added target item, set <strong>FBM Name</strong> to <code>BasicGirl</code> and assign <strong>Target Renderer</strong> to <code>BasicGirlBreastSize</code>'s <code>SkinnedMeshRenderer</code>.</li>
+                    <li>Click <strong>"Bake PBM Output Prefab"</strong> at the bottom of the window to generate a Figure Prefab baked with PBM (<code>BreastSize</code>).</li>
+                </ol>
+
+                <h3 id="section-2-step3">Step 3: Baking PBM into Outfit using PBM Baker</h3>
+                <ol>
+                    <li>Open <strong><code>Tools > zgock > ShapeSync > PBM Baker</code></strong> again.</li>
+                    <li>Set <strong>Mode</strong> to <code>Outfit</code>.</li>
+                    <li>Assign <strong>Source Figure / Outfit</strong> to your Scene's Outfit object.</li>
+                    <li>Assign <strong>Source Renderer</strong> to the Outfit's base <code>SkinnedMeshRenderer</code>.</li>
+                    <li>Assign <strong>Base PBM Renderer</strong> to <code>BasicFemaleShirt2BreastSize</code>'s <code>SkinnedMeshRenderer</code>.</li>
+                    <li>Set <strong>PBM Name</strong> to <code>"BreastSize"</code> (matching the Figure side).</li>
+                    <li>In the <strong>FBM Target Renderers</strong> section, click <strong>"Generate Target Entries"</strong> or <strong>"Add FBM Target"</strong>.</li>
+                    <li>Set <strong>FBM Name</strong> to <code>BasicGirl</code> and assign <strong>Target Renderer</strong> to <code>BasicGirlBreastSize</code>'s <code>SkinnedMeshRenderer</code>.</li>
+                    <li>Click <strong>"Bake PBM Output Prefab"</strong> at the bottom to generate an Outfit Prefab baked with PBM (<code>BreastSize</code>).</li>
+                </ol>
+
+                <!-- IMAGE CARD 1 -->
+                <div class="image-card">
+                    <img src="images/adv-Fig1.png" alt="PBM Baker GUI Configuration">
+                    <div class="image-caption">Figure 1: PBM Baker GUI (Figure / Outfit Mode Settings)</div>
+                </div>
+
+                <h3 id="section-2-step4">Step 4: Scene Attachment & Real-time PBM Synchronization Testing</h3>
+                <ol>
+                    <li>Place the PBM-baked Figure Prefab in the Scene and attach the PBM-baked Outfit in Play mode.</li>
+                    <li>Select the Figure in the Hierarchy and inspect its <strong><code>DynamicBoneBlender</code> (DBB)</strong> component in the Inspector.</li>
+                    <li><strong>Verify Target Entry Addition</strong>: Confirm that a new target entry named <strong><code>PBM_BreastSize</code></strong> automatically appears under DBB's Targets list.</li>
+                    <li><strong>Test Morph Deformation</strong>: Adjust the weight slider for the newly added <code>PBM_BreastSize</code> entry.</li>
+                    <li><strong>Success Criterion</strong>: Verify that both Figure (body) and Outfit (clothing) chest meshes deform synchronously and seamlessly as the slider moves.</li>
+                </ol>
+
+                <!-- IMAGE CARD 2 -->
+                <div class="image-card">
+                    <img src="images/adv-Fig2.png" alt="DynamicBoneBlender PBM_BreastSize Slider Synchronization">
+                    <div class="image-caption">Figure 2: Real-time Synchronized Deformation with PBM_BreastSize Slider in DynamicBoneBlender</div>
+                </div>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 3 -->
+            <section id="section-3">
+                <h2>3. Shoe Attachment & Pose Misalignment: BC Profile (BCP) Introduction</h2>
+                <p>Using footwear attachment (e.g., platform shoes or high heels) as an example, this section demonstrates why Bone Correction Profiles (BC Profile) are required and how to capture and apply them.</p>
+
+                <h3 id="section-3-step1">Step 1: Creating Shoe Prefab and Discovering Misalignment</h3>
+                <ol>
+                    <li>Decompose <code>BasicFemale</code> / <code>BasicFemaleShoes1</code> using the <code>Mesh Separation</code> tab in Mesh Utility to create a <code>Shoes1</code> Prefab.</li>
+                    <li>Attach the shoe Prefab to the Figure in the Scene.</li>
+                    <li><strong>Problem Discovery</strong>: Notice that the shoe's position and orientation are severely misaligned relative to the Figure's feet.</li>
+                </ol>
+
+                <!-- IMAGE CARD 3 -->
+                <div class="image-card">
+                    <img src="images/adv-Fig3.png" alt="Initial Misalignment of Shoe Attachment">
+                    <div class="image-caption">Figure 3: Initial Misalignment of Shoe Attachment (Pose Difference)</div>
+                </div>
+
+                <h3 id="section-3-step2">Step 2: Identifying Root Cause (Pose Misalignment) & Role of BC Profile</h3>
+                <ol>
+                    <li>Extract the shoe's reference body mesh using <code>Mesh Separation</code>, place it in the Scene, and align its transform with the Figure.</li>
+                    <li><strong>Root Cause Identified</strong>: The shoe asset was modeled for a "tiptoe" stance rather than the Figure's default rest pose. To fit the shoe, the Figure's foot bones need a slight tiptoe pose correction.</li>
+                    <li><strong>Role of BC Profile</strong>: <strong>BC Profile (Bone Correction Profile)</strong> is required to automatically apply this Humanoid bone rotation and position correction upon clothing attachment.</li>
+                </ol>
+
+                <!-- IMAGE CARD 4 -->
+                <div class="image-card">
+                    <img src="images/adv-Fig4.png" alt="Extracted Body Mesh & Pose Comparison">
+                    <div class="image-caption">Figure 4: Extracting Body Mesh with Separator and Comparing Foot Poses</div>
+                </div>
+
+                <h3 id="section-3-step3">Step 3: Capturing Profiles with BC Profile Builder</h3>
+                <ol>
+                    <li><strong>Do not alter the original Base Figure</strong>; duplicate the Base Figure in the Hierarchy.</li>
+                    <li>On the duplicated Base Figure, adjust the Hip Y position and Foot X rotation manually to create the tiptoe stance matching the shoe.</li>
+                    <li>Open <strong><code>Tools > zgock > ShapeSync > BC Profile Builder</code></strong> from the menu bar.</li>
+                    <li>Configure the window reference fields as follows:
+                        <ul>
+                            <li><strong>Base Figure Root</strong>: Assign the original Base Figure object (unmodified rest pose).</li>
+                            <li><strong>Current Pose Figure Root</strong>: Assign the <strong>duplicated Base Figure object</strong> (with manual tiptoe pose).</li>
+                        </ul>
+                    </li>
+                    <li>Click <strong>"Capture Current Pose as Profile"</strong>.</li>
+                    <li>The Humanoid bone transform differences (TRS) between rest pose and tiptoe pose are captured and saved as a `ShapeSyncHumanoidBoneCorrectionProfile` asset (<code>BasicFemale_BCProfile</code>).</li>
+                    <li>Repeat the same capture process for <code>BasicGirl</code> (duplicate, adjust pose, capture) to save `BasicGirl_BCProfile`.</li>
+                </ol>
+
+                <!-- IMAGE CARD 5 -->
+                <div class="image-card">
+                    <img src="images/adv-Fig5.png" alt="BC Profile Builder GUI Configuration">
+                    <div class="image-caption">Figure 5: BC Profile Builder GUI Setup (Step 3-4)</div>
+                </div>
+
+                <h3 id="section-3-step4">Step 4: Rebuilding in Outfit Builder and Discovering Penetration</h3>
+                <ol>
+                    <li>Open <strong><code>Tools > zgock > ShapeSync > Outfit Builder</code></strong> from the menu bar.</li>
+                    <li>Set the required fields:
+                        <ul>
+                            <li><strong>Figure Root</strong>: Figure Prefab root GameObject</li>
+                            <li><strong>Figure Animator</strong>: Figure `Animator` component</li>
+                            <li><strong>Base Outfit Root</strong>: Extracted Base shoe Prefab root GameObject</li>
+                            <li><strong>Registry Id</strong>: <code>shoes-1</code></li>
+                            <li><strong>Registry Name</strong>: <code>Shoes1</code></li>
+                            <li><strong>Base Outfit BC Profile (Optional)</strong>: Assign <code>BasicFemale_BCProfile</code> created in Step 3</li>
+                        </ul>
+                    </li>
+                    <li>In the <strong>FBM Outfit Roots</strong> section, add the target entry (<code>BasicGirl</code>) and assign <code>BasicGirl_BCProfile</code> to its BC Profile field.</li>
+                    <li>Click <strong>"Generate SkinnedMesh Outfit Prefab"</strong> to export the shoe Prefab with BC Profile embedded.</li>
+                    <li><strong>New Problem Discovery (Mesh Penetration)</strong>:
+                        <ul>
+                            <li>Attach the newly generated shoe Prefab to the Figure in the Scene.</li>
+                            <li>The foot angles and heights now match perfectly, but <strong>the sole and sides of the foot mesh penetrate (clip through) the shoe</strong>.</li>
+                        </ul>
+                    </li>
+                </ol>
+
+                <!-- IMAGE CARD 6 -->
+                <div class="image-card">
+                    <img src="images/adv-Fig6.png" alt="BCP Shoe Attachment & Mesh Penetration Issue">
+                    <div class="image-caption">Figure 6: Footwear Attachment after BCP and Mesh Penetration (Clipping) Issue</div>
+                </div>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 4 -->
+            <section id="section-4">
+                <h2>4. Eliminating Clipping: PCM & Surface Fit</h2>
+
+                <h3 id="section-4-step1">Step 1: The Necessity of Profile Controlled Morph (PCM)</h3>
+                <ol>
+                    <li>The mesh clipping discovered in Section 3 Step 4 cannot be resolved by bone pose adjustments (BCP) alone.</li>
+                    <li>Comparing the shoe-fitting body mesh with the Figure reveals that the foot sole and sides need to be slightly contracted (indented).</li>
+                    <li>To prevent body mesh penetration through clothing, <strong>Profile Controlled Morph (PCM)</strong> is required to dynamically depress/contract Figure mesh areas when wearing specific outfits.</li>
+                </ol>
+
+                <h3 id="section-4-step2">Step 2: Two-Stage Target Generation in Figure PCM Builder</h3>
+                <p>Building a PCM Payload with <code>Figure PCM Builder</code> follows a mandatory <strong>Two-Stage workflow</strong>.</p>
+
+                <ol>
+                    <li>Open <strong><code>Tools > zgock > ShapeSync > Figure PCM Builder</code></strong> from the menu bar.</li>
+                    <li>Configure basic fields:
+                        <ul>
+                            <li><strong>Source Figure Root</strong>: Figure root GameObject</li>
+                            <li><strong>Source Renderer</strong>: Figure base shape <code>SkinnedMeshRenderer</code></li>
+                            <li><strong>Outfit Name</strong>: <code>Shoes1</code></li>
+                        </ul>
+                    </li>
+                </ol>
+
+                <h4>Stage 1: Generating Same-Topology Target Prefabs</h4>
+                <p>Generate same-topology target prefabs for Base and FBM Targets using BC Profiles and optional Surface Fit Targets.</p>
+                <ol>
+                    <li>Set <strong>Base BC Profile</strong> to <code>BasicFemale_BCProfile</code> and <strong>Base Surface Fit Target (optional)</strong> to the shoe-wearing body mesh <code>SkinnedMeshRenderer</code>.</li>
+                    <li>Click <strong>"Generate Base Target from BC Profile"</strong> and save the generated same-topology Target Prefab (e.g., <code>BasicFemale_Shoes1_BaseTarget.prefab</code>).</li>
+                    <li>In the <strong>FBM Target SkinnedMeshes</strong> section, click <strong>"Add FBM Target"</strong>, set <strong>FBM Name</strong> to <code>BasicGirl</code>, <strong>Target BC Profile</strong> to <code>BasicGirl_BCProfile</code>, and <strong>Surface Fit Target (optional)</strong> to <code>BasicGirl</code>'s shoe-wearing body mesh Renderer.</li>
+                    <li>Click <strong>"Generate Target from BC Profile"</strong> and save the generated target Prefab (e.g., <code>BasicGirl_Shoes1_Target.prefab</code>).</li>
+                </ol>
+
+                <!-- IMAGE CARD 7 -->
+                <div class="image-card">
+                    <img src="images/adv-Fig7.png" alt="Stage 1 Figure PCM Builder GUI">
+                    <div class="image-caption">Figure 7: Stage 1 Figure PCM Builder GUI (Generating Same-Topology Target Prefabs)</div>
+                </div>
+
+                <h4>Stage 2: Assigning Target Renderers and Exporting PCM Payload</h4>
+                <p>Assign the `SkinnedMeshRenderer`s from Stage 1's generated target prefabs to `Base Target Renderer` and each `Target Renderer` entry to build the final PCM Payload.</p>
+                <ol start="5">
+                    <li>Assign Stage 1's generated Prefabs' `SkinnedMeshRenderer`s to mandatory fields <strong>`Base Target Renderer`</strong> and each target entry's <strong>`Target Renderer`</strong>.</li>
+                    <li>Click <strong>"Generate Figure PCM Prefab"</strong> at the very bottom of the window.</li>
+                    <li>A Plugable PCM Payload (`ProfileControlledMorphAsset`) incorporating surface projection will be exported and saved.</li>
+                </ol>
+
+                <!-- IMAGE CARD 8 -->
+                <div class="image-card">
+                    <img src="images/adv-Fig8.png" alt="Stage 2 Figure PCM Builder GUI">
+                    <div class="image-caption">Figure 8: Stage 2 Figure PCM Builder GUI (Assigning Target Renderers and Generating PCM Payload)</div>
+                </div>
+
+                <h3 id="section-4-step3">Step 3: Final Assembly in Outfit Builder & Runtime Verification</h3>
+                <ol>
+                    <li>Open <strong><code>Tools > zgock > ShapeSync > Outfit Builder</code></strong> from the menu bar.</li>
+                    <li>Set and verify each field:
+                        <ul>
+                            <li><strong>Figure Root</strong>: Figure Prefab root GameObject</li>
+                            <li><strong>Figure Animator</strong>: Figure `Animator` component</li>
+                            <li><strong>Base Outfit Root</strong>: Extracted Base shoe Prefab root GameObject</li>
+                            <li><strong>Registry Id</strong>: <code>shoes-1</code></li>
+                            <li><strong>Registry Name</strong>: <code>Shoes1</code></li>
+                            <li><strong>Base Outfit BC Profile (Optional)</strong>: <code>BasicFemale_BCProfile</code></li>
+                            <li><strong>Plugable PCM Payload (optional)</strong>: Assign Step 2's generated PCM Payload (`ProfileControlledMorphAsset`)</li>
+                        </ul>
+                    </li>
+                    <li>In the <strong>FBM Outfit Roots</strong> section, verify `BasicGirl` target reference and BC Profile (`BasicGirl_BCProfile`) assignment.</li>
+                    <li>Click <strong>"Generate SkinnedMesh Outfit Prefab"</strong> to build the final shoe Outfit Prefab.</li>
+                </ol>
+
+                <!-- IMAGE CARD 9 -->
+                <div class="image-card">
+                    <img src="images/adv-Fig9.png" alt="Outfit Builder Assembly with PCM and BCP">
+                    <div class="image-caption">Figure 9: Final Assembly with PCM Payload and BCP in Outfit Builder</div>
+                </div>
+
+                <ol start="5">
+                    <li><strong>Runtime Verification (Success Criterion)</strong>:
+                        <ul>
+                            <li>Attach the completed shoe Prefab to the Figure in Play mode.</li>
+                            <li>Verify that foot angles and heights match perfectly, and that all mesh penetration/clipping along the sole and sides is completely eliminated.</li>
+                        </ul>
+                    </li>
+                </ol>
+
+                <!-- IMAGE CARD 10 -->
+                <div class="image-card">
+                    <img src="images/adv-Fig10.png" alt="Final Fitted Shoe Attachment Result">
+                    <div class="image-caption">Figure 10: Final Shoe Attachment Result (Perfect Fit with Pose Correction and Penetration Elimination)</div>
+                </div>
+            </section>
+
+            <hr>
+
+            <!-- SECTION 5 -->
+            <section id="section-5">
+                <h2>5. Summary</h2>
+                <p>By leveraging ShapeSync's advanced features, you can achieve sophisticated avatar customization beyond simple body morphing: bone pose corrections for specialized footwear (BC Profile), body mesh anti-clipping controls (PCM), surface projection fitting for different mesh topologies (Surface Fit), and localized body modifications (PBM).</p>
+
+                <blockquote>
+                    <strong>* Note on VRM Advanced Features</strong><br>
+                    VRM-specific features such as automatic SpringBone physics rebuilding and VRM Expression synchronization will be covered in detail in a separate <strong>VRM Integration Guide</strong>.
+                </blockquote>
+            </section>
+
+            <footer>
+                &copy; 2026 ShapeSync Documentation Team. Advanced Features English Guide (advanced_en.html).
+            </footer>
+        </main>
+    </div>
+</body>
+</html>
