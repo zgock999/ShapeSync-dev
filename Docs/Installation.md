@@ -16,6 +16,22 @@ project-owned asset at
 `Assets/Resources/zgock/ShapeSync/TextureStaticMachineFactorySettings.asset`.
 The Core-only define set must not contain `SHAPESYNC_USE_UNIVRM`.
 
+## Choose the project template
+
+The recommended starting point is Unity Hub's **Universal 3D** template. On
+Unity `6000.3.18f1`, the installed template package
+`com.unity.template.3d-cross-platform-17.0.14` was measured to provide URP
+`17.0.1` in its manifest, `m_ActiveColorSpace: 1` (Linear), and a
+`GraphicsSettings.m_CustomRenderPipeline` assignment to its URP asset. In
+that route, installation step 5 and the color-space part of step 8 below are
+**confirmations**, not additional setup actions. The template does not create
+ShapeSync's Factory Settings asset, so step 9 remains required.
+
+If the project was created from Built-in RP or another non-URP template,
+follow the explicit URP installation in step 5 and set Linear color space in
+step 8. Built-in RP, HDRP, and custom SRP are outside ShapeSync Phase0
+support.
+
 ## Install the Core package
 
 ShapeSync is installed from the package repository through Unity Package
@@ -40,8 +56,12 @@ Manager. Perform these steps in order:
    command-line verification, `nugetforunity restore <project-path>` is
    equivalent to the UI restore step.
 4. In Package Manager, add `com.cysharp.r3` version `1.3.1` by name.
-5. In Package Manager, make sure the Universal Render Pipeline package is
-   installed and resolved:
+5. Confirm or install URP. For a Universal 3D project, confirm that the
+   manifest contains URP `17.0.1` or a later `17.x` version and that a URP
+   Render Pipeline Asset is assigned in **Project Settings > Graphics** /
+   **Quality**. No installation action is needed when those template defaults
+   are present. For a Built-in RP or other non-URP project, install and
+   resolve:
 
    ```text
    com.unity.render-pipelines.universal 17.0.0 or later
@@ -61,9 +81,11 @@ Manager. Perform these steps in order:
    `zgock.ShapeSync.Runtime` and `zgock.ShapeSync.Editor` assemblies compile
    without UniVRM installed.
 
-8. Set **Project Settings > Player > Other Settings > Rendering > Color Space**
-   to **Linear**. ShapeSync's material and texture contracts use Linear RGBA;
-   the validation TestProject stores this as `m_ActiveColorSpace: 1`.
+8. Confirm or set **Project Settings > Player > Other Settings > Rendering >
+   Color Space**. For a Universal 3D project, confirm it is **Linear**; the
+   measured template default is `m_ActiveColorSpace: 1`, so no change is
+   needed when it is present. For a Built-in RP or other project, set it to
+   **Linear**. ShapeSync's material and texture contracts use Linear RGBA.
 9. Create the project-owned Texture StackMachine Factory settings after Core
    has resolved. The package intentionally does not write into `Assets/Resources`.
    Add this temporary file as `Assets/Editor/ShapeSyncConsumerSetup.cs`, then
@@ -120,8 +142,11 @@ Manager. Perform these steps in order:
    After the asset is created, the temporary setup script may be removed.
    Keep the generated `.asset` and its `.meta` in the consumer project.
 
-Core-only projects stop after step 9. The Core package has no UniVRM or Unity
-Input System dependency.
+Core-only projects stop after step 9. Steps 1, 2, 3, 4, 6, and the Factory
+Settings action in step 9 are required in both routes. For Universal 3D,
+step 5 and the color-space check in step 8 are confirmations; for Built-in RP,
+step 5 installs URP and step 8 sets Linear. The Core package has no UniVRM or
+Unity Input System dependency.
 
 ## Optional VRM Integration companion
 
@@ -160,12 +185,20 @@ absent. Do not add `SHAPESYNC_USE_UNIVRM` merely to use Core-only workflows.
 Before verification, confirm that URP is installed, the project Color Space is
 **Linear**, the Core package is resolved with `SHAPESYNC_USE_UNIVRM` absent, and
 the project-owned Factory Settings asset exists at the exact
-`Assets/Resources/zgock/ShapeSync` path. Open **Window > General > Test Runner**
-and run the package EditMode and PlayMode assemblies. A clean Core-only run is
-expected to be approximately 1,175 EditMode tests and 136 PlayMode tests. In
-batchmode, the two documented environment-specific failures may appear; any
-other failure or any inconclusive result is a test failure and must be
-reported.
+`Assets/Resources/zgock/ShapeSync` path. For package test discovery, add the
+Core package ID to the consumer project's `testables` list in
+`Packages/manifest.json`:
+
+```json
+"testables": ["net.zgock-lab.shapesync"]
+```
+
+This enables the package's test assemblies for the Test Runner and is not a
+runtime dependency. Open **Window > General > Test Runner** and run the
+package EditMode and PlayMode assemblies. A clean Core-only run is expected to
+be approximately 1,175 EditMode tests and 136 PlayMode tests. In batchmode,
+the two documented environment-specific failures may appear; any other
+failure or any inconclusive result is a test failure and must be reported.
 
 The package repository intentionally provides Slim Tests only. Rich Tests,
 PlayTest content, Human Test fixtures, and Sandbox assets belong to the private
