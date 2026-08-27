@@ -1,7 +1,7 @@
 # Changelog
 
-## [0.2.0-preview] - Unreleased
+## [0.2.0-preview2] - Unreleased
 
-- First pure UPM package release for ShapeSync Core.
+- Ship the default Texture StackMachine Factory Settings asset in the Core package.
 - Removed the retired embedded net.zgock-lab.shapesync.r3-core dependency.
 - Third-party binaries are not redistributed; R3 remains an external package dependency.

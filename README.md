@@ -16,9 +16,9 @@ expression baking, and SpringBone transport.
 - UniVRM 0.131.1 only when using the optional VRM Integration companion
 
 ShapeSync Core does not require UniVRM or the Unity Input System.
-For Core Slim Tests and the automatic Texture StackMachine Factory path, the
-consumer project must also use Linear color space and provide the project-owned
-Texture StackMachine Factory settings described below.
+The Core package includes the default Texture StackMachine Factory Settings
+asset. Consumer projects must use Linear color space for the Core Slim Tests
+and the automatic Texture StackMachine Factory path.
 
 ## Install
 
@@ -36,8 +36,7 @@ Unity `6000.3.18f1`, the installed template package
 `GraphicsSettings.m_CustomRenderPipeline` assignment to its URP asset. With
 that template, step 4 and the color-space part of step 6 below are
 **confirmations**, not additional setup actions. The template does not know
-about ShapeSync and does not create the Factory Settings asset; step 6's
-Factory Settings action remains required.
+about ShapeSync; the Core package supplies its default Factory Settings asset.
 
 If the project was created from Built-in RP or another non-URP template,
 follow the explicit URP installation in step 4 and set Linear color space in
@@ -107,87 +106,20 @@ and custom SRP are outside ShapeSync Phase0 support.
 In Package Manager, choose **Add package from git URL** and enter:
 
 ```text
-https://github.com/zgock999/ShapeSync-dev.git?path=Packages/net.zgock-lab.shapesync#0.2.0-preview
+https://github.com/zgock999/ShapeSync-dev.git?path=Packages/net.zgock-lab.shapesync#0.2.0-preview2
 ```
 
-The `?path=` subfolder must appear before `#0.2.0-preview`. The revision is
+The `?path=` subfolder must appear before `#0.2.0-preview2`. The revision is
 the lockstep package tag and must not be replaced with an unverified short
 SHA.
 
-### 6. Confirm or configure the consumer project
-
-#### 6a. Confirm or set Linear color space
+### 6. Confirm or set Linear color space
 
 For a Universal 3D project, confirm **Project Settings > Player > Other
 Settings > Rendering > Color Space** is **Linear**. The measured template
 default is `m_ActiveColorSpace: 1`; no change is needed when it is present.
 For a Built-in RP or other project, set the same property to **Linear**.
 ShapeSync's material and texture contracts use Linear RGBA.
-
-#### 6b. Create the project-owned Factory Settings asset
-
-The automatic Texture StackMachine Factory and the package Slim Tests also
-require this project-owned asset at exactly:
-
-```text
-Assets/Resources/zgock/ShapeSync/TextureStaticMachineFactorySettings.asset
-```
-
-The package intentionally does not write into `Assets/Resources`. Create the
-asset after Core has resolved by adding this temporary file as
-`Assets/Editor/ShapeSyncConsumerSetup.cs`, then run **ShapeSync > Setup > Create
-Texture Factory Settings** once:
-
-```csharp
-#if UNITY_EDITOR
-using System;
-using UnityEditor;
-using UnityEngine;
-using zgock.ShapeSync.StackMachine;
-
-internal static class ShapeSyncConsumerSetup
-{
-    private const string Folder = "Assets/Resources/zgock/ShapeSync";
-    private const string AssetPath = Folder + "/TextureStaticMachineFactorySettings.asset";
-    private const string PrefabPath = "Packages/net.zgock-lab.shapesync/Runtime/StackMachine/Texture/TextureStackMachineHost.prefab";
-
-    [MenuItem("ShapeSync/Setup/Create Texture Factory Settings")]
-    private static void CreateTextureFactorySettings()
-    {
-        EnsureFolder("Assets/Resources");
-        EnsureFolder("Assets/Resources/zgock");
-        EnsureFolder(Folder);
-
-        if (AssetDatabase.LoadAssetAtPath<TextureStaticMachineFactorySettings>(AssetPath) != null)
-            return;
-
-        TextureStackMachineHost prefab = AssetDatabase.LoadAssetAtPath<TextureStackMachineHost>(PrefabPath);
-        if (prefab == null)
-            throw new InvalidOperationException("ShapeSync TextureStackMachineHost prefab was not found: " + PrefabPath);
-
-        TextureStaticMachineFactorySettings settings = ScriptableObject.CreateInstance<TextureStaticMachineFactorySettings>();
-        SerializedObject serialized = new SerializedObject(settings);
-        serialized.FindProperty("textureStackMachineHostPrefab").objectReferenceValue = prefab;
-        serialized.ApplyModifiedPropertiesWithoutUndo();
-        AssetDatabase.CreateAsset(settings, AssetPath);
-        AssetDatabase.SaveAssets();
-        Selection.activeObject = settings;
-    }
-
-    private static void EnsureFolder(string path)
-    {
-        if (AssetDatabase.IsValidFolder(path)) return;
-        string parent = System.IO.Path.GetDirectoryName(path).Replace('\\', '/');
-        string leaf = path.Substring(parent.Length).TrimStart('/');
-        EnsureFolder(parent);
-        AssetDatabase.CreateFolder(parent, leaf);
-    }
-}
-#endif
-```
-
-After the asset is created, the temporary setup script may be removed. Keep
-the generated `.asset` and its `.meta` in the consumer project.
 
 ### 7. Install UniVRM only for VRM workflows
 
@@ -205,16 +137,16 @@ Core-only projects skip this step.
 After Core is installed, add the companion from git:
 
 ```text
-https://github.com/zgock999/ShapeSync-dev.git?path=Packages/net.zgock-lab.shapesync.vrm#0.2.0-preview
+https://github.com/zgock999/ShapeSync-dev.git?path=Packages/net.zgock-lab.shapesync.vrm#0.2.0-preview2
 ```
 
 Then add `SHAPESYNC_USE_UNIVRM` under **Project Settings > Player > Scripting
 Define Symbols**. Keep the symbol absent for Core-only projects.
 
-For Core-only projects, steps 1, 2, 3, 5, and the Factory Settings action in
-6b are required in both routes. In the Universal 3D route, step 4 and step
-6a are confirmations of template-provided settings; in the Built-in RP route,
-step 4 installs URP and step 6a sets Linear. Step 7 and step 8 are only for
+For Core-only projects, steps 1, 2, 3, 5, and 6 are required in both routes.
+In the Universal 3D route, step 4 and step 6 are confirmations of
+template-provided settings; in the Built-in RP route, step 4 installs URP and
+step 6 sets Linear. Step 7 and step 8 are only for
 VRM workflows.
 
 ## Troubleshooting
@@ -246,7 +178,7 @@ Cannot checkout repository ... pathspec ... did not match any file(s) known to g
 ```
 
 Use the exact URL above, including `.git`, the package subfolder, and the
-`#0.2.0-preview` revision.
+`#0.2.0-preview2` revision.
 
 ## Documentation
 
@@ -262,10 +194,10 @@ Use the exact URL above, including `.git`, the package subfolder, and the
 ## Testing
 
 The package repository contains Slim Tests only. Before testing, confirm that
-URP is installed, the project Color Space is **Linear**, the Core package is
-resolved with `SHAPESYNC_USE_UNIVRM` absent, and the project-owned Factory
-Settings asset exists at the exact `Assets/Resources/zgock/ShapeSync` path.
-For package test discovery, add the Core package ID to the consumer project's
+URP is installed, the project Color Space is **Linear**, and the Core package
+is resolved with `SHAPESYNC_USE_UNIVRM` absent. The default Factory Settings
+asset is shipped inside the Core package. For package test discovery, add the
+Core package ID to the consumer project's
 `testables` list in `Packages/manifest.json`:
 
 ```json
