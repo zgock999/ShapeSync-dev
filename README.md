@@ -8,11 +8,17 @@ expression baking, and SpringBone transport.
 ## Requirements
 
 - Unity 6.0 LTS or later (validation baseline: Unity 6000.3.18f1)
+- Universal Render Pipeline (URP) 17.0.0 or later. The validation baseline is
+  `com.unity.render-pipelines.universal` 17.3.0; ShapeSync Phase0 supports URP
+  only, and the URP package supplies the required Lit/Unlit shader identities.
 - Git 2.14 or later, with HTTPS access to the package repository
 - NuGetForUnity 4.5.0 for the R3 .NET core dependency
 - UniVRM 0.131.1 only when using the optional VRM Integration companion
 
 ShapeSync Core does not require UniVRM or the Unity Input System.
+For Core Slim Tests and the automatic Texture StackMachine Factory path, the
+consumer project must also use Linear color space and provide the project-owned
+Texture StackMachine Factory settings described below.
 
 ## Install
 
@@ -46,7 +52,10 @@ com.github-glitchenzo.nugetforunity 4.5.0
 Open NuGetForUnity's package manager, search for `R3`, and install version
 `1.3.1`. Allow it to restore its .NET dependency closure into the consumer
 project. Do not copy R3 DLLs into this repository or into either ShapeSync
-package manually.
+package manually. This UI step creates or updates the consumer-side
+`Assets/packages.config` and `NuGet.config`; keep those files with the
+consumer project. For a command-line verification, `nugetforunity restore
+<project-path>` is equivalent to the UI restore step.
 
 ### 3. Install the R3 Unity adapter
 
@@ -56,16 +65,21 @@ In Package Manager, add by name:
 com.cysharp.r3 1.3.1
 ```
 
-### 4. Install UniVRM only for VRM workflows
+### 4. Install URP
 
-For VRM use, add these packages in order:
+In Package Manager, make sure the Universal Render Pipeline package is
+installed and resolved:
 
 ```text
-com.vrmc.gltf 0.131.1
-com.vrmc.vrm 0.131.1
+com.unity.render-pipelines.universal 17.0.0 or later
 ```
 
-Core-only projects skip this step.
+The validation baseline is `17.3.0` on Unity `6000.3.18f1`. The lower bound is
+the Unity 6 URP 17.x line required by the Phase0 shader identities; `17.3.0`
+is the tested version, not a request to change the fixed ShapeSync package tag.
+For an application scene, assign a URP Render Pipeline Asset in the usual
+**Project Settings > Graphics** / **Quality** locations. Built-in RP, HDRP,
+and custom SRP are outside ShapeSync Phase0 support.
 
 ### 5. Install ShapeSync Core from Git
 
@@ -79,7 +93,87 @@ The `?path=` subfolder must appear before `#0.2.0-preview`. The revision is
 the lockstep package tag and must not be replaced with an unverified short
 SHA.
 
-### 6. Enable the optional VRM companion
+### 6. Configure the consumer project
+
+Set **Project Settings > Player > Other Settings > Rendering > Color Space**
+to **Linear**. ShapeSync's material and texture contracts use Linear RGBA;
+the TestProject stores this as `m_ActiveColorSpace: 1`.
+
+The automatic Texture StackMachine Factory and the package Slim Tests also
+require this project-owned asset at exactly:
+
+```text
+Assets/Resources/zgock/ShapeSync/TextureStaticMachineFactorySettings.asset
+```
+
+The package intentionally does not write into `Assets/Resources`. Create the
+asset after Core has resolved by adding this temporary file as
+`Assets/Editor/ShapeSyncConsumerSetup.cs`, then run **ShapeSync > Setup > Create
+Texture Factory Settings** once:
+
+```csharp
+#if UNITY_EDITOR
+using System;
+using UnityEditor;
+using UnityEngine;
+using zgock.ShapeSync.StackMachine;
+
+internal static class ShapeSyncConsumerSetup
+{
+    private const string Folder = "Assets/Resources/zgock/ShapeSync";
+    private const string AssetPath = Folder + "/TextureStaticMachineFactorySettings.asset";
+    private const string PrefabPath = "Packages/net.zgock-lab.shapesync/Runtime/StackMachine/Texture/TextureStackMachineHost.prefab";
+
+    [MenuItem("ShapeSync/Setup/Create Texture Factory Settings")]
+    private static void CreateTextureFactorySettings()
+    {
+        EnsureFolder("Assets/Resources");
+        EnsureFolder("Assets/Resources/zgock");
+        EnsureFolder(Folder);
+
+        if (AssetDatabase.LoadAssetAtPath<TextureStaticMachineFactorySettings>(AssetPath) != null)
+            return;
+
+        TextureStackMachineHost prefab = AssetDatabase.LoadAssetAtPath<TextureStackMachineHost>(PrefabPath);
+        if (prefab == null)
+            throw new InvalidOperationException("ShapeSync TextureStackMachineHost prefab was not found: " + PrefabPath);
+
+        TextureStaticMachineFactorySettings settings = ScriptableObject.CreateInstance<TextureStaticMachineFactorySettings>();
+        SerializedObject serialized = new SerializedObject(settings);
+        serialized.FindProperty("textureStackMachineHostPrefab").objectReferenceValue = prefab;
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+        AssetDatabase.CreateAsset(settings, AssetPath);
+        AssetDatabase.SaveAssets();
+        Selection.activeObject = settings;
+    }
+
+    private static void EnsureFolder(string path)
+    {
+        if (AssetDatabase.IsValidFolder(path)) return;
+        string parent = System.IO.Path.GetDirectoryName(path).Replace('\\', '/');
+        string leaf = path.Substring(parent.Length).TrimStart('/');
+        EnsureFolder(parent);
+        AssetDatabase.CreateFolder(parent, leaf);
+    }
+}
+#endif
+```
+
+After the asset is created, the temporary setup script may be removed. Keep
+the generated `.asset` and its `.meta` in the consumer project.
+
+### 7. Install UniVRM only for VRM workflows
+
+For VRM use, add these packages in order:
+
+```text
+com.vrmc.gltf 0.131.1
+com.vrmc.vrm 0.131.1
+```
+
+Core-only projects skip this step.
+
+### 8. Enable the optional VRM companion
 
 After Core is installed, add the companion from git:
 
@@ -90,7 +184,8 @@ https://github.com/zgock999/ShapeSync-dev.git?path=Packages/net.zgock-lab.shapes
 Then add `SHAPESYNC_USE_UNIVRM` under **Project Settings > Player > Scripting
 Define Symbols**. Keep the symbol absent for Core-only projects.
 
-Core-only installation is steps 1, 2, 3, and 5.
+Core-only installation is steps 1, 2, 3, 4, 5, and 6. Step 7 and step 8 are
+only for VRM workflows.
 
 ## Troubleshooting
 
@@ -136,10 +231,18 @@ Use the exact URL above, including `.git`, the package subfolder, and the
 
 ## Testing
 
-The package repository contains Slim Tests only. After installing the Core,
-open **Window > General > Test Runner** and run the package EditMode and
-PlayMode assemblies. The internal Sandbox, Rich Tests, Human Test evidence,
-and PlayTest assets are not part of the package distribution.
+The package repository contains Slim Tests only. Before testing, confirm that
+URP is installed, the project Color Space is **Linear**, the Core package is
+resolved with `SHAPESYNC_USE_UNIVRM` absent, and the project-owned Factory
+Settings asset exists at the exact `Assets/Resources/zgock/ShapeSync` path.
+Then open **Window > General > Test Runner** and run the package EditMode and
+PlayMode assemblies. A clean Core-only run is expected to be approximately
+1,175 EditMode tests and 136 PlayMode tests. In batchmode, the two documented
+environment-specific failures may appear; any other failure or any
+inconclusive result is a test failure and must be reported.
+
+The internal Sandbox, Rich Tests, Human Test evidence, and PlayTest assets are
+not part of the package distribution.
 
 ## License
 
