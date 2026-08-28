@@ -122,10 +122,10 @@ is not supported or guaranteed.
 In Package Manager, choose **Add package from git URL** and enter:
 
 ```text
-https://github.com/zgock999/ShapeSync-dev.git?path=Packages/net.zgock-lab.shapesync#0.2.0-preview3
+https://github.com/zgock999/ShapeSync-dev.git?path=Packages/net.zgock-lab.shapesync#0.2.0-preview4
 ```
 
-The `?path=` subfolder must appear before `#0.2.0-preview3`. The revision is
+The `?path=` subfolder must appear before `#0.2.0-preview4`. The revision is
 the lockstep package tag and must not be replaced with an unverified short
 SHA.
 
@@ -153,7 +153,7 @@ Core-only projects skip this step.
 After Core is installed, add the companion from git:
 
 ```text
-https://github.com/zgock999/ShapeSync-dev.git?path=Packages/net.zgock-lab.shapesync.vrm#0.2.0-preview3
+https://github.com/zgock999/ShapeSync-dev.git?path=Packages/net.zgock-lab.shapesync.vrm#0.2.0-preview4
 ```
 
 Then add `SHAPESYNC_USE_UNIVRM` under **Project Settings > Player > Scripting
@@ -211,7 +211,7 @@ Cannot checkout repository ... pathspec ... did not match any file(s) known to g
 ```
 
 Use the exact URL above, including `.git`, the package subfolder, and the
-`#0.2.0-preview3` revision.
+`#0.2.0-preview4` revision.
 
 ## Documentation
 
