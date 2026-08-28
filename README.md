@@ -20,8 +20,9 @@ expression baking, and SpringBone transport.
 
 ShapeSync Core does not require UniVRM or the Unity Input System.
 The Core package includes the default Texture StackMachine Factory Settings
-asset. Consumer projects must use Linear color space for the Core Slim Tests
-and the automatic Texture StackMachine Factory path.
+asset. Consumer projects must use Linear color space and set Asset
+Serialization Mode to Mixed for the Core Slim Tests, Database assets, and the
+automatic Texture StackMachine Factory path.
 
 ## Install
 
@@ -38,12 +39,16 @@ Unity `6000.3.18f1`, the installed template package
 `17.0.1` in its manifest, `m_ActiveColorSpace: 1` (Linear), and a
 `GraphicsSettings.m_CustomRenderPipeline` assignment to its URP asset. With
 that template, step 4 and the color-space part of step 6 below are
-**confirmations**, not additional setup actions. The template does not know
-about ShapeSync; the Core package supplies its default Factory Settings asset.
+**confirmations**, not additional setup actions. The Asset Serialization Mode
+part of step 6 still requires a change in both template routes: new projects
+default to Force Text, but ShapeSync requires Mixed. The template does not
+know about ShapeSync; the Core package supplies its default Factory Settings
+asset.
 
 If the project was created from Built-in RP or another non-URP template,
 follow the explicit URP installation in step 4 and set Linear color space in
-step 6. Built-in RP, HDRP, and custom SRP are outside ShapeSync Phase0
+step 6. The Asset Serialization Mode requirement in step 6 is the same for
+this route. Built-in RP, HDRP, and custom SRP are outside ShapeSync Phase0
 support.
 
 ### 1. Add the OpenUPM scoped registry
@@ -129,7 +134,15 @@ The `?path=` subfolder must appear before `#0.2.0-preview5`. The revision is
 the lockstep package tag and must not be replaced with an unverified short
 SHA.
 
-### 6. Confirm or set Linear color space
+### 6. Confirm or set consumer project settings
+
+Set **Project Settings > Editor > Asset Serialization > Mode** to **Mixed**.
+New Unity projects default to **Force Text**, so change it before importing or
+using ShapeSync Database assets. The Database is large; Force Text expands it
+to YAML and is impractical. Mixed preserves existing asset formats, but a
+text asset becomes binary when Unity rewrites it. This side effect is accepted
+so existing consumer text assets are not converted globally; do not replace
+Mixed with Force Binary.
 
 For a Universal 3D project, confirm **Project Settings > Player > Other
 Settings > Rendering > Color Space** is **Linear**. The measured template
@@ -160,10 +173,11 @@ Then add `SHAPESYNC_USE_UNIVRM` under **Project Settings > Player > Scripting
 Define Symbols**. Keep the symbol absent for Core-only projects.
 
 For Core-only projects, steps 1, 2, 3, 5, and 6 are required in both routes.
-In the Universal 3D route, step 4 and step 6 are confirmations of
-template-provided settings; in the Built-in RP route, step 4 installs URP and
-step 6 sets Linear. Step 7 and step 8 are only for
-VRM workflows.
+In the Universal 3D route, step 4 and the Linear color-space part of step 6
+are confirmations of template-provided settings; the Asset Serialization Mode
+part of step 6 still changes Force Text to Mixed. In the Built-in RP route,
+step 4 installs URP and the Linear part of step 6 sets Linear; the Mixed
+requirement is the same. Step 7 and step 8 are only for VRM workflows.
 
 ## Troubleshooting
 
@@ -227,9 +241,10 @@ Use the exact URL above, including `.git`, the package subfolder, and the
 ## Testing
 
 The package repository contains Slim Tests only. Before testing, confirm that
-URP is installed, the project Color Space is **Linear**, and the Core package
-is resolved with `SHAPESYNC_USE_UNIVRM` absent. The default Factory Settings
-asset is shipped inside the Core package. For package test discovery, add the
+URP is installed, Asset Serialization Mode is **Mixed**, the project Color
+Space is **Linear**, and the Core package is resolved with
+`SHAPESYNC_USE_UNIVRM` absent. The default Factory Settings asset is shipped
+inside the Core package. For package test discovery, add the
 Core package ID to the consumer project's
 `testables` list in `Packages/manifest.json`:
 

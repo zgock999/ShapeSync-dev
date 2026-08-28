@@ -14,9 +14,10 @@ Use a graphics API with async compute queue and fence support, such as D3D12
 or Vulkan. D3D11 is not a supported or guaranteed configuration because the
 Texture StackMachine uses an async compute queue and `GraphicsFence`.
 
-The consumer project must use **Linear** color space. The Core package ships
-the default Texture StackMachine Factory Settings asset used by the automatic
-Factory path and Core Slim Tests.
+The consumer project must use **Linear** color space and set **Project
+Settings > Editor > Asset Serialization > Mode** to **Mixed**. The Core
+package ships the default Texture StackMachine Factory Settings asset used by
+the automatic Factory path and Core Slim Tests.
 The Core-only define set must not contain `SHAPESYNC_USE_UNIVRM`.
 
 ## Choose the project template
@@ -27,12 +28,16 @@ Unity `6000.3.18f1`, the installed template package
 `17.0.1` in its manifest, `m_ActiveColorSpace: 1` (Linear), and a
 `GraphicsSettings.m_CustomRenderPipeline` assignment to its URP asset. In
 that route, installation step 5 and the color-space part of step 8 below are
-**confirmations**, not additional setup actions. The template does not know
-about ShapeSync; the Core package supplies its default Factory Settings asset.
+**confirmations**, not additional setup actions. The Asset Serialization Mode
+part of step 8 still requires a change in both template routes: new projects
+default to Force Text, but ShapeSync requires Mixed. The template does not
+know about ShapeSync; the Core package supplies its default Factory Settings
+asset.
 
 If the project was created from Built-in RP or another non-URP template,
 follow the explicit URP installation in step 5 and set Linear color space in
-step 8. Built-in RP, HDRP, and custom SRP are outside ShapeSync Phase0
+step 8. The Asset Serialization Mode requirement in step 8 is the same for
+this route. Built-in RP, HDRP, and custom SRP are outside ShapeSync Phase0
 support.
 
 ## Install the Core package
@@ -92,16 +97,29 @@ Manager. Perform these steps in order:
    `zgock.ShapeSync.Runtime` and `zgock.ShapeSync.Editor` assemblies compile
    without UniVRM installed.
 
-8. Confirm or set **Project Settings > Player > Other Settings > Rendering >
-   Color Space**. For a Universal 3D project, confirm it is **Linear**; the
-   measured template default is `m_ActiveColorSpace: 1`, so no change is
-   needed when it is present. For a Built-in RP or other project, set it to
-   **Linear**. ShapeSync's material and texture contracts use Linear RGBA.
+8. Confirm or set the consumer project settings:
+
+   - Set **Project Settings > Editor > Asset Serialization > Mode** to
+     **Mixed**. New Unity projects default to **Force Text**, so change it
+     before importing or using ShapeSync Database assets. The Database is
+     large; Force Text expands it to YAML and is impractical. Mixed preserves
+     existing asset formats, but a text asset becomes binary when Unity
+     rewrites it. This side effect is accepted so existing consumer text
+     assets are not converted globally; do not replace Mixed with Force
+     Binary.
+   - Confirm or set **Project Settings > Player > Other Settings > Rendering
+     > Color Space**. For a Universal 3D project, confirm it is **Linear**;
+     the measured template default is `m_ActiveColorSpace: 1`, so no change
+     is needed when it is present. For a Built-in RP or other project, set it
+     to **Linear**. ShapeSync's material and texture contracts use Linear
+     RGBA.
 
 Core-only projects stop after step 8. Steps 1, 2, 3, 4, 6, and 8 are
-required in both routes. For Universal 3D, step 5 and the color-space check
-in step 8 are confirmations; for Built-in RP, step 5 installs URP and step 8
-sets Linear. The Core package has no UniVRM or Unity Input System dependency.
+required in both routes. For Universal 3D, step 5 and the Linear color-space
+check in step 8 are confirmations; the Asset Serialization Mode part of step
+8 still changes Force Text to Mixed. For Built-in RP, step 5 installs URP and
+the Linear part of step 8 sets Linear; the Mixed requirement is the same. The
+Core package has no UniVRM or Unity Input System dependency.
 
 ## Optional VRM Integration companion
 
@@ -137,8 +155,9 @@ absent. Do not add `SHAPESYNC_USE_UNIVRM` merely to use Core-only workflows.
 
 ## Verification
 
-Before verification, confirm that URP is installed, the project Color Space is
-**Linear**, and the Core package is resolved with `SHAPESYNC_USE_UNIVRM` absent.
+Before verification, confirm that URP is installed, Asset Serialization Mode
+is **Mixed**, the project Color Space is **Linear**, and the Core package is
+resolved with `SHAPESYNC_USE_UNIVRM` absent.
 The default Factory Settings asset is shipped inside the Core package. For
 package test discovery, add the Core package ID to the consumer project's
 `testables` list in
