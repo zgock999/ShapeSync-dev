@@ -51,6 +51,7 @@ namespace zgock.ShapeSync.StackMachine
             if (device != GraphicsDeviceType.Direct3D11 && device != GraphicsDeviceType.Direct3D12 && device != GraphicsDeviceType.Vulkan && device != GraphicsDeviceType.Metal)
                 return Fail("UnsupportedGraphicsApi", "Texture StackMachine requires Direct3D11, Direct3D12, Vulkan, or Metal.", out diagnostic);
             if (!SystemInfo.supportsComputeShaders) return Fail("ComputeShadersUnsupported", "Texture StackMachine requires compute shader support.", out diagnostic);
+            if (!SystemInfo.supportsAsyncCompute) return Fail("AsyncComputeUnsupported", "Texture StackMachine requires async compute support for GraphicsFence synchronization. Use Direct3D12 or Vulkan.", out diagnostic);
             if (SystemInfo.graphicsMemorySize <= 0) return Fail("GraphicsMemoryUnknown", "Texture StackMachine requires a non-zero graphics memory size.", out diagnostic);
             if (!SystemInfo.IsFormatSupported(GraphicsFormat.R16G16B16A16_SFloat, GraphicsFormatUsage.Sample) || !SystemInfo.IsFormatSupported(GraphicsFormat.R16G16B16A16_SFloat, GraphicsFormatUsage.LoadStore))
                 return Fail("RgbaHalfLoadStoreUnsupported", "Texture StackMachine requires R16G16B16A16_SFloat sampling and load/store.", out diagnostic);

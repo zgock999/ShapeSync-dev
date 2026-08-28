@@ -12,8 +12,10 @@ expression baking, and SpringBone transport.
   `com.unity.render-pipelines.universal` 17.3.0; ShapeSync Phase0 supports URP
   only, and the URP package supplies the required Lit/Unlit shader identities.
 - A graphics API with async compute queue and fence support, such as D3D12 or
-  Vulkan. D3D11 is not a supported or guaranteed configuration for Texture
-  StackMachine processing.
+  Vulkan. On Windows, Unity 6.0 LTS (`6000.0`) defaults to D3D11 and requires
+  a change; Unity 6.3 LTS (`6000.3`) defaults to D3D12 and needs confirmation.
+  D3D11 is not a supported or guaranteed configuration for Texture StackMachine
+  processing.
 - Git 2.14 or later, with HTTPS access to the package repository
 - NuGetForUnity 4.5.0 for the R3 .NET core dependency
 - UniVRM 0.131.1 only when using the optional VRM Integration companion
@@ -39,11 +41,12 @@ Unity `6000.3.18f1`, the installed template package
 `17.0.1` in its manifest, `m_ActiveColorSpace: 1` (Linear), and a
 `GraphicsSettings.m_CustomRenderPipeline` assignment to its URP asset. With
 that template, step 4 and the color-space part of step 6 below are
-**confirmations**, not additional setup actions. The Asset Serialization Mode
-part of step 6 still requires a change in both template routes: new projects
-default to Force Text, but ShapeSync requires Mixed. The template does not
-know about ShapeSync; the Core package supplies its default Factory Settings
-asset.
+**confirmations**, not additional setup actions. This API confirmation applies
+to the 6.3 validation baseline; Unity 6.0 LTS defaults to D3D11 and requires
+the API change described in step 4. The Asset Serialization Mode part of step
+6 still requires a change in both template routes: new projects default to
+Force Text, but ShapeSync requires Mixed. The template does not know about
+ShapeSync; the Core package supplies its default Factory Settings asset.
 
 If the project was created from Built-in RP or another non-URP template,
 follow the explicit URP installation in step 4 and set Linear color space in
@@ -117,20 +120,23 @@ For an application scene, assign a URP Render Pipeline Asset in the usual
 and custom SRP are outside ShapeSync Phase0 support.
 
 For Windows, open **Edit > Project Settings > Player > Other Settings >
-Rendering > Graphics APIs for Windows** and confirm that D3D11 is not the
-first or only API. Select an async-compute-capable API such as D3D12 or Vulkan.
-The Texture StackMachine uses an async compute queue and `GraphicsFence`; D3D11
-is not supported or guaranteed.
+Rendering > Graphics APIs for Windows**. Unity 6.0 LTS (`6000.0`) defaults to
+D3D11, so this is a required change; Unity 6.3 LTS (`6000.3`) defaults to
+D3D12, so this is a confirmation only. Turn off **Auto Graphics API** and put
+**Direct3D12** first (or select Vulkan when that is the chosen supported API).
+Restart the Editor after changing the Graphics API. The Texture StackMachine
+uses an async compute queue and `GraphicsFence`; D3D11 is not supported or
+guaranteed.
 
 ### 5. Install ShapeSync Core from Git
 
 In Package Manager, choose **Add package from git URL** and enter:
 
 ```text
-https://github.com/zgock999/ShapeSync-dev.git?path=Packages/net.zgock-lab.shapesync#0.2.0-preview5
+https://github.com/zgock999/ShapeSync-dev.git?path=Packages/net.zgock-lab.shapesync#0.2.0-preview6
 ```
 
-The `?path=` subfolder must appear before `#0.2.0-preview5`. The revision is
+The `?path=` subfolder must appear before `#0.2.0-preview6`. The revision is
 the lockstep package tag and must not be replaced with an unverified short
 SHA.
 
@@ -166,7 +172,7 @@ Core-only projects skip this step.
 After Core is installed, add the companion from git:
 
 ```text
-https://github.com/zgock999/ShapeSync-dev.git?path=Packages/net.zgock-lab.shapesync.vrm#0.2.0-preview5
+https://github.com/zgock999/ShapeSync-dev.git?path=Packages/net.zgock-lab.shapesync.vrm#0.2.0-preview6
 ```
 
 Then add `SHAPESYNC_USE_UNIVRM` under **Project Settings > Player > Scripting
@@ -206,9 +212,11 @@ NotSupportedException: Cannot determine if this AsyncQueueSynchronisation Graphi
 ```
 
 check **Player Settings > Other Settings > Rendering > Graphics APIs for
-Windows**. D3D11 does not provide the async compute queue/fence capability used
-by Texture StackMachine. Use D3D12 or Vulkan; D3D11 is not supported or
-guaranteed.
+Windows**. Unity 6.0 LTS defaults to D3D11, so return to the Graphics API
+configuration in step 4, turn off **Auto Graphics API**, put Direct3D12 first
+or select Vulkan, and restart the Editor. D3D11 does not provide the async
+compute queue/fence capability used by Texture StackMachine. Use D3D12 or
+Vulkan; D3D11 is not supported or guaranteed.
 
 ### The VRM companion cannot find Core
 
@@ -225,7 +233,7 @@ Cannot checkout repository ... pathspec ... did not match any file(s) known to g
 ```
 
 Use the exact URL above, including `.git`, the package subfolder, and the
-`#0.2.0-preview5` revision.
+`#0.2.0-preview6` revision.
 
 ## Documentation
 

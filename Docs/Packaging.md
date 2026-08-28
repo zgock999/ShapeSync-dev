@@ -104,7 +104,7 @@ $coreUrl = "https://github.com/$packageRepository.git?path=Packages/net.zgock-la
 $companionUrl = "https://github.com/$packageRepository.git?path=Packages/net.zgock-lab.shapesync.vrm#$gitRevision"
 ```
 
-Spec22 applied values: `packageRepository = zgock999/ShapeSync-dev`, `repositoryDirectory = ShapeSync-dev`, `packageVersion = 0.2.0-preview`, `gitRevision = 0.2.0-preview`. These are the current application values,
+Spec22 applied values: `packageRepository = zgock999/ShapeSync-dev`, `repositoryDirectory = ShapeSync-dev`, `packageVersion = 0.2.0-preview6`, `gitRevision = 0.2.0-preview6`. These are the current application values,
 not fixed requirements of this reusable process; Spec24 replaces them at the
 parameter line above.
 
@@ -116,6 +116,32 @@ in package metadata remains a release artifact value rather than a repository
 name.
 
 ## 5. Validation matrix
+
+The release matrix has both Unity version and graphics API axes. Do not fix
+these values in this reusable process; derive them for each release from the
+declared package minimum, the validation baseline, and a fresh project created
+with each version:
+
+| Axis | Source of the value | Required coverage |
+|---|---|---|
+| Unity version | package manifest `unity` field and the validation baseline | `<declared-minimum-unity>` and `<validation-baseline-unity>` |
+| Graphics API | each version's default API plus an async-compute-capable API | `<minimum-version-default-api>` and `<supported-async-compute-api>` |
+
+The minimum-version default API is a required cross-check even when it is not
+supported by ShapeSync. If it is non-async, record the structured reject and
+the absence of recurring exceptions; run the Slim Test lanes on the supported
+API. For each `(Unity version, Graphics API)` pair, run the three lanes below.
+The matrix is a release procedure, not an acceptance condition for an
+individual implementation Spec.
+
+The two known findings are intentionally directional. A TreeView generic-type
+compatibility problem is detectable only on the declared minimum Unity
+version, while a D3D11 exception is detectable only on the version whose
+default is D3D11; a newer validation version may default to D3D12 and avoid it.
+If development were based only on the minimum version, the TreeView deprecation
+would first appear on the newer version. Neither is a question of choosing the
+right development baseline: declaring a version range creates the obligation
+to cross-check both ends and their default APIs.
 
 Use `Tools/Spec22/Run-SlimTestMatrix.ps1` with the generated tree to validate
 the consumer setup. The required order is:
