@@ -2,60 +2,54 @@
 
 ようこそ！本ドキュメントは、Unity 向けキャラクター衣装追従ツールセット **ShapeSync（シェイプシンク）** の公式チュートリアルです。
 
-ShapeSync を使うことで、ベースとなるキャラクター（Figure）の体型変化やモーフィングに合わせて、衣装（Outfit）のメッシュやテクスチャを綺麗に変形・追従させることができます。
+ShapeSync を使うことで、ベースとなるキャラクター（Figure）の体型変化に合わせて、衣装（Outfit）を登録・追従させることができます。
 
 ---
 
-## 📖 ドキュメント構成（目次）
+## 📖 チュートリアル章構成（目次）
 
-本チュートリアルは、初めて ShapeSync を導入するビギナーの方でも順を追って理解できるように構成されています。
+本チュートリアルは以下の全13章で構成されています。初めて導入される方は、第1章から順にお進みください。
 
-### 1. はじめの一歩（導入・環境構築）
-* **[第1章: インストールと初期設定](./installation.html)**
-  * ShapeSync の導入に必要な環境（Unity 6 / URP / DX12 等）
-  * OpenUPM レジストリと NuGetForUnity の設定
-  * 必須パッケージ（R3、ShapeSync Core）のインストール手順
-  * プロジェクトの初期設定（Color Space、Asset Serialization Mode）
-  * オプション: VRM 1.0 連携パッケージ（UniVRM）の導入
-
----
-
-### 2. 基本編（準備中）
-* **第2章: クイックスタート** *(Coming Soon)*
-  * サンプルモデルの準備（VRoid Studio モデルの用意）
-  * 衣装（Outfit）のインポートと基本設定
-  * 簡単なモーフィング追従のテスト
-* **第3章: 衣装（Outfit）のセットアップとフィッティング** *(Coming Soon)*
-  * Outfit アタッチメントの基本構造
-  * ウェイト転送とメッシュ変形の調整
-  * フィッティングの確認と微調整
+| # | 章 | 主な作業 | 状態 |
+| :--- | :--- | :--- | :--- |
+| 1 | **[第1章: インストール](./installation.html)** | package 導入。前提（Unity version、Graphics API、URP、Asset Serialization Mode）をここでまとめて提示する | 公開中 |
+| 2 | **第2章: 初期 VRM データ生成** | Base Figure と FBM の VRM を作る | 準備中 |
+| 3 | **第3章: Figure 登録** | Database 上で Figure を登録し、生成、Scene 配置、初期動作確認を行う | 準備中 |
+| 4 | **第4章: Outfit 登録** | 着衣状態の VRM を作成し、Outfit を登録して動作確認を行う | 準備中 |
+| 5 | **第5章: Shape 層** | Morph / Skin / Hair / Outfit Shape を登録して動作確認を行う | 準備中 |
+| 6 | **第6章: 高度な Figure 登録 / PBM** | PBM 用 VRM 作成と Database 登録、Morph Shape の再定義と動作確認 | 準備中 |
+| 7 | **第7章: 高度な Outfit 登録 / Collection** | 靴着用 VRM の作成と Database 登録、Projection と Collection 設定、動作確認 | 準備中 |
+| 8 | **第8章: 高度な Outfit 登録 / Mask** | VRoid Studio 内での靴補正用 Mask 作成、Database への Mask 登録、動作確認 | 準備中 |
+| 9 | **第9章: VRM 連携** | 表情と Physics 用 VRM を登録し、生成と動作確認を行う | 準備中 |
+| 10 | **第10章: Document 保存** | ここまでの Shape をまとめ、Document を保存する | 準備中 |
+| 11 | **第11章: Humanoid Compiler** | 作成した Document から Humanoid を生成する | 準備中 |
+| 12 | **第12章: Atlas** | Atlas Editor による設定と Humanoid 再生成 | 準備中 |
+| 13 | **第13章: Hot Bake** | Figure / Document / Atlas による Runtime Humanoid 再生 | 準備中 |
 
 ---
 
-### 3. 応用編（準備中）
-* **第4章: テクスチャ追従と Texture StackMachine** *(Coming Soon)*
-  * 体型変形に伴うテクスチャ歪みの補正
-  * GPU 非同期コンピュートによる高速テクスチャ生成
-* **第5章: VRM 1.0 連携ガイド** *(Coming Soon)*
-  * VRM 1.0 キャラクターへの衣装装着
-  * 表情・ブレンドシェイプのベイク処理
-  * SpringBone（揺れもの）の引き継ぎ設定
+## 🔗 各章の詳細とリンク
+
+### [第1章: インストール](./installation.html)（公開中）
+* ShapeSync の導入に必要な動作環境（Unity 6 / URP / DX12 等）
+* OpenUPM レジストリおよび NuGetForUnity の設定
+* 必須パッケージ（R3、ShapeSync Core）のインストール手順
+* プロジェクトの初期設定（Color Space: Linear、Asset Serialization Mode: Mixed）
+* オプション: VRM 連携パッケージ（UniVRM / Companion）の導入
+* **[よくあるトラブルと解決策（トラブルシューティング）](./installation.html#6-よくあるトラブルと解決策トラブルシューティング)**
+
+### 第2章 〜 第13章（準備中）
+各章のチュートリアル本文は順次公開予定です。
 
 ---
 
-### 4. リファレンス・サポート
-* **第6章: トラブルシューティング & FAQ** *(※詳細は [第1章](./installation.html#6-よくあるトラブルと解決策トラブルシューティング) を参照)*
-  * よくあるエラーと対処法（R3 の依存関係、Graphics API エラー等）
+## 💡 はじめに知っておきたい基本用語
+
+* **Figure**: 素体となる3Dキャラクターモデルです。
+* **Outfit**: キャラクターが着用する衣装や装飾品です。
+* **ShapeSync Core**: 衣装追従の基本機能を提供するコアパッケージです。
+* **VRM Integration Companion**: VRM 1.0 形式のアバターモデルで ShapeSync を利用するための拡張パッケージです（オプション）。
 
 ---
 
-## 💡 はじめに知っておきたい基本概念
-
-* **Figure（ベースキャラクター）**: 素体となる3Dキャラクターモデルです。体型パラメーター（ブレンドシェイプ等）によって形状が変化します。
-* **Outfit（衣装・装飾品）**: キャラクターが着用する衣服や装飾品です。ShapeSync を適用することで、Figure の体型変化に合わせて自動的に追従・変形します。
-* **ShapeSync Core**: 衣装追従の基本機能を提供するコアパッケージです。UniVRM がなくても単体で動作します。
-* **VRM Integration Companion**: VRM 1.0 形式のアバターで ShapeSync を利用するための拡張パッケージです（オプション）。
-
----
-
-*© 2026 ShapeSync Project. Released under the MIT License.*
+*© 2026 zgock999. Released under the MIT License.*
