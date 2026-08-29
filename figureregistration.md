@@ -141,8 +141,7 @@ Figure 登録後、Database 内でマテリアルを論理名で正しく管理�
   FigureGenerateMeshBuildFailed: zgock.ShapeSync.StackMachine.StackMachineDiagnostic
   ```
 * **確認事項と対処**:
-  この診断メッセージは、メッシュ構築処理で問題が発生したことを示しています。
-  FBM 用 VRM（`SampleI.vrm`）に、意図しないアクセサリー、髪型パーツ、または衣装の消し残しがないか確認してください。[第2章: 初期 VRM データ生成](./initialvrm.html) に戻り、Base と FBM の双方で全装飾パーツの除去およびポリゴン削減オプションが OFF になっていることを確認し、VRM 1.0 として再エクスポートして再登録してください。
+  この表示だけでは原因を特定できません。最も多い原因として、まずFBM用VRMに意図しないアクセサリー、髪型パーツ、衣装の消し残しがないか確認してください。[第2章: 初期 VRM データ生成](./initialvrm.html) に戻り、Base と FBM の双方で全装飾パーツの除去およびポリゴン削減オプションが OFF になっていることを確認し、VRM 1.0 として再エクスポートして再登録してください。
 
 ![Generate 失敗時の診断メッセージ例](./images/23.2-4/step7_diagnostic_error.png)
 *▲図 3-7: Generate 失敗時に表示される診断メッセージ例*
