@@ -1,4 +1,4 @@
-# ShapeSync チュートリアル & ドキュメント
+﻿# ShapeSync チュートリアル & ドキュメント
 
 ようこそ！本ドキュメントは、Unity 向けキャラクター衣装追従ツールセット **ShapeSync（シェイプシンク）** の公式チュートリアルです。
 
@@ -22,7 +22,7 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 | :--- | :--- | :--- | :--- |
 | 1 | **[第1章: インストール](./installation.html)** | package 導入。前提（Unity version、Graphics API、URP、Asset Serialization Mode）をここでまとめて提示する | 公開中 |
 | 2 | **[第2章: 初期 VRM データ生成](./initialvrm.html)** | Base Figure と FBM の VRM を作る | 公開中 |
-| 3 | **第3章: Figure 登録** | Database 上で Figure を登録し、生成、Scene 配置、初期動作確認を行う | 準備中 |
+| 3 | **[第3章: Figure 登録](./figureregistration.html)** | Database 上で Figure を登録し、生成、Scene 配置、初期動作確認を行う | 公開中 |
 | 4 | **第4章: Outfit 登録** | 着衣状態の VRM を作成し、Outfit を登録して動作確認を行う | 準備中 |
 | 5 | **第5章: Shape 層** | Morph / Skin / Hair / Outfit Shape を登録して動作確認を行う | 準備中 |
 | 6 | **第6章: 高度な Figure 登録 / PBM** | PBM 用 VRM 作成と Database 登録、Morph Shape の再定義と動作確認 | 準備中 |
@@ -53,7 +53,16 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 * VRoid Studio サンプルモデルの利用規約について
 * **[よくあるトラブルと解決策（トラブルシューティング）](./initialvrm.html#6-よくあるトラブルと解決策トラブルシューティング)**
 
-### 第3章 〜 第13章（準備中）
+### [第3章: Figure 登録](./figureregistration.html)（公開中）
+* ShapeSync Editor の起動と Database（`.prefab`）の作成
+* Figure セクションでの Base VRM（`BasicFemale.vrm`）登録
+* Materials セクションでの 9 件の Material Entry 命名
+* FBMs セクションでの FBM 軸（`SampleI` / `SampleI.vrm`）登録（`Import All Materials and Textures` 有効化）
+* Generation セクションでの Figure 生成（Generate）
+* Scene 配置と CC0 Animation（`Walking.controller`）再生下での FBM weight 動作確認
+* **[よくあるトラブルと解決策（トラブルシューティング）](./figureregistration.html#8-よくあるトラブルと解決策トラブルシューティング)**
+
+### 第4章 〜 第13章（準備中）
 各章のチュートリアル本文は順次公開予定です。
 
 ---
@@ -68,3 +77,4 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 ---
 
 *© 2026 zgock999. Released under the MIT License.*
+
