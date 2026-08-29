@@ -13,7 +13,7 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 | # | 章 | 主な作業 | 状態 |
 | :--- | :--- | :--- | :--- |
 | 1 | **[第1章: インストール](./installation.html)** | package 導入。前提（Unity version、Graphics API、URP、Asset Serialization Mode）をここでまとめて提示する | 公開中 |
-| 2 | **第2章: 初期 VRM データ生成** | Base Figure と FBM の VRM を作る | 準備中 |
+| 2 | **[第2章: 初期 VRM データ生成](./initialvrm.html)** | Base Figure と FBM の VRM を作る | 公開中 |
 | 3 | **第3章: Figure 登録** | Database 上で Figure を登録し、生成、Scene 配置、初期動作確認を行う | 準備中 |
 | 4 | **第4章: Outfit 登録** | 着衣状態の VRM を作成し、Outfit を登録して動作確認を行う | 準備中 |
 | 5 | **第5章: Shape 層** | Morph / Skin / Hair / Outfit Shape を登録して動作確認を行う | 準備中 |
@@ -38,7 +38,14 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 * オプション: VRM 連携パッケージ（UniVRM / Companion）の導入
 * **[よくあるトラブルと解決策（トラブルシューティング）](./installation.html#6-よくあるトラブルと解決策トラブルシューティング)**
 
-### 第2章 〜 第13章（準備中）
+### [第2章: 初期 VRM データ生成](./initialvrm.html)（公開中）
+* VRoid Studio を使用した Base VRM（`BasicFemale`）および FBM VRM（`SampleI`）の準備
+* 同一トポロジ維持のための髪型・衣装・アクセサリーの全除去
+* VRM 1.0 エクスポートとポリゴン・マテリアル・ボーン数の一致確認
+* VRoid Studio サンプルモデルの利用規約について
+* **[よくあるトラブルと解決策（トラブルシューティング）](./initialvrm.html#6-よくあるトラブルと解決策トラブルシューティング)**
+
+### 第3章 〜 第13章（準備中）
 各章のチュートリアル本文は順次公開予定です。
 
 ---
