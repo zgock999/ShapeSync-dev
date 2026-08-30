@@ -1,4 +1,4 @@
-﻿# 第3章: Figure 登録と初期動作確認
+# 第3章: Figure 登録と初期動作確認
 
 [← チュートリアル目次へ戻る](./index.html) ｜ [← 第2章: 初期 VRM データ生成](./initialvrm.html)
 
@@ -138,10 +138,11 @@ Figure 登録後、Database 内でマテリアルを論理名で正しく管理�
 * **症状**:
   Generate 実行時に以下の診断メッセージが表示されて生成に失敗する。
   ```text
-  FigureGenerateMeshBuildFailed: zgock.ShapeSync.StackMachine.StackMachineDiagnostic
+  FigureGenerateMeshBuildFailed: FigureMeshBuildInvalid: FBM topology does not match Base: SampleI
+  code=DomainFailure; domain=figure-generate; domainCode=FigureMeshBuildInvalid; tokenIndex=-1; instructionPointer=-1; wordId=<none>; bindingName=<none>; detail=<none>
   ```
 * **確認事項と対処**:
-  この表示だけでは原因を特定できません。最も多い原因として、まずFBM用VRMに意図しないアクセサリー、髪型パーツ、衣装の消し残しがないか確認してください。[第2章: 初期 VRM データ生成](./initialvrm.html) に戻り、Base と FBM の双方で全装飾パーツの除去およびポリゴン削減オプションが OFF になっていることを確認し、VRM 1.0 として再エクスポートして再登録してください。
+  Base と FBM のメッシュ構成が一致していない場合に発生します。FBM 用 VRM に意図しないアクセサリー、髪型パーツ、衣装の消し残しがないか確認してください。[第2章: 初期 VRM データ生成](./initialvrm.html) に戻り、Base と FBM の双方で全装飾パーツの除去およびポリゴン削減オプションが OFF になっていることを確認し、VRM 1.0 として再エクスポートして再登録してください。
 
 ![Generate 失敗時の診断メッセージ例](./images/23.2-4/step7_diagnostic_error.png)
 *▲図 3-7: Generate 失敗時に表示される診断メッセージ例*
@@ -155,4 +156,3 @@ Figure 登録後、Database 内でマテリアルを論理名で正しく管理�
 ---
 
 [← チュートリアル目次へ戻る](./index.html) ｜ [← 第2章: 初期 VRM データ生成](./initialvrm.html)
-
