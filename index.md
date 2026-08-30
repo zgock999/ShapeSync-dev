@@ -23,7 +23,7 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 | 1 | **[第1章: インストール](./installation.html)** | package 導入。前提（Unity version、Graphics API、URP、Asset Serialization Mode）をここでまとめて提示する | 公開中 |
 | 2 | **[第2章: 初期 VRM データ生成](./initialvrm.html)** | Base Figure と FBM の VRM を作る | 公開中 |
 | 3 | **[第3章: Figure 登録](./figureregistration.html)** | Database 上で Figure を登録し、生成、Scene 配置、初期動作確認を行う | 公開中 |
-| 4 | **第4章: Outfit 登録** | 着衣状態の VRM を作成し、Outfit を登録して動作確認を行う | 準備中 |
+| 4 | **[第4章: Outfit 登録](./outfitregistration.html)** | 着衣状態の VRM を作成し、Outfit を登録して動作確認を行う | 公開中 |
 | 5 | **第5章: Shape 層** | Morph / Skin / Hair / Outfit Shape を登録して動作確認を行う | 準備中 |
 | 6 | **第6章: 高度な Figure 登録 / PBM** | PBM 用 VRM 作成と Database 登録、Morph Shape の再定義と動作確認 | 準備中 |
 | 7 | **第7章: 高度な Outfit 登録 / Collection** | 靴着用 VRM の作成と Database 登録、Projection と Collection 設定、動作確認 | 準備中 |
@@ -62,7 +62,16 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 * Scene 配置と CC0 Animation（`Walking.controller`）再生下での FBM weight 動作確認
 * **[よくあるトラブルと解決策（トラブルシューティング）](./figureregistration.html#8-よくあるトラブルと解決策トラブルシューティング)**
 
-### 第4章 〜 第13章（準備中）
+### [第4章: Outfit 登録](./outfitregistration.html)（公開中）
+* VRoid Studio を使用したカスタムヘア（`Hair1`）およびプリセットドレス（`Dress1`）の Base / FBM 用 VRM 準備
+* ShapeSync Editor の Outfits セクション（Mesh Outfits）での `Hair1` / `Dress1` 登録
+* Mesh Outfit Materials でのマテリアル分類（`Include` / `Exclude`）
+* FBMs セクションでの `SampleI` 軸用 VRM 割り当て
+* Generation セクションでの Outfit Prefab 出力（Generate）
+* Scene 配置した Figure への `OutfitAttacher` 設定と Play Mode での着脱・体型変形追従確認
+* **[よくあるトラブルと解決策（トラブルシューティング）](./outfitregistration.html#7-よくあるトラブルと解決策トラブルシューティング)**
+
+### 第5章 〜 第13章（準備中）
 各章のチュートリアル本文は順次公開予定です。
 
 ---
