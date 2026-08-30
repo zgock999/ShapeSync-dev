@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using zgock.ShapeSync.StackMachine;
 
 namespace zgock.ShapeSync.Editor
 {
@@ -48,6 +49,30 @@ namespace zgock.ShapeSync.Editor
                     ShapeSyncMeshOutfitImport.PreserveOutfitBoneHierarchy(source.Prefab.transform, merge.Root.transform);
                     staged.Add(new Staged { PbmAxisName = source.PbmAxisName, ShapeKey = source.ShapeKey, Merge = merge });
                 }
+                IGrouping<string, Staged>[] stagedGroups = staged.GroupBy(value => value.PbmAxisName, StringComparer.Ordinal).ToArray();
+                Transform canonicalFigureRoot = null;
+                if (ShapeSyncDatabaseAsset.TryOpen(databaseAssetPath, out ShapeSyncDatabase topologyDatabase, out string topologyDatabaseDiagnostic)
+                    && topologyDatabase != null && topologyDatabase.Registry != null
+                    && topologyDatabase.Registry.TryGetSingleBaseFigure(out ShapeSyncDatabaseRegistry.BaseFigureEntry baseFigure, out string baseFigureDiagnostic)
+                    && baseFigure != null && baseFigure.Figure != null)
+                    canonicalFigureRoot = baseFigure.Figure.transform;
+                foreach (IGrouping<string, Staged> group in stagedGroups)
+                {
+                    Staged[] baseItems = group.Where(value => value.ShapeKey == ShapeSyncDatabaseRegistry.BaseShapeKey).ToArray();
+                    if (baseItems.Length != 1) continue;
+                    Staged baseItem = baseItems[0];
+                    foreach (Staged item in group.Where(value => value.ShapeKey != ShapeSyncDatabaseRegistry.BaseShapeKey))
+                    {
+                        if (!ShapeSyncOutfitTopologyNormalizer.TryNormalizeInPlace(baseItem.Merge.Renderer, item.Merge.Renderer,
+                            outfitIdentity + "/" + group.Key + "/" + item.ShapeKey, item.Merge.Renderer == null ? "<merged>" : item.Merge.Renderer.name,
+                            baseItem.Merge.Root.transform, item.Merge.Root.transform, canonicalFigureRoot,
+                            out _, out StackMachineDiagnostic topologyDiagnostic))
+                        {
+                            diagnostic = topologyDiagnostic?.ToString() ?? "Outfit PBM bone-space normalization failed without a diagnostic.";
+                            return false;
+                        }
+                    }
+                }
                 if (!ShapeSyncDatabaseTransaction.TryEditStructureWithAssets(databaseAssetPath, (database, intermediate, transaction) =>
                 {
                     ShapeSyncDatabaseRegistry.OutfitEntry outfit = database.Registry.Outfits.SingleOrDefault(entry => entry != null && entry.Identity == outfitIdentity);
@@ -55,7 +80,7 @@ namespace zgock.ShapeSync.Editor
                         throw new InvalidOperationException("Mesh Outfit was not found: " + outfitIdentity);
                     var knownPbms = new HashSet<string>(database.Registry.FigureAxes.Where(axis => axis != null && axis.Kind == ShapeSyncDatabaseRegistry.FigureAxisKind.Pbm).Select(axis => axis.Name), StringComparer.Ordinal);
                     var expectedKeys = new HashSet<string>(database.Registry.FigureAxes.Where(axis => axis != null && axis.Kind == ShapeSyncDatabaseRegistry.FigureAxisKind.Fbm).Select(axis => axis.Name), StringComparer.Ordinal) { ShapeSyncDatabaseRegistry.BaseShapeKey };
-                    var groups = staged.GroupBy(value => value.PbmAxisName, StringComparer.Ordinal).ToArray();
+                    IGrouping<string, Staged>[] groups = stagedGroups;
                     if (groups.Any(group => !knownPbms.Contains(group.Key) || group.Select(value => value.ShapeKey).Distinct(StringComparer.Ordinal).Count() != group.Count() || !new HashSet<string>(group.Select(value => value.ShapeKey), StringComparer.Ordinal).SetEquals(expectedKeys)))
                         throw new InvalidOperationException("PBM follow requires each selected Figure PBM to provide Base and every FBM source exactly once.");
                     foreach (ShapeSyncDatabaseRegistry.OutfitPbmFollowEntry old in outfit.PbmFollows)

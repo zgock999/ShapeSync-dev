@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text;
 using UnityEngine;
 
 namespace zgock.ShapeSync.StackMachine
@@ -81,6 +82,35 @@ namespace zgock.ShapeSync.StackMachine
         /// <param name="domain">Owning domain identifier.</param><param name="domainCode">Stable domain-specific error code.</param><param name="message">Human-readable detail.</param><param name="tokenIndex">Source token index, or <c>-1</c>.</param><param name="instructionPointer">Instruction index, or <c>-1</c>.</param><param name="wordId">Stable domain word identifier.</param><param name="bindingName">Logical binding involved in the failure.</param><param name="detail">Optional domain-specific detail.</param>
         public static StackMachineDiagnostic CreateDomain(string domain, string domainCode, string message, int tokenIndex = -1, int instructionPointer = -1, string wordId = null, string bindingName = null, string detail = null)
             => new StackMachineDiagnostic { code = StackMachineDiagnosticCode.DomainFailure, domain = domain, domainCode = domainCode, message = message, tokenIndex = tokenIndex, instructionPointer = instructionPointer, wordId = wordId, bindingName = bindingName, detail = detail };
+
+        /// <summary>Formats a diagnostic without discarding structured context.</summary>
+        /// <param name="diagnostic">Diagnostic to format, or <c>null</c>.</param>
+        /// <param name="nullMessage">Fallback text used when <paramref name="diagnostic"/> is <c>null</c>.</param>
+        public static string Format(StackMachineDiagnostic diagnostic, string nullMessage)
+        {
+            if (diagnostic == null)
+                return string.IsNullOrEmpty(nullMessage) ? "Stack machine failed without a diagnostic." : nullMessage;
+
+            string displayCode = string.IsNullOrEmpty(diagnostic.domainCode)
+                ? diagnostic.code.ToString()
+                : diagnostic.domainCode;
+            var builder = new StringBuilder();
+            builder.Append(displayCode).Append(": ").Append(diagnostic.message ?? string.Empty);
+            builder.Append("\ncode=").Append(diagnostic.code.ToString());
+            builder.Append("; domain=").Append(FieldOrNone(diagnostic.domain));
+            builder.Append("; domainCode=").Append(FieldOrNone(diagnostic.domainCode));
+            builder.Append("; tokenIndex=").Append(diagnostic.tokenIndex.ToString(CultureInfo.InvariantCulture));
+            builder.Append("; instructionPointer=").Append(diagnostic.instructionPointer.ToString(CultureInfo.InvariantCulture));
+            builder.Append("; wordId=").Append(FieldOrNone(diagnostic.wordId));
+            builder.Append("; bindingName=").Append(FieldOrNone(diagnostic.bindingName));
+            builder.Append("; detail=").Append(FieldOrNone(diagnostic.detail));
+            return builder.ToString();
+        }
+
+        /// <summary>Returns the same structured, human-readable representation as <see cref="Format"/>.</summary>
+        public override string ToString() => Format(this, "Stack machine failed without a diagnostic.");
+
+        private static string FieldOrNone(string value) => string.IsNullOrEmpty(value) ? "<none>" : value;
     }
     /// <summary>Serializable provenance metadata for a recipe document.</summary>
     [Serializable] public sealed class StackMachineProvenance

@@ -9,6 +9,7 @@ using UnityEditor;
 using UnityEngine;
 using zgock.ShapeSync;
 using zgock.ShapeSync.Materials;
+using zgock.ShapeSync.StackMachine;
 
 namespace zgock.ShapeSync.Editor
 {
@@ -225,7 +226,34 @@ namespace zgock.ShapeSync.Editor
                 // guessed by material names or generated logical names.
                 classificationsBySubmesh[materialIndex] = classificationByBaseName[baseMaterialNames[materialIndex]];
             }
-            GameObject included = ReplaceDerivedPrefab(axis, intermediate, transaction, outfitIdentity, mergedMaterials, sourceMaterials, classificationsBySubmesh,
+            ShapeSyncDatabaseRegistry.OutfitAxisFigureEntry baseAxisForTopology = outfit.AxisFigures
+                .FirstOrDefault(entry => entry != null && entry.ShapeKey == ShapeSyncDatabaseRegistry.BaseShapeKey);
+            SkinnedMeshRenderer baseOutfitRenderer = null;
+            Transform canonicalFigureRoot = null;
+            if (axis.ShapeKey != ShapeSyncDatabaseRegistry.BaseShapeKey)
+            {
+                ShapeSyncDatabaseRegistry.BaseFigureEntry canonicalBaseFigure;
+                string canonicalBaseFigureDiagnostic;
+                if (registry.TryGetSingleBaseFigure(out canonicalBaseFigure, out canonicalBaseFigureDiagnostic)
+                    && canonicalBaseFigure != null && canonicalBaseFigure.Figure != null)
+                    canonicalFigureRoot = canonicalBaseFigure.Figure.transform;
+            }
+            if (axis.ShapeKey != ShapeSyncDatabaseRegistry.BaseShapeKey)
+            {
+                if (baseAxisForTopology == null || baseAxisForTopology.OutfitPrefab == null)
+                    throw new InvalidOperationException(StackMachineDiagnostic.CreateDomain("outfit-topology", "OutfitTopologyBaseArtifactMissing",
+                        "The Base Outfit artifact is required before an FBM Outfit axis can be classified.",
+                        bindingName: outfitIdentity + "/" + axis.ShapeKey,
+                        detail: "renderer=<Base>").ToString());
+                baseOutfitRenderer = RequireRenderer(baseAxisForTopology.OutfitPrefab, ShapeSyncDatabaseRegistry.BaseShapeKey);
+                if (baseOutfitRenderer.sharedMesh == null)
+                    throw new InvalidOperationException(StackMachineDiagnostic.CreateDomain("outfit-topology", "OutfitTopologyBaseMeshMissing",
+                        "The Base Outfit artifact does not contain a mesh for FBM topology normalization.",
+                    bindingName: outfitIdentity + "/" + axis.ShapeKey,
+                        detail: "renderer=<Base>").ToString());
+            }
+            GameObject included = ReplaceDerivedPrefab(axis, intermediate, transaction, outfitIdentity, baseOutfitRenderer,
+                baseAxisForTopology?.OutfitPrefab?.transform, canonicalFigureRoot, mergedMaterials, sourceMaterials, classificationsBySubmesh,
                 ShapeSyncDatabaseRegistry.OutfitMaterialClassification.Include, false);
             if (axis.ShapeKey == ShapeSyncDatabaseRegistry.BaseShapeKey)
             {
@@ -238,7 +266,8 @@ namespace zgock.ShapeSync.Editor
                 BindCanonicalIncludedMaterials(axis.ShapeKey, included, classificationsBySubmesh, outfitMaterialEntries);
             }
             bool hasProjection = outfit.MaterialClassifications.Any(entry => entry.Classification == ShapeSyncDatabaseRegistry.OutfitMaterialClassification.Projection);
-            if (hasProjection) ReplaceDerivedPrefab(axis, intermediate, transaction, outfitIdentity, mergedMaterials, sourceMaterials, classificationsBySubmesh,
+            if (hasProjection) ReplaceDerivedPrefab(axis, intermediate, transaction, outfitIdentity, baseOutfitRenderer,
+                baseAxisForTopology?.OutfitPrefab?.transform, canonicalFigureRoot, mergedMaterials, sourceMaterials, classificationsBySubmesh,
                 ShapeSyncDatabaseRegistry.OutfitMaterialClassification.Projection, true);
             else if (axis.ProjectionPrefab != null) UnityEngine.Object.DestroyImmediate(axis.ProjectionPrefab, true);
             RemoveMergedArtifact(axis, transaction, databaseAssetPath);
@@ -459,7 +488,8 @@ namespace zgock.ShapeSync.Editor
         }
 
         private static GameObject ReplaceDerivedPrefab(ShapeSyncDatabaseRegistry.OutfitAxisFigureEntry axis, Transform intermediate,
-            ShapeSyncDatabaseTransaction.EditContext transaction, string outfitIdentity,
+            ShapeSyncDatabaseTransaction.EditContext transaction, string outfitIdentity, SkinnedMeshRenderer baseOutfitRenderer,
+            Transform baseOutfitRoot, Transform canonicalFigureRoot,
             Material[] mergedMaterials, Material[] sourceMaterials,
             IReadOnlyList<ShapeSyncDatabaseRegistry.OutfitMaterialClassificationEntry> classifications,
             ShapeSyncDatabaseRegistry.OutfitMaterialClassification targetClassification, bool isProjection)
@@ -471,46 +501,79 @@ namespace zgock.ShapeSync.Editor
                     transaction.RemoveSubAsset(material);
                 UnityEngine.Object.DestroyImmediate(previous, true);
             }
-            GameObject derived = UnityEngine.Object.Instantiate(axis.MergedPrefab);
-            derived.name = isProjection ? axis.MergedPrefab.name.Replace("_Merged", "_Projection") : axis.MergedPrefab.name.Replace("_Merged", string.Empty);
-            derived.transform.SetParent(intermediate, false);
-            SkinnedMeshRenderer renderer = RequireRenderer(derived, axis.ShapeKey);
-            // Derived artifacts survive removal of the import-time Merged Prefab.
-            // Give each one its own Database-owned Mesh rather than retaining its sharedMesh.
-            bool[] selectedSubMeshes = Enumerable.Range(0, classifications.Count)
-                .Select(index => classifications[index] != null && classifications[index].Classification == targetClassification)
-                .ToArray();
-            Mesh meshCopy = BuildSelectedMesh(renderer.sharedMesh, selectedSubMeshes);
-            meshCopy.name = derived.name + "_SkinnedMesh";
-            meshCopy.RecalculateBounds();
-            transaction.AddSubAsset(meshCopy);
-            renderer.sharedMesh = meshCopy;
-            // The Mesh is added as a Database sub-asset before the derived
-            // Prefab is serialized.  Explicitly dirty both sides of the
-            // reference so Unity does not serialize the renderer with a null
-            // mesh while retaining the standalone Mesh sub-asset.
-            EditorUtility.SetDirty(meshCopy);
-            EditorUtility.SetDirty(renderer);
-            EditorUtility.SetDirty(derived);
-            var derivedMaterialList = new List<Material>();
-            for (int materialIndex = 0; materialIndex < classifications.Count; materialIndex++)
+            GameObject derived = null;
+            Mesh meshCopy = null;
+            bool meshAttached = false;
+            try
             {
-                ShapeSyncDatabaseRegistry.OutfitMaterialClassificationEntry classification = classifications[materialIndex];
-                if (classification != null && classification.Classification == targetClassification)
-                    derivedMaterialList.Add(mergedMaterials[materialIndex]);
+                derived = UnityEngine.Object.Instantiate(axis.MergedPrefab);
+                derived.name = isProjection ? axis.MergedPrefab.name.Replace("_Merged", "_Projection") : axis.MergedPrefab.name.Replace("_Merged", string.Empty);
+                derived.transform.SetParent(intermediate, false);
+                SkinnedMeshRenderer renderer = RequireRenderer(derived, axis.ShapeKey);
+                // Derived artifacts survive removal of the import-time Merged Prefab.
+                // Give each one its own Database-owned Mesh rather than retaining its sharedMesh.
+                bool[] selectedSubMeshes = Enumerable.Range(0, classifications.Count)
+                    .Select(index => classifications[index] != null && classifications[index].Classification == targetClassification)
+                    .ToArray();
+                meshCopy = BuildSelectedMesh(renderer.sharedMesh, selectedSubMeshes);
+                // Topology normalization must compare the Base artifact with the
+                // same material-selected geometry that will be persisted.  The
+                // imported Merged Prefab may contain Face/Body submeshes in
+                // addition to the Outfit submeshes and would otherwise produce a
+                // false vertex-count rejection before the selection is applied.
+                renderer.sharedMesh = meshCopy;
+                if (!isProjection && axis.ShapeKey != ShapeSyncDatabaseRegistry.BaseShapeKey)
+                {
+                    string bindingName = outfitIdentity + "/" + axis.ShapeKey;
+                    string rendererPath = RelativePath(derived.transform, renderer.transform);
+                    if (!ShapeSyncOutfitTopologyNormalizer.TryNormalizeInPlace(baseOutfitRenderer, renderer, bindingName, rendererPath,
+                        baseOutfitRoot, derived.transform, canonicalFigureRoot,
+                        out _, out StackMachineDiagnostic topologyDiagnostic))
+                        throw new InvalidOperationException(topologyDiagnostic?.ToString() ?? "Outfit topology normalization failed without a diagnostic.");
+                }
+                meshCopy.name = derived.name + "_SkinnedMesh";
+                meshCopy.RecalculateBounds();
+                transaction.AddSubAsset(meshCopy);
+                meshAttached = true;
+                renderer.sharedMesh = meshCopy;
+                // The Mesh is added as a Database sub-asset before the derived
+                // Prefab is serialized.  Explicitly dirty both sides of the
+                // reference so Unity does not serialize the renderer with a null
+                // mesh while retaining the standalone Mesh sub-asset.
+                EditorUtility.SetDirty(meshCopy);
+                EditorUtility.SetDirty(renderer);
+                EditorUtility.SetDirty(derived);
+                var derivedMaterialList = new List<Material>();
+                for (int materialIndex = 0; materialIndex < classifications.Count; materialIndex++)
+                {
+                    ShapeSyncDatabaseRegistry.OutfitMaterialClassificationEntry classification = classifications[materialIndex];
+                    if (classification != null && classification.Classification == targetClassification)
+                        derivedMaterialList.Add(mergedMaterials[materialIndex]);
+                }
+                Material[] derivedMaterials = derivedMaterialList.ToArray();
+                if (isProjection) Array.Clear(derivedMaterials, 0, derivedMaterials.Length);
+                renderer.sharedMaterials = derivedMaterials;
+                EditorUtility.SetDirty(renderer);
+                if (isProjection) axis.ReplaceDerivedPrefabs(axis.OutfitPrefab, derived);
+                else axis.ReplaceDerivedPrefabs(derived, axis.ProjectionPrefab);
+                return derived;
             }
-            Material[] derivedMaterials = derivedMaterialList.ToArray();
-            if (isProjection) Array.Clear(derivedMaterials, 0, derivedMaterials.Length);
-            renderer.sharedMaterials = derivedMaterials;
-            EditorUtility.SetDirty(renderer);
-            if (isProjection) axis.ReplaceDerivedPrefabs(axis.OutfitPrefab, derived);
-            else axis.ReplaceDerivedPrefabs(derived, axis.ProjectionPrefab);
-            return derived;
+            catch
+            {
+                if (meshCopy != null)
+                {
+                    if (meshAttached) transaction.RemoveSubAsset(meshCopy);
+                    else UnityEngine.Object.DestroyImmediate(meshCopy, true);
+                }
+                if (derived != null) UnityEngine.Object.DestroyImmediate(derived, true);
+                throw;
+            }
         }
 
         internal static Mesh BuildSelectedMesh(Mesh source, IReadOnlyList<bool> selected)
         {
             if (source == null) throw new InvalidOperationException("Source mesh is null.");
+            ShapeSyncMeshBoneWeights boneWeights = ShapeSyncMeshBoneWeights.Capture(source);
             int[] remap = Enumerable.Repeat(-1, source.vertexCount).ToArray();
             var triangles = new List<int[]>();
             int nextVertex = 0;
@@ -538,7 +601,7 @@ namespace zgock.ShapeSync.Editor
             if (source.normals.Length == source.vertexCount) result.normals = Remap(source.normals, remap, nextVertex);
             if (source.tangents.Length == source.vertexCount) result.tangents = Remap(source.tangents, remap, nextVertex);
             if (source.colors.Length == source.vertexCount) result.colors = Remap(source.colors, remap, nextVertex);
-            if (source.boneWeights.Length == source.vertexCount) result.boneWeights = Remap(source.boneWeights, remap, nextVertex);
+            if (boneWeights != null) boneWeights.RemapSourceToCompact(remap, nextVertex).Apply(result);
             result.bindposes = source.bindposes;
             for (int channel = 0; channel < 8; channel++)
             {
@@ -567,6 +630,15 @@ namespace zgock.ShapeSync.Editor
             T[] result = new T[count];
             for (int index = 0; index < remap.Length; index++) if (remap[index] >= 0) result[remap[index]] = source[index];
             return result;
+        }
+
+        private static string RelativePath(Transform root, Transform value)
+        {
+            if (value == null || value == root) return string.Empty;
+            var names = new List<string>();
+            for (Transform current = value; current != null && current != root; current = current.parent) names.Add(current.name);
+            names.Reverse();
+            return string.Join("/", names);
         }
 
         private static void StageIncludedMaterials(ShapeSyncDatabaseRegistry registry, ShapeSyncDatabaseTransaction.EditContext transaction,

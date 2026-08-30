@@ -8,6 +8,34 @@ namespace zgock.ShapeSync.Tests.EditMode
 {
     public sealed class StackMachineFoundationTests
     {
+        [Test]
+        public void DomainDiagnostic_ToStringPreservesAllStructuredFields()
+        {
+            StackMachineDiagnostic diagnostic = StackMachineDiagnostic.CreateDomain(
+                "outfit-topology", "OutfitTopologyBoneMapNotClosed", "Bone mapping is not closed.",
+                tokenIndex: 7, instructionPointer: 11, wordId: "NormalizeOutfit",
+                bindingName: "Hair1/SampleI", detail: "renderer=Hair/Renderer; submesh=all");
+
+            string formatted = diagnostic.ToString();
+            StringAssert.Contains("OutfitTopologyBoneMapNotClosed", formatted);
+            StringAssert.Contains("Bone mapping is not closed.", formatted);
+            StringAssert.Contains("code=DomainFailure", formatted);
+            StringAssert.Contains("domain=outfit-topology", formatted);
+            StringAssert.Contains("domainCode=OutfitTopologyBoneMapNotClosed", formatted);
+            StringAssert.Contains("tokenIndex=7", formatted);
+            StringAssert.Contains("instructionPointer=11", formatted);
+            StringAssert.Contains("wordId=NormalizeOutfit", formatted);
+            StringAssert.Contains("bindingName=Hair1/SampleI", formatted);
+            StringAssert.Contains("detail=renderer=Hair/Renderer; submesh=all", formatted);
+        }
+
+        [Test]
+        public void DomainDiagnostic_FormatIsNullSafe()
+        {
+            Assert.That(StackMachineDiagnostic.Format(null, "fallback"), Is.EqualTo("fallback"));
+            Assert.That(StackMachineDiagnostic.Format(null, null), Is.EqualTo("Stack machine failed without a diagnostic."));
+        }
+
         [TestCase(StackMachineDomainExecutionMode.Sequential)]
         [TestCase(StackMachineDomainExecutionMode.BytecodeTransaction)]
         [TestCase(StackMachineDomainExecutionMode.FullyCompiled)]

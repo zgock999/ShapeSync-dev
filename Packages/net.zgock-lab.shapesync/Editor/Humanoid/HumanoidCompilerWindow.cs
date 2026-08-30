@@ -325,11 +325,7 @@ namespace zgock.ShapeSync.Editor
         }
 
         private static string FormatDiagnostic(StackMachineDiagnostic diagnostic)
-        {
-            if (diagnostic == null) return "The Humanoid Compiler failed without a diagnostic.";
-            string code = string.IsNullOrEmpty(diagnostic.domainCode) ? diagnostic.code.ToString() : diagnostic.domainCode;
-            return string.IsNullOrEmpty(diagnostic.detail) ? code + ": " + diagnostic.message : code + ": " + diagnostic.message + "\n" + diagnostic.detail;
-        }
+            => StackMachineDiagnostic.Format(diagnostic, "The Humanoid Compiler failed without a diagnostic.");
 
         /// <summary>Maps the controller's intentionally small public phase surface to the user-visible compiler progress text.</summary>
         private static string FormatProgress(HumanoidBuildProgressPhase phase)

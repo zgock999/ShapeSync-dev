@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using UniHumanoid;
 using UniVRM10;
 using UnityEditor;
 using UnityEngine;
@@ -48,7 +49,10 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
                     return false;
                 }
 
-                ApplyFigurePlan(source, destination, contents.transform, plan);
+                if (!TryBuildFigurePlan(source, contents.transform, plan, out TransferPlan figurePlan, out diagnostic))
+                    return false;
+
+                ApplyFigurePlan(source, destination, contents.transform, figurePlan);
                 SavePhysicsCarrier(contents, ownerName, physicsPrefabPath, generatedPaths);
                 if (!PrefabUtility.SaveAsPrefabAsset(contents, targetPrefabPath, out bool saved) || !saved)
                 {
@@ -148,6 +152,55 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
                 return false;
             }
             return true;
+        }
+
+        private static bool TryBuildFigurePlan(Vrm10Instance source, Transform destinationRoot,
+            TransferPlan sourcePlan, out TransferPlan figurePlan, out string diagnostic)
+        {
+            figurePlan = new TransferPlan();
+            figurePlan.Groups.AddRange(sourcePlan.Groups);
+            diagnostic = null;
+            foreach (Vrm10InstanceSpringBone.Spring spring in sourcePlan.Springs)
+            {
+                bool skipSpring = spring.Center != null
+                    && ResolveFigureBoneTransform(destinationRoot, source.transform, spring.Center) == null;
+                if (skipSpring && IsSourceHumanoidTransform(source, spring.Center))
+                {
+                    diagnostic = "VrmGenerateFigurePhysicsTransformMissing: Figure Physics Reference Spring Center path '"
+                        + GetRelativePath(source.transform, spring.Center) + "' does not resolve in the generated Figure.";
+                    return false;
+                }
+
+                foreach (VRM10SpringBoneJoint joint in spring.Joints)
+                {
+                    if (ResolveFigureBoneTransform(destinationRoot, source.transform, joint.transform) != null)
+                        continue;
+
+                    if (IsSourceHumanoidTransform(source, joint.transform))
+                    {
+                        diagnostic = "VrmGenerateFigurePhysicsTransformMissing: Figure Physics Reference Spring Joint path '"
+                            + GetRelativePath(source.transform, joint.transform) + "' does not resolve in the generated Figure.";
+                        return false;
+                    }
+
+                    skipSpring = true;
+                    break;
+                }
+
+                if (!skipSpring) figurePlan.Springs.Add(spring);
+            }
+
+            return true;
+        }
+
+        private static bool IsSourceHumanoidTransform(Vrm10Instance source, Transform target)
+        {
+            if (source == null || source.Humanoid == null || target == null) return false;
+            for (int i = 0; i < (int)HumanBodyBones.LastBone; i++)
+            {
+                if (source.Humanoid.GetBoneTransform((HumanBodyBones)i) == target) return true;
+            }
+            return false;
         }
 
         private static bool TryBuildPlan(Vrm10Instance source, out TransferPlan plan, out string diagnostic)
@@ -266,10 +319,10 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
             {
                 var destinationSpring = new Vrm10InstanceSpringBone.Spring(sourceSpring.Name);
                 if (sourceSpring.Center != null)
-                    destinationSpring.Center = EnsureRelativePath(destinationRoot, source.transform, sourceSpring.Center);
+                    destinationSpring.Center = ResolveFigureBoneTransform(destinationRoot, source.transform, sourceSpring.Center);
                 foreach (VRM10SpringBoneJoint sourceJoint in sourceSpring.Joints)
                 {
-                    Transform jointTransform = EnsureRelativePath(destinationRoot, source.transform, sourceJoint.transform);
+                    Transform jointTransform = ResolveFigureBoneTransform(destinationRoot, source.transform, sourceJoint.transform);
                     VRM10SpringBoneJoint destinationJoint = jointTransform.GetComponent<VRM10SpringBoneJoint>()
                         ?? jointTransform.gameObject.AddComponent<VRM10SpringBoneJoint>();
                     CopyJoint(sourceJoint, destinationJoint);
@@ -415,6 +468,34 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
                 sourceCurrent = sourceChild;
             }
             return current;
+        }
+
+        private static Transform ResolveFigureBoneTransform(Transform destinationRoot, Transform sourceRoot, Transform source)
+        {
+            if (source == null) return null;
+            Transform byName = FindUniqueTransformByName(destinationRoot, source.name);
+            if (byName != null) return byName;
+            string path = GetRelativePath(sourceRoot, source);
+            return path == null ? null : string.IsNullOrEmpty(path) ? destinationRoot : destinationRoot.Find(path);
+        }
+
+        private static Transform FindUniqueTransformByName(Transform root, string name)
+        {
+            if (root == null || string.IsNullOrEmpty(name)) return null;
+            Transform result = null;
+            var stack = new Stack<Transform>();
+            stack.Push(root);
+            while (stack.Count > 0)
+            {
+                Transform current = stack.Pop();
+                if (current.name == name)
+                {
+                    if (result != null) return null;
+                    result = current;
+                }
+                for (int i = 0; i < current.childCount; i++) stack.Push(current.GetChild(i));
+            }
+            return result;
         }
 
         private static void SavePhysicsCarrier(GameObject contents, string ownerName, string path,

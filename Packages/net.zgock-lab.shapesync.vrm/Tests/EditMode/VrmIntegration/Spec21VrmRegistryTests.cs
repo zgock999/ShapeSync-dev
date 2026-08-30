@@ -1069,6 +1069,51 @@ namespace zgock.ShapeSync.Tests.EditMode.VrmIntegration
                 Is.Not.SameAs(instance.SpringBone.ColliderGroups[1].Colliders[1]));
         }
 
+        [Test]
+        public void GeneratePost_SilentlySkipsFigurePhysicsJointOnExtraBone()
+        {
+            string databasePath = Root + "/MissingFigurePhysicsBoneDatabase.prefab";
+            Assert.That(ShapeSyncDatabaseAsset.TryCreateAtPath(databasePath, out _, out string createDiagnostic), Is.True, createDiagnostic);
+            CreateHumanoidCanonicalFigure(databasePath, "Figure", "Curvy");
+            SourceVrm source = CreateSourceVrm("SourceMissingFigurePhysicsBone");
+            AddExtraBoneSpringBoneToSource(source.PrefabPath);
+
+            Assert.That(ShapeSyncVrmReferenceImporter.TryImportFigurePhysicsReference(databasePath, "Figure",
+                AssetDatabase.LoadAssetAtPath<GameObject>(source.PrefabPath), out string importDiagnostic), Is.True, importDiagnostic);
+            Assert.That(ShapeSyncDatabaseAsset.TryOpen(databasePath, out ShapeSyncDatabase database,
+                out string openDiagnostic), Is.True, openDiagnostic);
+
+            string rootPath = Root + "/GeneratedMissingFigurePhysicsBone";
+            Assert.That(AssetDatabase.IsValidFolder(rootPath) ||
+                !string.IsNullOrEmpty(AssetDatabase.CreateFolder(Root, "GeneratedMissingFigurePhysicsBone")), Is.True);
+            GameObject figureClone = UnityEngine.Object.Instantiate(database.Registry.BaseFigures.Single().Figure);
+            figureClone.name = "Figure";
+            string figurePath = rootPath + "/Figure.prefab";
+            try
+            {
+                Assert.That(PrefabUtility.SaveAsPrefabAsset(figureClone, figurePath), Is.Not.Null);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(figureClone);
+            }
+
+            var generatedPaths = new HashSet<string>(StringComparer.Ordinal);
+            Assert.That(ShapeSyncVrmGeneratePost.TryGenerate(database, rootPath, generatedPaths,
+                out string generateDiagnostic), Is.True, generateDiagnostic);
+            Assert.That(generateDiagnostic, Does.Not.Contain("VrmGenerateFigurePhysicsTransformMissing"));
+            Assert.That(generatedPaths, Does.Contain(rootPath + "/VRM/PHYS_Figure.prefab"));
+
+            GameObject generatedFigure = AssetDatabase.LoadAssetAtPath<GameObject>(figurePath);
+            Assert.That(generatedFigure, Is.Not.Null);
+            Assert.That(generatedFigure.transform.Find("ExtraBone/Tip"), Is.Null);
+            Vrm10Instance generatedInstance = generatedFigure.GetComponent<Vrm10Instance>();
+            Assert.That(generatedInstance.SpringBone.Springs, Is.Empty);
+            GameObject figureCarrier = AssetDatabase.LoadAssetAtPath<GameObject>(rootPath + "/VRM/PHYS_Figure.prefab");
+            Assert.That(figureCarrier, Is.Not.Null);
+            Assert.That(figureCarrier.transform.Find("ExtraBone/Tip"), Is.Null);
+        }
+
         private static GameObject CreateHumanoidFigure(string name, Transform intermediate,
             ShapeSyncDatabaseTransaction.EditContext transaction)
         {
@@ -1439,8 +1484,7 @@ namespace zgock.ShapeSync.Tests.EditMode.VrmIntegration
             {
                 Vrm10Instance instance = contents.GetComponent<Vrm10Instance>();
                 Assert.That(instance, Is.Not.Null);
-                Transform jointTransform = contents.transform.Find("Body/Bone");
-                Assert.That(jointTransform, Is.Not.Null);
+                Transform jointTransform = CreateCompatiblePhysicsJoint(contents);
                 VRM10SpringBoneJoint joint = jointTransform.gameObject.AddComponent<VRM10SpringBoneJoint>();
                 joint.m_stiffnessForce = 0.7f;
                 joint.m_gravityPower = 0.2f;
@@ -1468,6 +1512,51 @@ namespace zgock.ShapeSync.Tests.EditMode.VrmIntegration
             }
         }
 
+        private static Transform CreateCompatiblePhysicsJoint(GameObject contents)
+        {
+            GameObject hips = new GameObject("Hips");
+            hips.transform.SetParent(contents.transform, false);
+            GameObject spine = new GameObject("Spine");
+            spine.transform.SetParent(hips.transform, false);
+            return spine.transform;
+        }
+
+        private static void AddExtraBoneSpringBoneToSource(string prefabPath)
+        {
+            GameObject contents = PrefabUtility.LoadPrefabContents(prefabPath);
+            try
+            {
+                Vrm10Instance instance = contents.GetComponent<Vrm10Instance>();
+                Assert.That(instance, Is.Not.Null);
+                GameObject extraBone = new GameObject("ExtraBone");
+                extraBone.transform.SetParent(contents.transform, false);
+                GameObject tip = new GameObject("Tip");
+                tip.transform.SetParent(extraBone.transform, false);
+                VRM10SpringBoneJoint joint = tip.AddComponent<VRM10SpringBoneJoint>();
+
+                Transform colliderTransform = contents.transform.Find("Body");
+                VRM10SpringBoneCollider collider = colliderTransform.gameObject.AddComponent<VRM10SpringBoneCollider>();
+                VRM10SpringBoneColliderGroup group = colliderTransform.gameObject.AddComponent<VRM10SpringBoneColliderGroup>();
+                group.Name = "SourceCollider";
+                group.Colliders = new List<VRM10SpringBoneCollider> { collider };
+                instance.SpringBone = new Vrm10InstanceSpringBone
+                {
+                    ColliderGroups = new List<VRM10SpringBoneColliderGroup> { group },
+                    Springs = new List<Vrm10InstanceSpringBone.Spring>()
+                };
+                var spring = new Vrm10InstanceSpringBone.Spring("ExtraBoneSpring");
+                spring.Joints.Add(joint);
+                spring.ColliderGroups.Add(group);
+                instance.SpringBone.Springs.Add(spring);
+                Assert.That(PrefabUtility.SaveAsPrefabAsset(contents, prefabPath, out bool saved), Is.Not.Null);
+                Assert.That(saved, Is.True);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(contents);
+            }
+        }
+
         private static void AddSharedTransformMultiColliderSpringBoneToSource(string prefabPath)
         {
             GameObject contents = PrefabUtility.LoadPrefabContents(prefabPath);
@@ -1475,8 +1564,7 @@ namespace zgock.ShapeSync.Tests.EditMode.VrmIntegration
             {
                 Vrm10Instance instance = contents.GetComponent<Vrm10Instance>();
                 Assert.That(instance, Is.Not.Null);
-                Transform jointTransform = contents.transform.Find("Body/Bone");
-                Assert.That(jointTransform, Is.Not.Null);
+                Transform jointTransform = CreateCompatiblePhysicsJoint(contents);
                 VRM10SpringBoneJoint joint = jointTransform.gameObject.AddComponent<VRM10SpringBoneJoint>();
                 joint.m_stiffnessForce = 0.7f;
 
