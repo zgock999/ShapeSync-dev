@@ -24,7 +24,7 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 | 2 | **[第2章: 初期 VRM データ生成](./initialvrm.html)** | Base Figure と FBM の VRM を作る | 公開中 |
 | 3 | **[第3章: Figure 登録](./figureregistration.html)** | Database 上で Figure を登録し、生成、Scene 配置、初期動作確認を行う | 公開中 |
 | 4 | **[第4章: Outfit 登録](./outfitregistration.html)** | 着衣状態の VRM を作成し、Outfit を登録して動作確認を行う | 公開中 |
-| 5 | **第5章: Shape 層** | Morph / Skin / Hair / Outfit Shape を登録して動作確認を行う | 準備中 |
+| 5 | **[第5章: Shape 登録](./shaperegistration.html)** | Morph / Skin / Hair / Outfit Shape を登録して動作確認を行う | 公開中 |
 | 6 | **第6章: 高度な Figure 登録 / PBM** | PBM 用 VRM 作成と Database 登録、Morph Shape の再定義と動作確認 | 準備中 |
 | 7 | **第7章: 高度な Outfit 登録 / Collection** | 靴着用 VRM の作成と Database 登録、Projection と Collection 設定、動作確認 | 準備中 |
 | 8 | **第8章: 高度な Outfit 登録 / Mask** | VRoid Studio 内での靴補正用 Mask 作成、Database への Mask 登録、動作確認 | 準備中 |
@@ -71,7 +71,15 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 * Scene 配置した Figure への `OutfitAttacher` 設定と Play Mode での着脱・体型変形追従確認
 * **[よくあるトラブルと解決策（トラブルシューティング）](./outfitregistration.html#7-よくあるトラブルと解決策トラブルシューティング)**
 
-### 第5章 〜 第13章（準備中）
+### [第5章: Shape 登録](./shaperegistration.html)（公開中）
+* VRoid Studio からのストッキングテクスチャ書き出し（`Stocking.png`）と Unity での `Alpha is Transparency` 設定
+* Outfits セクションでの Material Outfit（`Stocking`）登録（テクスチャ名 `Body` 割り当て）
+* Shapes セクションでの各種 Shape 登録（Morph: `morphSampleI`、Hair: `hairSampleI`、Skin: `skinSampleI`、Outfit: `outfitSampleI`）
+* Generation セクションでの Shape Template アセット群およびカタログの出力（Generate）
+* Figure の `ShapeDirector` への Template 登録と Play Mode（`Walking.controller`）での連動制御・動作確認
+* **[よくあるトラブルと解決策（トラブルシューティング）](./shaperegistration.html#10-よくあるトラブルと解決策トラブルシューティング)**
+
+### 第6章 〜 第13章（準備中）
 各章のチュートリアル本文は順次公開予定です。
 
 ---
