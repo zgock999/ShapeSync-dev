@@ -1,4 +1,4 @@
-﻿# ShapeSync チュートリアル & ドキュメント
+# ShapeSync チュートリアル & ドキュメント
 
 ようこそ！本ドキュメントは、Unity 向けキャラクター衣装追従ツールセット **ShapeSync（シェイプシンク）** の公式チュートリアルです。
 
@@ -25,7 +25,7 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 | 3 | **[第3章: Figure 登録](./figureregistration.html)** | Database 上で Figure を登録し、生成、Scene 配置、初期動作確認を行う | 公開中 |
 | 4 | **[第4章: Outfit 登録](./outfitregistration.html)** | 着衣状態の VRM を作成し、Outfit を登録して動作確認を行う | 公開中 |
 | 5 | **[第5章: Shape 登録](./shaperegistration.html)** | Morph / Skin / Hair / Outfit Shape を登録して動作確認を行う | 公開中 |
-| 6 | **第6章: 高度な Figure 登録 / PBM** | PBM 用 VRM 作成と Database 登録、Morph Shape の再定義と動作確認 | 準備中 |
+| 6 | **[第6章: 高度な Figure 登録 / PBM](./pbmregistration.html)** | PBM 用 VRM 作成と Database 登録、Morph Shape の再定義と動作確認 | 公開中 |
 | 7 | **第7章: 高度な Outfit 登録 / Collection** | 靴着用 VRM の作成と Database 登録、Projection と Collection 設定、動作確認 | 準備中 |
 | 8 | **第8章: 高度な Outfit 登録 / Mask** | VRoid Studio 内での靴補正用 Mask 作成、Database への Mask 登録、動作確認 | 準備中 |
 | 9 | **第9章: VRM 連携** | 表情と Physics 用 VRM を登録し、生成と動作確認を行う | 準備中 |
@@ -79,7 +79,17 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 * Figure の `ShapeDirector` への Template 登録と Play Mode（`Walking.controller`）での連動制御・動作確認
 * **[よくあるトラブルと解決策（トラブルシューティング）](./shaperegistration.html#10-よくあるトラブルと解決策トラブルシューティング)**
 
-### 第6章 〜 第13章（準備中）
+### [第6章: 高度な Figure 登録 / PBM](./pbmregistration.html)（公開中）
+* VRoid Studio を使用した局所体型変形（`BreastSize`）の Base / FBM 用 `.vroid` データ作成
+* 素体用（`BreastSizeBasicFemale.vrm`, `BreastSizeSampleI.vrm`）および衣装用（`Dress1BreastSizeBasicFemale.vrm`, `Dress1BreastSizeSampleI.vrm`）の PBM VRM エクスポート
+* Figure セクションでの PBM（`BreastSize`）登録と Base / FBM VRM 割り当て
+* Outfits セクションでの Dress への PBM 追従設定（`Follow BreastSize`）
+* Shapes セクションでの Morph Shape（`morphSampleI`）上書き再定義（`SampleI = 1`, `BreastSize = 0.8`）
+* Generation セクションでの再 Generate 実行
+* Figure の `ShapeDirector` による Play Mode での PBM 胸部連動変形の動作確認
+* **[よくあるトラブルと解決策（トラブルシューティング）](./pbmregistration.html#10-よくあるトラブルと解決策トラブルシューティング)**
+
+### 第7章 〜 第13章（準備中）
 各章のチュートリアル本文は順次公開予定です。
 
 ---
@@ -94,4 +104,3 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 ---
 
 *© 2026 zgock999. Released under the MIT License.*
-
