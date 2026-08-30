@@ -125,6 +125,7 @@
 5. 各 Texture part において、**`Target`**（所有先: `Figure`、Proxy Entry）と **`Texture`**（所有元: `SampleI`、Main Texture リソース）を以下の表の通りに設定します。
 
 ### Skin Shape 設定対応表（Main Texture 9件）
+
 | # | Target（所有先 / Proxy Entry） | Texture（所有元 / リソース名） |
 | :--- | :--- | :--- |
 | 1 | `Figure` / `Mouth` | `SampleI` / `SampleI_Mouth` |
