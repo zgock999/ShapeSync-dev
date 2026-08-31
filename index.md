@@ -27,7 +27,7 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 | 5 | **[第5章: Shape 登録](./shaperegistration.html)** | Morph / Skin / Hair / Outfit Shape を登録して動作確認を行う | 公開中 |
 | 6 | **[第6章: 高度な Figure 登録 / PBM](./pbmregistration.html)** | PBM 用 VRM 作成と Database 登録、Morph Shape の再定義と動作確認 | 公開中 |
 | 7 | **[第7章: 高度な Outfit 登録 / Collection](./outfitcollection.html)** | 靴着用 VRM の作成と Database 登録、Projection と Collection 設定、動作確認 | 公開中 |
-| 8 | **第8章: 高度な Outfit 登録 / Mask** | VRoid Studio 内での靴補正用 Mask 作成、Database への Mask 登録、動作確認 | 準備中 |
+| 8 | **[第8章: 高度な Outfit 登録 / Mask](./figuremask.html)** | VRoid Studio 内での靴補正用 Mask 作成、Database への Mask 登録、動作確認 | 公開中 |
 | 9 | **第9章: VRM 連携** | 表情と Physics 用 VRM を登録し、生成と動作確認を行う | 準備中 |
 | 10 | **第10章: Document 保存** | ここまでの Shape をまとめ、Document を保存する | 準備中 |
 | 11 | **第11章: Humanoid Compiler** | 作成した Document から Humanoid を生成する | 準備中 |
@@ -98,7 +98,16 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 * Outfit Shape（`outfitShoes1`）登録、Generate、および `ShapeDirector` による靴 Fit 動作確認と残存 Poke の確認
 * **[よくあるトラブルと解決策（トラブルシューティング）](./outfitcollection.html#9-よくあるトラブルと解決策トラブルシューティング)**
 
-### 第8章 〜 第13章（準備中）
+### [第8章: 高度な Outfit 登録 / Mask](./figuremask.html)（公開中）
+* 第7章で残存した靴のつま先・足裏の突き抜け（Poke）の確認と Figure Mask の仕組み
+* VRoid Studio の 3D Paint によるつま先・足裏用マスクテクスチャ（`Shoes1Mask.png`）の作成と保存（`Assets/Texture/`）
+* マスク極性（黒 = 非表示 / 隠す、白 = 表示 / 残す）と塗り広げない目視基準
+* Outfits セクションでの Figure Mask 登録（`Figure Material Entry: Body`、`Mask Texture: Shoes1Mask.png`）
+* Textures セクションへの個別登録が不要な仕様の解説
+* Generation セクションでの再 Generate と Play Mode での Poke 解消確認（Before / After）
+* **[よくあるトラブルと解決策（トラブルシューティング）](./figuremask.html#5-よくあるトラブルと解決策トラブルシューティング)**
+
+### 第9章 〜 第13章（準備中）
 各章のチュートリアル本文は順次公開予定です。
 
 ---
