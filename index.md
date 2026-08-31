@@ -26,7 +26,7 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 | 4 | **[第4章: Outfit 登録](./outfitregistration.html)** | 着衣状態の VRM を作成し、Outfit を登録して動作確認を行う | 公開中 |
 | 5 | **[第5章: Shape 登録](./shaperegistration.html)** | Morph / Skin / Hair / Outfit Shape を登録して動作確認を行う | 公開中 |
 | 6 | **[第6章: 高度な Figure 登録 / PBM](./pbmregistration.html)** | PBM 用 VRM 作成と Database 登録、Morph Shape の再定義と動作確認 | 公開中 |
-| 7 | **第7章: 高度な Outfit 登録 / Collection** | 靴着用 VRM の作成と Database 登録、Projection と Collection 設定、動作確認 | 準備中 |
+| 7 | **[第7章: 高度な Outfit 登録 / Collection](./outfitcollection.html)** | 靴着用 VRM の作成と Database 登録、Projection と Collection 設定、動作確認 | 公開中 |
 | 8 | **第8章: 高度な Outfit 登録 / Mask** | VRoid Studio 内での靴補正用 Mask 作成、Database への Mask 登録、動作確認 | 準備中 |
 | 9 | **第9章: VRM 連携** | 表情と Physics 用 VRM を登録し、生成と動作確認を行う | 準備中 |
 | 10 | **第10章: Document 保存** | ここまでの Shape をまとめ、Document を保存する | 準備中 |
@@ -89,7 +89,16 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 * Figure の `ShapeDirector` による Play Mode での PBM 胸部連動変形の動作確認
 * **[よくあるトラブルと解決策（トラブルシューティング）](./pbmregistration.html#10-よくあるトラブルと解決策トラブルシューティング)**
 
-### 第7章 〜 第13章（準備中）
+### [第7章: 高度な Outfit 登録 / Collection](./outfitcollection.html)（公開中）
+* VRoid Studio を使用した靴のカスタムアイテム化と素体（Base / FBM）への着用・VRM エクスポート
+* Scene 上での素体と靴の位置・姿勢ずれの確認と Collection 機能の概要
+* Outfits セクションでの靴（`Shoes1`）登録および身体マテリアルの `Projection` 分類
+* Figure からの素体 Prefab Export（`Collection/Shoes1`）と Scene 上での姿勢（Hip Y / Foot X 回転）調整・Override 保存
+* Collections セクションでの `Full` および `Use Projection for Full Collection` 設定
+* Outfit Shape（`outfitShoes1`）登録、Generate、および `ShapeDirector` による靴 Fit 動作確認と残存 Poke の確認
+* **[よくあるトラブルと解決策（トラブルシューティング）](./outfitcollection.html#9-よくあるトラブルと解決策トラブルシューティング)**
+
+### 第8章 〜 第13章（準備中）
 各章のチュートリアル本文は順次公開予定です。
 
 ---
