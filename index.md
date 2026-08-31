@@ -28,7 +28,7 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 | 6 | **[第6章: 高度な Figure 登録 / PBM](./pbmregistration.html)** | PBM 用 VRM 作成と Database 登録、Morph Shape の再定義と動作確認 | 公開中 |
 | 7 | **[第7章: 高度な Outfit 登録 / Collection](./outfitcollection.html)** | 靴着用 VRM の作成と Database 登録、Projection と Collection 設定、動作確認 | 公開中 |
 | 8 | **[第8章: 高度な Outfit 登録 / Mask](./figuremask.html)** | VRoid Studio 内での靴補正用 Mask 作成、Database への Mask 登録、動作確認 | 公開中 |
-| 9 | **第9章: VRM 連携** | 表情と Physics 用 VRM を登録し、生成と動作確認を行う | 準備中 |
+| 9 | **[第9章: VRM 連携](./vrmintegration.html)** | 表情と Physics 用 VRM を登録し、生成と動作確認を行う | 公開中 |
 | 10 | **第10章: Document 保存** | ここまでの Shape をまとめ、Document を保存する | 準備中 |
 | 11 | **第11章: Humanoid Compiler** | 作成した Document から Humanoid を生成する | 準備中 |
 | 12 | **第12章: Atlas** | Atlas Editor による設定と Humanoid 再生成 | 準備中 |
@@ -107,7 +107,16 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 * Generation セクションでの再 Generate と Play Mode での Poke 解消確認（Before / After）
 * **[よくあるトラブルと解決策（トラブルシューティング）](./figuremask.html#5-よくあるトラブルと解決策トラブルシューティング)**
 
-### 第9章 〜 第13章（準備中）
+### [第9章: VRM 連携](./vrmintegration.html)（公開中）
+* VRM 連携に必要な前提環境（UniVRM パッケージおよび `SHAPESYNC_USE_UNIVRM`）とスキップの判断
+* Figure セクションでの Expression Reference（Base: `BasicFemale.vrm`, FBM: `SampleI.vrm`）および Physics Reference（`Hair1BasicFemale.vrm`）登録
+* Figure 側 Physics Reference の任意性（揺れ物を持つ VRM であれば任意）の解説
+* Outfits セクションでの各衣装（`Hair1` / `Dress1`）への Physics Reference VRM 設定
+* Generation セクションでの Generate 実行と自動後処理（Expression Bake / Physics 転送）の解説
+* Play Mode での `UniversalExpressionProxy` による表情変化確認、および歩行再生下での揺れ物（SpringBone）追従動作確認（個別分離検証）
+* **[よくあるトラブルと解決策（トラブルシューティング）](./vrmintegration.html#7-よくあるトラブルと解決策トラブルシューティング)**
+
+### 第10章 〜 第13章（準備中）
 各章のチュートリアル本文は順次公開予定です。
 
 ---
