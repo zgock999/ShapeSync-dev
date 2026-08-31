@@ -29,7 +29,7 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 | 7 | **[第7章: 高度な Outfit 登録 / Collection](./outfitcollection.html)** | 靴着用 VRM の作成と Database 登録、Projection と Collection 設定、動作確認 | 公開中 |
 | 8 | **[第8章: 高度な Outfit 登録 / Mask](./figuremask.html)** | VRoid Studio 内での靴補正用 Mask 作成、Database への Mask 登録、動作確認 | 公開中 |
 | 9 | **[第9章: VRM 連携](./vrmintegration.html)** | 表情と Physics 用 VRM を登録し、生成と動作確認を行う | 公開中 |
-| 10 | **第10章: Document 保存** | ここまでの Shape をまとめ、Document を保存する | 準備中 |
+| 10 | **[第10章: Document 保存](./documentstorage.html)** | ここまでの Shape をまとめ、Document を保存する | 公開中 |
 | 11 | **第11章: Humanoid Compiler** | 作成した Document から Humanoid を生成する | 準備中 |
 | 12 | **第12章: Atlas** | Atlas Editor による設定と Humanoid 再生成 | 準備中 |
 | 13 | **第13章: Hot Bake** | Figure / Document / Atlas による Runtime Humanoid 再生 | 準備中 |
@@ -116,7 +116,16 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 * Play Mode での `UniversalExpressionProxy` による表情変化確認、および歩行再生下での揺れ物（SpringBone）追従動作確認（個別分離検証）
 * **[よくあるトラブルと解決策（トラブルシューティング）](./vrmintegration.html#7-よくあるトラブルと解決策トラブルシューティング)**
 
-### 第10章 〜 第13章（準備中）
+### [第10章: Document 保存](./documentstorage.html)（公開中）
+* VRoid Studio によるセパレート衣装（`Tops1` 4種、`Skirt1` 2種）の VRM 出力と登録
+* Outfit Tag（`upperchest`, `lowerchest`）の作成と語彙登録
+* Outfit Shape での Priority / Tag 設定（`outfitTops1`, `outfitSkirt1`, `outfitSampleI` 更新）
+* Priority と Tag による排他制御（3 Template 登録時の Dress1 単独表示、Dress Remove 時のセパレート衣装表示）
+* ShapeDirector による Document A（`ShapeSyncDocumentA`）および Document B（`ShapeSyncDocumentB`）の保存（`Assets/ShapeSync`）
+* Template List 全解除からの Document A / B の Load 読み込みと状態復元確認
+* **[よくあるトラブルと解決策（トラブルシューティング）](./documentstorage.html#7-よくあるトラブルと解決策トラブルシューティング)**
+
+### 第11章 〜 第13章（準備中）
 各章のチュートリアル本文は順次公開予定です。
 
 ---
