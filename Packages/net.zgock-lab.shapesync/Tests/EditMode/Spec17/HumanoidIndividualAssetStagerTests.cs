@@ -37,11 +37,14 @@ namespace zgock.ShapeSync.Tests.EditMode
                 Assert.That(InvokeStage(Root, "Look", result, out object stage, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
                 Assert.That(AssetDatabase.LoadAssetAtPath<Mesh>(Root + "/" + Prefix + ".asset"), Is.Not.Null);
                 Assert.That(AssetDatabase.LoadAssetAtPath<Material>(Root + "/" + Prefix + "_outfitA_cloth.mat"), Is.Not.Null);
-                Assert.That(AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/" + Prefix + "_outfitA_cloth_0.png"), Is.Not.Null);
-                Assert.That(AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/" + Prefix + "_outfitA_cloth_1.png"), Is.Not.Null);
                 Material material = AssetDatabase.LoadAssetAtPath<Material>(Root + "/" + Prefix + "_outfitA_cloth.mat");
-                Assert.That(material.GetTexture("_BaseMap"), Is.EqualTo(AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/" + Prefix + "_outfitA_cloth_0.png")));
-                Assert.That(material.GetTexture("_BumpMap"), Is.EqualTo(AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/" + Prefix + "_outfitA_cloth_1.png")));
+                Texture2D baseOutput = material.GetTexture("_BaseMap") as Texture2D;
+                Texture2D normalOutput = material.GetTexture("_BumpMap") as Texture2D;
+                Assert.That(baseOutput, Is.Not.Null);
+                Assert.That(normalOutput, Is.Not.Null);
+                Assert.That(baseOutput, Is.Not.SameAs(normalOutput));
+                Assert.That(AssetDatabase.GetAssetPath(baseOutput), Does.Contain(Prefix + "_texture_"));
+                Assert.That(AssetDatabase.GetAssetPath(normalOutput), Does.Contain(Prefix + "_texture_"));
                 Assert.That(source.GetTexture("_BaseMap"), Is.SameAs(sampler));
                 Assert.That(source.GetTexture("_BumpMap"), Is.SameAs(sampler));
                 Assert.That(target.GetTexture("_BaseMap"), Is.SameAs(baseTexture));
@@ -50,6 +53,41 @@ namespace zgock.ShapeSync.Tests.EditMode
                 Assert.That(assetPathCount, Is.EqualTo(4));
             }
             finally { result?.Dispose(); Destroy(source); Destroy(target); Destroy(sampler); Release(baseTexture); Release(normalTexture); Destroy(adapter); DeleteFolder(); }
+        }
+
+        [Test]
+        public void Stage_DeduplicatesSharedSourceTextureAcrossMaterialIds()
+        {
+            HumanoidBuildResult result = null; Material shirtSource = null; Material skirtSource = null; Material shirtTarget = null; Material skirtTarget = null; Texture2D sampler = null; UrpUnlitMaterialShaderAdapter adapter = null;
+            try
+            {
+                CreateFolder();
+                sampler = new Texture2D(2, 2, TextureFormat.RGBA32, false, false) { name = "SharedSource" };
+                sampler.SetPixel(0, 0, Color.white); sampler.Apply(false, false);
+                shirtSource = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+                skirtSource = new Material(shirtSource);
+                shirtSource.SetTexture("_BaseMap", sampler); skirtSource.SetTexture("_BaseMap", sampler);
+                shirtTarget = new Material(shirtSource); skirtTarget = new Material(skirtSource);
+                adapter = ScriptableObject.CreateInstance<UrpUnlitMaterialShaderAdapter>();
+                result = new HumanoidBuildResult(CreateMesh(
+                    new[] { shirtSource, skirtSource }, new[] { shirtTarget, skirtTarget }, adapter,
+                    new[] { new MaterialId("shirt", "Body"), new MaterialId("skirt", "Body") }));
+
+                Assert.That(InvokeStage(Root, "Look", result, out object stage, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
+                string[] textureGuids = AssetDatabase.FindAssets("t:Texture2D", new[] { Root });
+                Assert.That(textureGuids, Has.Length.EqualTo(1));
+                Texture2D shared = AssetDatabase.LoadAssetAtPath<Texture2D>(AssetDatabase.GUIDToAssetPath(textureGuids[0]));
+                string sharedPath = AssetDatabase.GetAssetPath(shared);
+                Assert.That(sharedPath, Does.Contain(Prefix + "_texture_SharedSource_"));
+                Assert.That(sharedPath, Does.Not.Contain("_shirt_"));
+                Material shirt = AssetDatabase.LoadAssetAtPath<Material>(Root + "/" + Prefix + "_shirt_Body.mat");
+                Material skirt = AssetDatabase.LoadAssetAtPath<Material>(Root + "/" + Prefix + "_skirt_Body.mat");
+                Assert.That(shirt.GetTexture("_BaseMap"), Is.SameAs(shared));
+                Assert.That(skirt.GetTexture("_BaseMap"), Is.SameAs(shared));
+                int stagedTextureCount = 0; foreach (object ignored in (IEnumerable)stage.GetType().GetProperty("Textures", Flags).GetValue(stage)) stagedTextureCount++;
+                Assert.That(stagedTextureCount, Is.EqualTo(1));
+            }
+            finally { result?.Dispose(); Destroy(shirtSource); Destroy(skirtSource); Destroy(shirtTarget); Destroy(skirtTarget); Destroy(sampler); Destroy(adapter); DeleteFolder(); }
         }
 
         [Test]
@@ -71,9 +109,9 @@ namespace zgock.ShapeSync.Tests.EditMode
                 result = new HumanoidBuildResult(CreateMesh(source, target, adapter, new MaterialId(string.Empty, "body")));
 
                 Assert.That(InvokeStage(Root, "Look", result, out _, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
-                string copiedPath = Root + "/" + Prefix + "_body.png";
-                Texture2D copied = AssetDatabase.LoadAssetAtPath<Texture2D>(copiedPath);
                 Material material = AssetDatabase.LoadAssetAtPath<Material>(Root + "/" + Prefix + "_body.mat");
+                Texture2D copied = material.GetTexture("_BaseMap") as Texture2D;
+                string copiedPath = AssetDatabase.GetAssetPath(copied);
                 Assert.That(copied, Is.Not.Null);
                 Assert.That(copied, Is.Not.SameAs(sampler));
                 Assert.That(material.GetTexture("_BaseMap"), Is.SameAs(copied));
@@ -99,12 +137,16 @@ namespace zgock.ShapeSync.Tests.EditMode
                 result = new HumanoidBuildResult(CreateMesh(source, target, adapter, new MaterialId(string.Empty, "body")));
 
                 Assert.That(InvokeStage(Root, "Look", result, out _, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
-                Texture2D copied = AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/" + Prefix + "_body.asset");
                 Material material = AssetDatabase.LoadAssetAtPath<Material>(Root + "/" + Prefix + "_body.mat");
-                Assert.That(copied, Is.Not.Null);
-                Assert.That(copied, Is.Not.SameAs(sampler));
-                Assert.That(material.GetTexture("_BaseMap"), Is.SameAs(copied));
-                Assert.That(material.GetTexture("_EmissionMap"), Is.SameAs(copied));
+                Texture2D baseOutput = material.GetTexture("_BaseMap") as Texture2D;
+                Texture2D preservedOutput = material.GetTexture("_EmissionMap") as Texture2D;
+                Assert.That(baseOutput, Is.Not.Null);
+                Assert.That(preservedOutput, Is.Not.Null);
+                Assert.That(baseOutput, Is.Not.SameAs(sampler));
+                Assert.That(preservedOutput, Is.Not.SameAs(sampler));
+                Assert.That(baseOutput, Is.Not.SameAs(preservedOutput));
+                Assert.That(AssetDatabase.GetAssetPath(baseOutput), Does.Contain("_basecolor_"));
+                Assert.That(AssetDatabase.GetAssetPath(preservedOutput), Does.Contain("_preserved_"));
             }
             finally { result?.Dispose(); AssetDatabase.DeleteAsset(sourcePath); Destroy(source); Destroy(target); Destroy(sampler); Destroy(adapter); DeleteFolder(); }
         }
@@ -152,6 +194,17 @@ namespace zgock.ShapeSync.Tests.EditMode
                 Assert.That(diagnostic.detail, Does.Contain(externalMaterialPath).Or.Contain(externalTexturePath));
             }
             finally { Destroy(prefabRoot); AssetDatabase.DeleteAsset(externalMaterialPath); AssetDatabase.DeleteAsset(externalTexturePath); DeleteFolder(); }
+        }
+
+        [Test]
+        public void OutputReferenceValidation_ExemptsOnlyThirdPartyPackageInfrastructure()
+        {
+            MethodInfo method = typeof(HumanoidPublishPathValidator).GetMethod("IsSharedPackageReference", Flags);
+            Assert.That(method, Is.Not.Null);
+            Assert.That((bool)method.Invoke(null, new object[] { "Packages/net.zgock-lab.shapesync/Editor/Humanoid/HumanoidPublishPathValidator.cs" }), Is.False);
+            Assert.That((bool)method.Invoke(null, new object[] { "Packages/net.zgock-lab.shapesync.vrm/Editor/HumanoidVrmTransportExecutor.cs" }), Is.False);
+            Assert.That((bool)method.Invoke(null, new object[] { "Packages/com.vrmc.vrm/Icons/vrm-48x48.png" }), Is.True);
+            Assert.That((bool)method.Invoke(null, new object[] { "Assets" + "/Outfit/texture.png" }), Is.False);
         }
 
         [Test]
@@ -211,9 +264,11 @@ namespace zgock.ShapeSync.Tests.EditMode
                 int writes = 0; SetWriter((path, bytes) => { if (writes++ == 1) throw new IOException("injected"); File.WriteAllBytes(path, bytes); });
                 Assert.That(InvokeStage(Root, "Look", result, out _, out string[] residuals, out StackMachineDiagnostic diagnostic), Is.False);
                 Assert.That(diagnostic.domainCode, Is.EqualTo("PublishAssetStagingFailed"));
-                Assert.That(residuals, Is.EqualTo(new[] { Root + "/" + Prefix + "_body_0.png" }));
-                Assert.That(diagnostic.detail, Does.Contain(Root + "/" + Prefix + "_body_0.png"));
-                Assert.That(AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/" + Prefix + "_body_0.png"), Is.Not.Null);
+                Assert.That(residuals, Has.Length.EqualTo(1));
+                Assert.That(residuals[0], Does.Contain(Root + "/" + Prefix + "_texture_"));
+                Assert.That(residuals[0], Does.EndWith(".png"));
+                Assert.That(diagnostic.detail, Does.Contain(residuals[0]));
+                Assert.That(AssetDatabase.LoadAssetAtPath<Texture2D>(residuals[0]), Is.Not.Null);
             }
             finally { SetWriter(File.WriteAllBytes); result?.Dispose(); Destroy(source); Destroy(target); Destroy(sampler); Release(baseTexture); Release(normalTexture); Destroy(adapter); DeleteFolder(); }
         }
@@ -229,8 +284,10 @@ namespace zgock.ShapeSync.Tests.EditMode
                 SetImporter(_ => throw new IOException("injected"));
                 Assert.That(InvokeStage(Root, "Look", result, out _, out string[] residuals, out StackMachineDiagnostic diagnostic), Is.False);
                 Assert.That(diagnostic.domainCode, Is.EqualTo("PublishAssetStagingFailed"));
-                Assert.That(residuals, Is.EqualTo(new[] { Root + "/" + Prefix + "_body.png" }));
-                Assert.That(File.Exists(Path.Combine(Path.GetFullPath(Root), Prefix + "_body.png")), Is.True);
+                Assert.That(residuals, Has.Length.EqualTo(1));
+                Assert.That(residuals[0], Does.Contain(Root + "/" + Prefix + "_texture_"));
+                Assert.That(residuals[0], Does.EndWith(".png"));
+                Assert.That(File.Exists(Path.GetFullPath(residuals[0])), Is.True);
             }
             finally { SetImporter(path => AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate)); SetWriter(File.WriteAllBytes); result?.Dispose(); Destroy(source); Destroy(target); Destroy(sampler); Release(texture); Destroy(adapter); DeleteFolder(); }
         }
@@ -271,12 +328,13 @@ namespace zgock.ShapeSync.Tests.EditMode
                     new[] { new MaterialId("shirt-1", "Body"), new MaterialId("skirt-1", "Body") }));
 
                 Assert.That(InvokeStage(Root, "Look", result, out _, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
-                Texture2D shirtPng = AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/" + Prefix + "_shirt-1_Body.png");
-                Texture2D skirtPng = AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/" + Prefix + "_skirt-1_Body.png");
                 Material shirt = AssetDatabase.LoadAssetAtPath<Material>(Root + "/" + Prefix + "_shirt-1_Body.mat");
                 Material skirt = AssetDatabase.LoadAssetAtPath<Material>(Root + "/" + Prefix + "_skirt-1_Body.mat");
-                Assert.That(shirt.GetTexture("_MainTex"), Is.EqualTo(shirtPng)); Assert.That(shirt.GetTexture("_ShadeTex"), Is.EqualTo(shirtPng));
-                Assert.That(skirt.GetTexture("_MainTex"), Is.EqualTo(skirtPng)); Assert.That(skirt.GetTexture("_ShadeTex"), Is.EqualTo(skirtPng));
+                Texture2D shirtPng = shirt.GetTexture("_MainTex") as Texture2D;
+                Texture2D skirtPng = skirt.GetTexture("_MainTex") as Texture2D;
+                Assert.That(shirtPng, Is.Not.Null); Assert.That(skirtPng, Is.Not.Null);
+                Assert.That(shirt.GetTexture("_ShadeTex"), Is.EqualTo(shirtPng));
+                Assert.That(skirt.GetTexture("_ShadeTex"), Is.EqualTo(skirtPng));
             }
             finally { result?.Dispose(); Destroy(shirtSource); Destroy(skirtSource); Destroy(shirtTarget); Destroy(skirtTarget); Destroy(sampler); Release(shirtTexture); Release(skirtTexture); Destroy(adapter); DeleteFolder(); }
         }

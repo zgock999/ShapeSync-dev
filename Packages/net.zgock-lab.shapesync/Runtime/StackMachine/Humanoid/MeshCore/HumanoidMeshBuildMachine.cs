@@ -130,14 +130,10 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
             diagnostic = null;
             if (nextNormal >= plan.NormalSources.Count)
             {
-                // The Pure Humanoid contract normalizes the candidate root.  Final
-                // Mesh vertices must therefore be lowered into that normalized
-                // renderer space, not the source Figure's authoring placement.
+                // The Pure Humanoid contract normalizes the candidate root.  Keep
+                // final Mesh construction in the physical attachment pose; the
+                // resolved rest pose is applied at the publish handoff below.
                 mesh.Skeleton.ResetRootTransform();
-                // The Editor publisher emits a Pure Humanoid, so its static
-                // output must use the resolved FBM/BCP hierarchy. Runtime/DDB
-                // callers retain the authoring/physical skinning contract.
-                if (publishResolvedHumanoidRestPose) mesh.Skeleton.RestoreResolvedHumanoidPose();
                 if (!HumanoidMeshFinalMeshBuilder.TryBuild(mesh, out diagnostic)
                     || !HumanoidMeshMaterialSlotBuilder.TryCreate(mesh, out HumanoidMeshMaterialSlot[] slots, out diagnostic)) return false;
                 mesh.SetMaterialSlots(slots);

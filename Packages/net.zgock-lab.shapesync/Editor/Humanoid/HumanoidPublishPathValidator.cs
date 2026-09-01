@@ -80,10 +80,10 @@ namespace zgock.ShapeSync.Editor
                 for (int i = 0; i < dependencies.Length; i++)
                 {
                     string dependencyPath = NormalizeAssetPath(dependencies[i]);
-                    // Package assets are shared infrastructure declared by the consumer
-                    // environment. Pure Humanoid ownership applies to project Assets;
-                    // package-owned resources such as UniVRM's default icon are not
-                    // publish artifacts that can be copied into the output folder.
+                    // Third-party package assets are shared infrastructure declared by the consumer
+                    // environment. ShapeSync's own package assets remain subject to output containment;
+                    // package-owned resources such as UniVRM's default icon are not publish artifacts
+                    // that can be copied into the output folder.
                     if (IsSharedPackageReference(dependencyPath)) continue;
                     UnityEngine.Object dependency = AssetDatabase.LoadMainAssetAtPath(dependencyPath);
                     if (!IsPureHumanoidReference(dependency)) continue;
@@ -127,7 +127,9 @@ namespace zgock.ShapeSync.Editor
 
         private static bool IsSharedPackageReference(string assetPath)
         {
-            return assetPath.StartsWith("Packages/", StringComparison.OrdinalIgnoreCase);
+            if (!assetPath.StartsWith("Packages/", StringComparison.OrdinalIgnoreCase)) return false;
+            return !IsUnderFolder(assetPath, "Packages/net.zgock-lab.shapesync")
+                && !IsUnderFolder(assetPath, "Packages/net.zgock-lab.shapesync.vrm");
         }
     }
 }

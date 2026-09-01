@@ -85,9 +85,12 @@ namespace zgock.ShapeSync.Editor
                 if (!TryStageMeshAndAvatar(outputFolder, assetPrefix, payload, created, out Mesh mesh, out Avatar avatar, out diagnostic)) return FailWithResidual(created, diagnostic, out residualAssetPaths, out diagnostic);
                 if (!TryStageMaterials(outputFolder, assetPrefix, payload, entries, texturePaths, atlasBindings, atlasPaths, created, out Material[] materials, out diagnostic)) return FailWithResidual(created, diagnostic, out residualAssetPaths, out diagnostic);
                 var textures = new List<Texture2D>();
+                var stagedTexturePaths = new HashSet<string>(StringComparer.Ordinal);
                 foreach (HumanoidTextureReadbackEntry entry in entries)
                 {
-                    Texture2D texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePaths[entry]);
+                    string texturePath = texturePaths[entry];
+                    if (!stagedTexturePaths.Add(texturePath)) continue;
+                    Texture2D texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
                     if (texture == null)
                     {
                         Reject("PublishTextureAssetMissing", "Individual asset staging could not reload an imported texture asset.", out diagnostic, entry.MaterialId.EntryId);
@@ -114,15 +117,16 @@ namespace zgock.ShapeSync.Editor
         private static bool TryStageTextures(string folder, string assetPrefix, IReadOnlyList<HumanoidTextureReadbackEntry> entries, Dictionary<HumanoidTextureReadbackEntry, string> paths, List<string> created, out StackMachineDiagnostic diagnostic)
         {
             diagnostic = null;
-            var countByMaterial = new Dictionary<MaterialId, int>();
-            for (int i = 0; i < entries.Count; i++) countByMaterial[entries[i].MaterialId] = countByMaterial.TryGetValue(entries[i].MaterialId, out int count) ? count + 1 : 1;
-            var indexByMaterial = new Dictionary<MaterialId, int>();
+            var stagedByTexture = new Dictionary<string, string>(StringComparer.Ordinal);
             for (int i = 0; i < entries.Count; i++)
             {
                 HumanoidTextureReadbackEntry entry = entries[i];
-                int index = indexByMaterial.TryGetValue(entry.MaterialId, out int value) ? value : 0;
-                indexByMaterial[entry.MaterialId] = index + 1;
-                string suffix = countByMaterial[entry.MaterialId] > 1 ? "_" + index : string.Empty;
+                string textureKey = entry.OutputTextureKey;
+                if (stagedByTexture.TryGetValue(textureKey, out string existingPath))
+                {
+                    paths.Add(entry, existingPath);
+                    continue;
+                }
                 Texture2D sourceTexture = entry.Texture as Texture2D;
                 string sourceAssetPath = sourceTexture != null ? AssetDatabase.GetAssetPath(sourceTexture) : null;
                 // A VRM/GLTF importer exposes embedded Texture2D sub-assets with the
@@ -135,7 +139,7 @@ namespace zgock.ShapeSync.Editor
                     && AssetDatabase.LoadMainAssetAtPath(sourceAssetPath) == sourceTexture;
                 string extension = copyPersistentAsset ? Path.GetExtension(sourceAssetPath) : ".png";
                 if (string.IsNullOrWhiteSpace(extension)) extension = ".asset";
-                string path = CombineAssetPath(folder, AssetBaseName(assetPrefix, entry.MaterialId) + suffix + extension);
+                string path = CombineAssetPath(folder, TextureAssetBaseName(assetPrefix, entry) + extension);
                 if (AssetDatabase.LoadMainAssetAtPath(path) != null || File.Exists(ToAbsolutePath(path))) return Reject("PublishAssetPathOccupied", "Individual asset staging found an occupied output asset path.", out diagnostic, entry.MaterialId.EntryId);
                 if (copyPersistentAsset)
                 {
@@ -153,6 +157,7 @@ namespace zgock.ShapeSync.Editor
                     ImportAsset(path);
                     if (!HumanoidTexturePublishReadback.TryConfigureImporter(path, entry, out diagnostic)) return false;
                 }
+                stagedByTexture.Add(textureKey, path);
                 paths.Add(entry, path);
             }
             return true;
@@ -319,6 +324,14 @@ namespace zgock.ShapeSync.Editor
         }
 
         private static string AssetBaseName(string assetPrefix, MaterialId materialId) => string.IsNullOrEmpty(materialId.RegistryId) ? assetPrefix + "_" + materialId.EntryId : assetPrefix + "_" + materialId.RegistryId + "_" + materialId.EntryId;
+        private static string TextureAssetBaseName(string assetPrefix, HumanoidTextureReadbackEntry entry)
+        {
+            string sourceName = entry.Texture == null || string.IsNullOrWhiteSpace(entry.Texture.name) ? "texture" : entry.Texture.name;
+            char[] invalid = Path.GetInvalidFileNameChars();
+            for (int i = 0; i < invalid.Length; i++) sourceName = sourceName.Replace(invalid[i], '_');
+            string digest = Hash128.Compute(entry.OutputTextureKey).ToString().Substring(0, 12);
+            return assetPrefix + "_texture_" + sourceName + "_" + entry.Semantic.ToString().ToLowerInvariant() + "_" + digest;
+        }
         private static string CombineAssetPath(string folder, string file) => (folder.TrimEnd('/', '\\') + "/" + file).Replace('\\', '/');
         private static string ToAbsolutePath(string assetPath) => Path.GetFullPath(assetPath);
         private static bool FailWithResidual(List<string> created, StackMachineDiagnostic source, out string[] residualAssetPaths, out StackMachineDiagnostic diagnostic)

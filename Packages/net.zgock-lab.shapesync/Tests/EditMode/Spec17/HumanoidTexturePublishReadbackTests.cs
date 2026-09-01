@@ -185,6 +185,27 @@ namespace zgock.ShapeSync.Tests.EditMode
         }
 
         [Test]
+        public void Collect_DeduplicatesPreservedTextureForSharedTargetAcrossMaterialIds()
+        {
+            InMemoryHumanoidMesh mesh = null; Material sourceA = null; Material sourceB = null; Material target = null; Texture2D sampler = null; RenderTexture texture = null; UrpLitMaterialShaderAdapter adapter = null;
+            try
+            {
+                sampler = new Texture2D(2, 2); sampler.SetPixel(0, 0, Color.white); sampler.Apply(false, false);
+                sourceA = new Material(Shader.Find("Universal Render Pipeline/Lit")); sourceA.SetTexture("_EmissionMap", sampler);
+                sourceB = new Material(sourceA); target = new Material(sourceA); texture = CreateTexture(sampler); target.SetTexture("_EmissionMap", texture);
+                adapter = ScriptableObject.CreateInstance<UrpLitMaterialShaderAdapter>();
+                mesh = CreateMesh(new[] { sourceA, sourceB }, new[] { target, target }, adapter, new[] { new MaterialId("slot-a", "body"), new MaterialId("slot-b", "body") });
+
+                Assert.That(InvokeCollect(mesh, out Array entries, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
+                Assert.That(entries.Length, Is.EqualTo(1));
+                object entry = entries.GetValue(0);
+                Assert.That(entry.GetType().GetProperty("Semantic", Flags).GetValue(entry).ToString(), Is.EqualTo("Preserved"));
+                Assert.That(PropertyNames(entry), Is.EqualTo(new[] { "_EmissionMap" }));
+            }
+            finally { mesh?.Dispose(); UnityEngine.Object.DestroyImmediate(sourceA); UnityEngine.Object.DestroyImmediate(sourceB); UnityEngine.Object.DestroyImmediate(target); UnityEngine.Object.DestroyImmediate(sampler); Release(texture); UnityEngine.Object.DestroyImmediate(adapter); }
+        }
+
+        [Test]
         public void CollectAndEncode_RejectsSlotMismatchAndNonRgbaHalfTexture()
         {
             Material source = null; Material target = null; Texture2D sampler = null; RenderTexture invalid = null; UrpUnlitMaterialShaderAdapter adapter = null; InMemoryHumanoidMesh mesh = null;
@@ -249,6 +270,15 @@ namespace zgock.ShapeSync.Tests.EditMode
             var materials = new Material[submeshes]; var slots = new HumanoidBuildMaterialSlot[submeshes];
             for (int i = 0; i < submeshes; i++) { materials[i] = target; slots[i] = new HumanoidBuildMaterialSlot(new MaterialId(string.Empty, "body"), i, source, adapter); }
             Invoke(result, "TrySetMaterials", new object[] { materials, null });
+            Invoke(result, "TrySetMaterialSlots", new object[] { slots, null });
+            return result;
+        }
+        private static InMemoryHumanoidMesh CreateMesh(Material[] sources, Material[] targets, MaterialShaderAdapter adapter, MaterialId[] ids)
+        {
+            var unityMesh = new Mesh { subMeshCount = targets.Length }; var result = new InMemoryHumanoidMesh(unityMesh);
+            var slots = new HumanoidBuildMaterialSlot[targets.Length];
+            for (int i = 0; i < slots.Length; i++) slots[i] = new HumanoidBuildMaterialSlot(ids[i], i, sources[i], adapter);
+            Invoke(result, "TrySetMaterials", new object[] { targets, null });
             Invoke(result, "TrySetMaterialSlots", new object[] { slots, null });
             return result;
         }

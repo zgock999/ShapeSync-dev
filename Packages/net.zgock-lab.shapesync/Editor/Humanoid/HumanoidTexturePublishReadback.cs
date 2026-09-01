@@ -33,6 +33,10 @@ namespace zgock.ShapeSync.Editor
         internal IReadOnlyList<string> PropertyNames { get; }
         /// <summary>Gets whether this entry is a Spec18 page and therefore uses the fixed atlas importer policy.</summary>
         internal bool IsAtlasPage { get; }
+        /// <summary>Gets the stable identity of the source Texture used by the staged output.</summary>
+        internal string SourceTextureKey => HumanoidTexturePublishReadback.GetSourceTextureKey(Texture);
+        /// <summary>Gets the source Texture identity together with its importer semantic.</summary>
+        internal string OutputTextureKey => Semantic + ":" + SourceTextureKey;
     }
 
     /// <summary>Editor-only texture collection, GPU readback, and PNG importer configuration for Humanoid publish.</summary>
@@ -119,7 +123,7 @@ namespace zgock.ShapeSync.Editor
 
                     int propertyId = Shader.PropertyToID(propertyName);
                     Texture samplerSource = slot.SourceMaterial.HasProperty(propertyId) ? slot.SourceMaterial.GetTexture(propertyId) : null;
-                    int existingIndex = FindTargetTexture(collected, target, slot.MaterialId, texture);
+                    int existingIndex = FindTargetTexture(collected, target, HumanoidPublishTextureSemantic.Preserved, texture);
                     if (existingIndex < 0)
                     {
                         collected.Add(new HumanoidTextureReadbackEntry(slot.MaterialId, HumanoidPublishTextureSemantic.Preserved, texture, samplerSource, target, propertyName));
@@ -263,12 +267,20 @@ namespace zgock.ShapeSync.Editor
             return false;
         }
 
-        private static int FindTargetTexture(IReadOnlyList<HumanoidTextureReadbackEntry> entries, Material target, MaterialId materialId, Texture texture)
+        internal static string GetSourceTextureKey(Texture texture)
+        {
+            if (texture == null) return "none";
+            if (AssetDatabase.TryGetGUIDAndLocalFileIdentifier(texture, out string guid, out long localId))
+                return "asset:" + guid + ":" + localId;
+            return "runtime:" + texture.GetInstanceID();
+        }
+
+        private static int FindTargetTexture(IReadOnlyList<HumanoidTextureReadbackEntry> entries, Material target, HumanoidPublishTextureSemantic semantic, Texture texture)
         {
             for (int i = 0; i < entries.Count; i++)
             {
                 HumanoidTextureReadbackEntry entry = entries[i];
-                if (entry.TargetMaterial == target && entry.MaterialId.Equals(materialId) && entry.Texture == texture) return i;
+                if (entry.TargetMaterial == target && entry.Semantic == semantic && entry.Texture == texture) return i;
             }
             return -1;
         }
