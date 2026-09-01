@@ -198,12 +198,23 @@ namespace zgock.ShapeSync.Editor
             {
                 string propertyDetail = PropertyDetail(entry.PropertyNames.Count > 0 ? entry.PropertyNames[0] : "<none>");
                 if (!(entry.SamplerSource is Texture2D sourceTexture))
-                    return Reject("PublishPreservedTextureImporterMissing", "Preserved texture publish requires a source Texture2D with importer settings so its color semantics can be retained.", out diagnostic, entry.MaterialId.EntryId, propertyDetail);
+                    return Reject("PublishPreservedTextureImporterMissing", "Preserved texture publish requires a source Texture2D so its color semantics can be retained.", out diagnostic, entry.MaterialId.EntryId, propertyDetail);
                 string sourcePath = AssetDatabase.GetAssetPath(sourceTexture);
-                if (!(AssetImporter.GetAtPath(sourcePath) is TextureImporter sourceImporter))
-                    return Reject("PublishPreservedTextureImporterMissing", "Preserved texture publish could not resolve the source TextureImporter needed to retain color semantics.", out diagnostic, entry.MaterialId.EntryId, propertyDetail + ";source=" + sourcePath);
-                importer.sRGBTexture = sourceImporter.sRGBTexture;
-                importer.alphaIsTransparency = sourceImporter.alphaIsTransparency;
+                if (AssetImporter.GetAtPath(sourcePath) is TextureImporter sourceImporter)
+                {
+                    importer.sRGBTexture = sourceImporter.sRGBTexture;
+                    importer.alphaIsTransparency = sourceImporter.alphaIsTransparency;
+                }
+                else
+                {
+                    // Imported VRM/GLTF textures are often Texture2D sub-assets. They
+                    // share the container path and therefore have no TextureImporter of
+                    // their own; Texture.isDataSRGB is the importer result available on
+                    // the sub-asset. Alpha transparency dilation is not recoverable from
+                    // a sub-asset, so leave it disabled rather than altering pixel edges.
+                    importer.sRGBTexture = sourceTexture.isDataSRGB;
+                    importer.alphaIsTransparency = false;
+                }
             }
             else
             {

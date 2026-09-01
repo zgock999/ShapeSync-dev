@@ -126,6 +126,28 @@ namespace zgock.ShapeSync.Tests.EditMode
         }
 
         [Test]
+        public void ConfigureImporter_PreservedEmbeddedTextureUsesRuntimeColorSpaceWhenSourceHasNoTextureImporter()
+        {
+            InMemoryHumanoidMesh mesh = null; Material source = null; Material target = null; Texture2D sampler = null; RenderTexture preservedTexture = null; UrpLitMaterialShaderAdapter adapter = null;
+            try
+            {
+                AssetDatabase.DeleteAsset(TestPngPath);
+                sampler = new Texture2D(2, 2, TextureFormat.RGBA32, false, false); sampler.SetPixel(0, 0, Color.white); sampler.Apply(false, false);
+                source = new Material(Shader.Find("Universal Render Pipeline/Lit")); source.SetTexture("_EmissionMap", sampler);
+                target = new Material(source); preservedTexture = CreateTexture(sampler); target.SetTexture("_EmissionMap", preservedTexture);
+                adapter = ScriptableObject.CreateInstance<UrpLitMaterialShaderAdapter>(); mesh = CreateMesh(source, target, adapter);
+                Assert.That(InvokeCollect(mesh, out Array entries, out StackMachineDiagnostic diagnostic), Is.True, diagnostic == null ? "collect failed without diagnostic" : StackMachineDiagnostic.Format(diagnostic, "collect failed"));
+                object entry = FindEntry(entries, "_EmissionMap");
+                File.WriteAllBytes(TestPngPath, sampler.EncodeToPNG()); AssetDatabase.ImportAsset(TestPngPath, ImportAssetOptions.ForceUpdate);
+                Assert.That(InvokeConfigure(TestPngPath, entry, out diagnostic), Is.True, diagnostic == null ? "configure failed without diagnostic" : StackMachineDiagnostic.Format(diagnostic, "configure failed"));
+                var importer = (TextureImporter)AssetImporter.GetAtPath(TestPngPath);
+                Assert.That(importer.sRGBTexture, Is.True);
+                Assert.That(importer.alphaIsTransparency, Is.False);
+            }
+            finally { AssetDatabase.DeleteAsset(TestPngPath); mesh?.Dispose(); UnityEngine.Object.DestroyImmediate(source); UnityEngine.Object.DestroyImmediate(target); UnityEngine.Object.DestroyImmediate(sampler); Release(preservedTexture); UnityEngine.Object.DestroyImmediate(adapter); }
+        }
+
+        [Test]
         public void Encode_RejectsUnpublishedUnreadableTexture2D()
         {
             InMemoryHumanoidMesh mesh = null; Material source = null; Material target = null; Texture2D sampler = null; UrpUnlitMaterialShaderAdapter adapter = null;

@@ -123,8 +123,16 @@ namespace zgock.ShapeSync.Editor
                 int index = indexByMaterial.TryGetValue(entry.MaterialId, out int value) ? value : 0;
                 indexByMaterial[entry.MaterialId] = index + 1;
                 string suffix = countByMaterial[entry.MaterialId] > 1 ? "_" + index : string.Empty;
-                string sourceAssetPath = entry.Texture is Texture2D sourceTexture ? AssetDatabase.GetAssetPath(sourceTexture) : null;
-                bool copyPersistentAsset = !string.IsNullOrWhiteSpace(sourceAssetPath);
+                Texture2D sourceTexture = entry.Texture as Texture2D;
+                string sourceAssetPath = sourceTexture != null ? AssetDatabase.GetAssetPath(sourceTexture) : null;
+                // A VRM/GLTF importer exposes embedded Texture2D sub-assets with the
+                // container path (for example, BasicFemale.vrm). Copying that path would
+                // publish the whole source container as a texture and reintroduce every
+                // source-model dependency into the Pure Humanoid output. Copy only a
+                // standalone main texture asset; embedded/sub-assets are encoded below.
+                bool copyPersistentAsset = sourceTexture != null
+                    && !string.IsNullOrWhiteSpace(sourceAssetPath)
+                    && AssetDatabase.LoadMainAssetAtPath(sourceAssetPath) == sourceTexture;
                 string extension = copyPersistentAsset ? Path.GetExtension(sourceAssetPath) : ".png";
                 if (string.IsNullOrWhiteSpace(extension)) extension = ".asset";
                 string path = CombineAssetPath(folder, AssetBaseName(assetPrefix, entry.MaterialId) + suffix + extension);
