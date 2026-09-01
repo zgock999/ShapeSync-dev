@@ -14,7 +14,7 @@ using zgock.ShapeSync.StackMachine.Humanoid;
 namespace zgock.ShapeSync.Editor
 {
     /// <summary>Identifies the importer treatment required by one compiler-produced texture.</summary>
-    internal enum HumanoidPublishTextureSemantic { BaseColor, Normal }
+    internal enum HumanoidPublishTextureSemantic { BaseColor, Normal, Preserved }
 
     /// <summary>One non-owning mapping from a compiler texture to its target material property.</summary>
     internal readonly struct HumanoidTextureReadbackEntry
@@ -50,6 +50,7 @@ namespace zgock.ShapeSync.Editor
 
             var collected = new List<HumanoidTextureReadbackEntry>();
             var indices = new Dictionary<string, int>(StringComparer.Ordinal);
+            var mappedPropertiesByTarget = new Dictionary<int, HashSet<string>>();
             var atlasTextureIds = new HashSet<int>();
             if (mesh.AtlasPages != null)
             {
@@ -65,6 +66,11 @@ namespace zgock.ShapeSync.Editor
                 HumanoidBuildMaterialSlot slot = mesh.MaterialSlots[i];
                 if (target == null || slot.SourceMaterial == null || slot.Adapter == null || !slot.MaterialId.IsValid)
                     return Reject("PublishMaterialMappingInvalid", "Texture publish received an invalid final material slot mapping.", out diagnostic, slot.MaterialId.EntryId);
+                if (!mappedPropertiesByTarget.TryGetValue(target.GetInstanceID(), out HashSet<string> mappedProperties))
+                {
+                    mappedProperties = new HashSet<string>(StringComparer.Ordinal);
+                    mappedPropertiesByTarget.Add(target.GetInstanceID(), mappedProperties);
+                }
                 foreach (MaterialProxySemantic semantic in new[] { MaterialProxySemantic.BaseColorTexture, MaterialProxySemantic.NormalTexture })
                 {
                     if (!TryGetSemantic(semantic, out HumanoidPublishTextureSemantic publishSemantic)) continue;
@@ -75,11 +81,12 @@ namespace zgock.ShapeSync.Editor
                     {
                         string propertyName = properties[propertyIndex];
                         int propertyId = Shader.PropertyToID(propertyName);
-                        if (!target.HasProperty(propertyId)) return Reject("PublishTexturePropertyMissing", "Compiler material is missing an adapter-mapped texture property.", out diagnostic, slot.MaterialId.EntryId);
+                        if (!target.HasProperty(propertyId)) return Reject("PublishTexturePropertyMissing", "Compiler material is missing an adapter-mapped texture property.", out diagnostic, slot.MaterialId.EntryId, PropertyDetail(propertyName));
+                        mappedProperties.Add(propertyName);
                         Texture texture = target.GetTexture(propertyId);
                         if (texture == null || atlasTextureIds.Contains(texture.GetInstanceID())) continue;
                         if (!(texture is RenderTexture) && !(texture is Texture2D))
-                            return Reject("PublishTextureTypeUnsupported", "Texture publish requires a Texture2D or compiler RenderTexture for an adapter-mapped property.", out diagnostic, slot.MaterialId.EntryId);
+                            return Reject("PublishTextureTypeUnsupported", "Texture publish requires a Texture2D or compiler RenderTexture for an adapter-mapped property.", out diagnostic, slot.MaterialId.EntryId, PropertyDetail(propertyName, texture));
                         Texture samplerSource = slot.SourceMaterial.HasProperty(propertyId) ? slot.SourceMaterial.GetTexture(propertyId) : null;
                         string key = target.GetInstanceID() + ":" + slot.MaterialId.RegistryId + ":" + slot.MaterialId.EntryId + ":" + publishSemantic + ":" + texture.GetInstanceID();
                         if (!indices.TryGetValue(key, out int existingIndex))
@@ -94,6 +101,36 @@ namespace zgock.ShapeSync.Editor
                         collected[existingIndex] = new HumanoidTextureReadbackEntry(existing.MaterialId, existing.Semantic, existing.Texture, existing.SamplerSource, existing.TargetMaterial, names.ToArray(), existing.IsAtlasPage);
                     }
                 }
+
+                // The adapter owns semantic mappings, but a published Material may also carry
+                // shader-specific maps such as MToon Matcap and Emission. Those references are
+                // part of the Pure Humanoid output contract as well; leaving them on the clone
+                // would make the output Prefab depend on the source Outfit asset folder.
+                var allTextureProperties = new List<string>();
+                target.GetTexturePropertyNames(allTextureProperties);
+                for (int propertyIndex = 0; propertyIndex < allTextureProperties.Count; propertyIndex++)
+                {
+                    string propertyName = allTextureProperties[propertyIndex];
+                    if (mappedProperties.Contains(propertyName)) continue;
+                    Texture texture = target.GetTexture(propertyName);
+                    if (texture == null || atlasTextureIds.Contains(texture.GetInstanceID())) continue;
+                    if (!(texture is RenderTexture) && !(texture is Texture2D))
+                        return Reject("PublishTextureTypeUnsupported", "Texture publish requires a Texture2D or compiler RenderTexture for a preserved material property.", out diagnostic, slot.MaterialId.EntryId, PropertyDetail(propertyName, texture));
+
+                    int propertyId = Shader.PropertyToID(propertyName);
+                    Texture samplerSource = slot.SourceMaterial.HasProperty(propertyId) ? slot.SourceMaterial.GetTexture(propertyId) : null;
+                    int existingIndex = FindTargetTexture(collected, target, slot.MaterialId, texture);
+                    if (existingIndex < 0)
+                    {
+                        collected.Add(new HumanoidTextureReadbackEntry(slot.MaterialId, HumanoidPublishTextureSemantic.Preserved, texture, samplerSource, target, propertyName));
+                        continue;
+                    }
+
+                    HumanoidTextureReadbackEntry existing = collected[existingIndex];
+                    var names = new List<string>(existing.PropertyNames);
+                    if (!names.Contains(propertyName)) names.Add(propertyName);
+                    collected[existingIndex] = new HumanoidTextureReadbackEntry(existing.MaterialId, existing.Semantic, existing.Texture, existing.SamplerSource ?? samplerSource, existing.TargetMaterial, names.ToArray(), existing.IsAtlasPage);
+                }
             }
             entries = collected.AsReadOnly();
             return true;
@@ -106,18 +143,18 @@ namespace zgock.ShapeSync.Editor
             if (entry.Texture is Texture2D sourceTexture)
                 return TryEncodeSourceTexturePng(sourceTexture, entry, out png, out diagnostic);
 
-            if (!(entry.Texture is RenderTexture texture)) return Reject("PublishRenderTextureRequired", "Texture publish requires a compiler RenderTexture or a Texture2D source asset.", out diagnostic, entry.MaterialId.EntryId);
-            if (texture == null || !texture.IsCreated()) return Reject("PublishRenderTextureRequired", "Texture publish requires a created compiler RenderTexture.", out diagnostic, entry.MaterialId.EntryId);
-            if (texture.width <= 0 || texture.height <= 0) return Reject("PublishTextureExtentInvalid", "Texture publish requires a positive RenderTexture extent.", out diagnostic, entry.MaterialId.EntryId);
-            if (texture.graphicsFormat != UnityEngine.Experimental.Rendering.GraphicsFormat.R16G16B16A16_SFloat) return Reject("PublishTextureFormatInvalid", "Texture publish requires the compiler linear RGBAHalf RenderTexture format.", out diagnostic, entry.MaterialId.EntryId);
-            if (!AsyncGpuReadbackSupported()) return Reject("PublishGpuReadbackUnsupported", "Texture publish requires Async GPU readback; CPU fallback is not supported.", out diagnostic, entry.MaterialId.EntryId);
+            if (!(entry.Texture is RenderTexture texture)) return Reject("PublishRenderTextureRequired", "Texture publish requires a compiler RenderTexture or a Texture2D source asset.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry));
+            if (texture == null || !texture.IsCreated()) return Reject("PublishRenderTextureRequired", "Texture publish requires a created compiler RenderTexture.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, texture));
+            if (texture.width <= 0 || texture.height <= 0) return Reject("PublishTextureExtentInvalid", "Texture publish requires a positive RenderTexture extent.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, texture));
+            if (texture.graphicsFormat != UnityEngine.Experimental.Rendering.GraphicsFormat.R16G16B16A16_SFloat) return Reject("PublishTextureFormatInvalid", "Texture publish requires the compiler linear RGBAHalf RenderTexture format.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, texture));
+            if (!AsyncGpuReadbackSupported()) return Reject("PublishGpuReadbackUnsupported", "Texture publish requires Async GPU readback; CPU fallback is not supported.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, texture));
 
             byte[] data;
             try { data = ReadbackRgba32(texture); }
-            catch (Exception exception) { return Reject("PublishGpuReadbackFailed", exception.Message, out diagnostic, entry.MaterialId.EntryId); }
-            if (data == null) return Reject("PublishGpuReadbackFailed", "GPU readback failed for a compiler RenderTexture.", out diagnostic, entry.MaterialId.EntryId);
+            catch (Exception exception) { return Reject("PublishGpuReadbackFailed", exception.Message, out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, texture)); }
+            if (data == null) return Reject("PublishGpuReadbackFailed", "GPU readback failed for a compiler RenderTexture.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, texture));
             int expectedBytes = texture.width * texture.height * 4;
-            if (data.Length != expectedBytes) return Reject("PublishGpuReadbackLengthInvalid", "GPU readback did not return an RGBA32 texture of the expected extent.", out diagnostic, entry.MaterialId.EntryId);
+            if (data.Length != expectedBytes) return Reject("PublishGpuReadbackLengthInvalid", "GPU readback did not return an RGBA32 texture of the expected extent.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, texture));
             var encoded = new Texture2D(texture.width, texture.height, TextureFormat.RGBA32, false, true);
             try
             {
@@ -137,28 +174,42 @@ namespace zgock.ShapeSync.Editor
         {
             png = null;
             diagnostic = null;
-            if (texture == null) return Reject("PublishTextureSourceMissing", "Texture publish requires a Texture2D source.", out diagnostic, entry.MaterialId.EntryId);
+            if (texture == null) return Reject("PublishTextureSourceMissing", "Texture publish requires a Texture2D source.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry));
             if (!texture.isReadable)
-                return Reject("PublishTextureSourceNotReadable", "A non-asset Texture2D must be readable before it can be published independently.", out diagnostic, entry.MaterialId.EntryId);
+                return Reject("PublishTextureSourceNotReadable", "A non-asset Texture2D must be readable before it can be published independently.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, texture));
             if (texture.width <= 0 || texture.height <= 0)
-                return Reject("PublishTextureExtentInvalid", "Texture publish requires a positive Texture2D extent.", out diagnostic, entry.MaterialId.EntryId);
+                return Reject("PublishTextureExtentInvalid", "Texture publish requires a positive Texture2D extent.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, texture));
             try
             {
                 png = PngEncoder(texture);
-                if (png == null || png.Length == 0) return Reject("PublishPngEncodeFailed", "PNG encoding produced no texture bytes.", out diagnostic, entry.MaterialId.EntryId);
+                if (png == null || png.Length == 0) return Reject("PublishPngEncodeFailed", "PNG encoding produced no texture bytes.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, texture));
                 return true;
             }
-            catch (Exception exception) { return Reject("PublishPngEncodeFailed", exception.Message, out diagnostic, entry.MaterialId.EntryId); }
+            catch (Exception exception) { return Reject("PublishPngEncodeFailed", exception.Message, out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, texture)); }
         }
 
         internal static bool TryConfigureImporter(string assetPath, HumanoidTextureReadbackEntry entry, out StackMachineDiagnostic diagnostic)
         {
             diagnostic = null;
-            if (string.IsNullOrWhiteSpace(assetPath)) return Reject("PublishTextureAssetPathRequired", "Texture publish requires an imported PNG asset path.", out diagnostic, entry.MaterialId.EntryId);
-            if (!(AssetImporter.GetAtPath(assetPath) is TextureImporter importer)) return Reject("PublishTextureImporterMissing", "Texture publish could not load the PNG TextureImporter.", out diagnostic, entry.MaterialId.EntryId);
+            if (string.IsNullOrWhiteSpace(assetPath)) return Reject("PublishTextureAssetPathRequired", "Texture publish requires an imported PNG asset path.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry));
+            if (!(AssetImporter.GetAtPath(assetPath) is TextureImporter importer)) return Reject("PublishTextureImporterMissing", "Texture publish could not load the PNG TextureImporter.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry));
             importer.textureType = TextureImporterType.Default;
-            importer.sRGBTexture = entry.Semantic == HumanoidPublishTextureSemantic.BaseColor;
-            importer.alphaIsTransparency = entry.Semantic == HumanoidPublishTextureSemantic.BaseColor;
+            if (entry.Semantic == HumanoidPublishTextureSemantic.Preserved)
+            {
+                string propertyDetail = PropertyDetail(entry.PropertyNames.Count > 0 ? entry.PropertyNames[0] : "<none>");
+                if (!(entry.SamplerSource is Texture2D sourceTexture))
+                    return Reject("PublishPreservedTextureImporterMissing", "Preserved texture publish requires a source Texture2D with importer settings so its color semantics can be retained.", out diagnostic, entry.MaterialId.EntryId, propertyDetail);
+                string sourcePath = AssetDatabase.GetAssetPath(sourceTexture);
+                if (!(AssetImporter.GetAtPath(sourcePath) is TextureImporter sourceImporter))
+                    return Reject("PublishPreservedTextureImporterMissing", "Preserved texture publish could not resolve the source TextureImporter needed to retain color semantics.", out diagnostic, entry.MaterialId.EntryId, propertyDetail + ";source=" + sourcePath);
+                importer.sRGBTexture = sourceImporter.sRGBTexture;
+                importer.alphaIsTransparency = sourceImporter.alphaIsTransparency;
+            }
+            else
+            {
+                importer.sRGBTexture = entry.Semantic == HumanoidPublishTextureSemantic.BaseColor;
+                importer.alphaIsTransparency = entry.Semantic == HumanoidPublishTextureSemantic.BaseColor;
+            }
             if (entry.IsAtlasPage)
             {
                 importer.mipmapEnabled = false;
@@ -181,7 +232,7 @@ namespace zgock.ShapeSync.Editor
                 }
             }
             try { importer.SaveAndReimport(); }
-            catch (Exception exception) { return Reject("PublishTextureImporterFailed", exception.Message, out diagnostic, entry.MaterialId.EntryId); }
+            catch (Exception exception) { return Reject("PublishTextureImporterFailed", exception.Message, out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry)); }
             return true;
         }
 
@@ -199,6 +250,16 @@ namespace zgock.ShapeSync.Editor
             if (valueSource == MaterialProxySemantic.NormalTexture) { semantic = HumanoidPublishTextureSemantic.Normal; return true; }
             semantic = default;
             return false;
+        }
+
+        private static int FindTargetTexture(IReadOnlyList<HumanoidTextureReadbackEntry> entries, Material target, MaterialId materialId, Texture texture)
+        {
+            for (int i = 0; i < entries.Count; i++)
+            {
+                HumanoidTextureReadbackEntry entry = entries[i];
+                if (entry.TargetMaterial == target && entry.MaterialId.Equals(materialId) && entry.Texture == texture) return i;
+            }
+            return -1;
         }
 
         private static void EncodeLinearRgbToSrgb(Texture2D texture)
@@ -219,9 +280,19 @@ namespace zgock.ShapeSync.Editor
             return request.hasError ? null : request.GetData<byte>().ToArray();
         }
 
-        private static bool Reject(string code, string message, out StackMachineDiagnostic diagnostic, string bindingName = null)
+        private static string PropertyDetail(string propertyName, Texture texture = null)
         {
-            diagnostic = StackMachineDiagnostic.CreateDomain("humanoid", code, message, bindingName: bindingName);
+            return "property=" + (propertyName ?? string.Empty) + (texture == null ? string.Empty : ";type=" + texture.GetType().Name);
+        }
+
+        private static string EntryPropertyDetail(HumanoidTextureReadbackEntry entry, Texture texture = null)
+        {
+            return PropertyDetail(entry.PropertyNames.Count > 0 ? entry.PropertyNames[0] : "<none>", texture);
+        }
+
+        private static bool Reject(string code, string message, out StackMachineDiagnostic diagnostic, string bindingName = null, string detail = null)
+        {
+            diagnostic = StackMachineDiagnostic.CreateDomain("humanoid", code, message, bindingName: bindingName, detail: detail);
             return false;
         }
     }

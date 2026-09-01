@@ -692,6 +692,30 @@ namespace zgock.ShapeSync.Tests.EditMode
         }
 
         [Test]
+        public void AppliedStage_CommitPrefabFailureReleasesPersistentVrmOwnershipBeforeEscrowCleanup()
+        {
+            var figure = new GameObject("Spec17_6_Figure"); figure.AddComponent<SkinnedMeshRenderer>(); var outfit = new GameObject("Spec17_6_Outfit");
+            var document = ScriptableObject.CreateInstance<ShapeSyncDocumentAsset>(); var backend = new SuccessBackend(CreateCoreProvenance(outfit)); object controller = CreateController(() => backend);
+            var executor = new TrackingVrmExecutor { StagePaths = new[] { ShapeSyncTestAssetPaths.ConsumerAssetPath("VRM/Look_vrm.asset") } };
+            Func<GameObject, string, GameObject> previousSave = GetPrefabSave();
+            try
+            {
+                AssetDatabase.DeleteAsset(StageFolder); AssetDatabase.CreateFolder(ShapeSyncTestAssetPaths.ConsumerFolderPath("zgock/ShapeSync/Tests/EditMode/Spec17"), "__Spec17_6_ControllerStage");
+                Assert.That(InvokeStart(controller, figure, document, out _), Is.True); InvokePump(controller, out _); InvokePump(controller, out _); Assert.That(InvokePump(controller, out _), Is.EqualTo(HumanoidBuildOperationStatus.Succeeded));
+                Assert.That(InvokeStage(controller, StageFolder, "Look", out _), Is.True); Assert.That(InvokeApplyStage(controller, out _), Is.True);
+                Assert.That(InvokeTransport(controller, executor, out _), Is.True); Assert.That(InvokeVrmStage(controller, executor, out _), Is.True);
+                SetPrefabSave((_, __) => throw new IOException("Injected Prefab save failure."));
+
+                Assert.That(InvokeCommit(controller, StageFolder, "Look", executor, out StackMachineDiagnostic diagnostic), Is.False);
+                Assert.That(diagnostic.domainCode, Is.EqualTo("PublishPrefabSaveFailed"));
+                Assert.That(executor.AssetOwnershipReleased, Is.True);
+                Assert.That(executor.Result.Disposed, Is.True);
+                Assert.That(Count((System.Collections.IEnumerable)GetProperty(controller, "ResidualArtifactPaths")), Is.EqualTo(3));
+            }
+            finally { SetPrefabSave(previousSave); ((IDisposable)controller).Dispose(); backend.Dispose(); AssetDatabase.DeleteAsset(StageFolder); UnityEngine.Object.DestroyImmediate(document); UnityEngine.Object.DestroyImmediate(figure); UnityEngine.Object.DestroyImmediate(outfit); }
+        }
+
+        [Test]
         public void AppliedStage_CommitRejectsUnstagedVrmWithoutMutatingCandidateOrEscrow()
         {
             var figure = new GameObject("Spec17_6_Figure"); figure.AddComponent<SkinnedMeshRenderer>(); figure.AddComponent<ShapeDirector>();
@@ -962,13 +986,14 @@ namespace zgock.ShapeSync.Tests.EditMode
 
         private sealed class TrackingVrmExecutor : IHumanoidVrmTransportExecutor
         {
-            internal GameObject Candidate; internal GameObject Figure; internal string[] LogicalNames; internal readonly TrackingDisposable Result = new TrackingDisposable(); internal IReadOnlyList<string> StagePaths = Array.Empty<string>(); internal GameObject FinalizedPrefab; internal bool StageSucceeds = true; internal bool FinalizeSucceeds = true; internal bool ThrowOnFinalize;
+            internal GameObject Candidate; internal GameObject Figure; internal string[] LogicalNames; internal readonly TrackingDisposable Result = new TrackingDisposable(); internal IReadOnlyList<string> StagePaths = Array.Empty<string>(); internal GameObject FinalizedPrefab; internal bool StageSucceeds = true; internal bool FinalizeSucceeds = true; internal bool ThrowOnFinalize; internal bool AssetOwnershipReleased;
             public bool TryTransport(GameObject candidate, GameObject figureSourceRoot, ShapeSyncDocument document, HumanoidVrmTransportProvenance provenance, out IDisposable result, out StackMachineDiagnostic diagnostic)
             { Candidate = candidate; Figure = figureSourceRoot; LogicalNames = provenance.AttachedOutfitLogicalNames.ToArray(); result = Result; diagnostic = null; return true; }
             public bool TryStageAssets(IDisposable transportResult, string outputFolder, string relativeFolder, string documentName, out IReadOnlyList<string> assetPaths, out StackMachineDiagnostic diagnostic)
             { assetPaths = StagePaths; diagnostic = StageSucceeds ? null : StackMachineDiagnostic.CreateDomain("humanoid", "TestVrmStageRejected", "Injected VRM stage failure."); return StageSucceeds; }
             public bool TryFinalizeAssets(IDisposable transportResult, GameObject publishedPrefabRoot, out StackMachineDiagnostic diagnostic)
             { if (ThrowOnFinalize) throw new InvalidOperationException("Injected VRM finalize exception."); FinalizedPrefab = publishedPrefabRoot; diagnostic = FinalizeSucceeds ? null : StackMachineDiagnostic.CreateDomain("humanoid", "TestVrmFinalizeRejected", "Injected VRM finalize failure."); return FinalizeSucceeds; }
+            public void ReleaseAssetOwnership(IDisposable transportResult) { AssetOwnershipReleased = true; }
         }
         private sealed class FailingVrmExecutor : IHumanoidVrmTransportExecutor
         {
@@ -979,6 +1004,7 @@ namespace zgock.ShapeSync.Tests.EditMode
             { assetPaths = Array.Empty<string>(); diagnostic = StackMachineDiagnostic.CreateDomain("humanoid", "TestVrmStageRejected", "Injected VRM stage failure."); return false; }
             public bool TryFinalizeAssets(IDisposable transportResult, GameObject publishedPrefabRoot, out StackMachineDiagnostic diagnostic)
             { diagnostic = StackMachineDiagnostic.CreateDomain("humanoid", "TestVrmFinalizeRejected", "Injected VRM finalize failure."); return false; }
+            public void ReleaseAssetOwnership(IDisposable transportResult) { }
         }
         private sealed class TrackingDisposable : IDisposable { internal bool Disposed; public void Dispose() { Disposed = true; } }
 

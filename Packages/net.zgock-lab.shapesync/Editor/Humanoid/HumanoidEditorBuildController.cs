@@ -287,6 +287,8 @@ namespace zgock.ShapeSync.Editor
             if (!HumanoidPrefabCommitter.TryCommit(candidate, stagedAssets, outputFolder, documentName, out HumanoidPrefabCommit commit, out diagnostic))
             {
                 AddResidualPrefabPath(outputFolder, documentName);
+                if (vrmTransportResult != null && stagedVrmAssetPaths != null && vrmExecutor != null)
+                    vrmExecutor.ReleaseAssetOwnership(vrmTransportResult);
                 Diagnostic = diagnostic;
                 Status = HumanoidBuildOperationStatus.Failed;
                 DisposeEscrow();

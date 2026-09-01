@@ -83,6 +83,33 @@ namespace zgock.ShapeSync.Tests.EditMode
         }
 
         [Test]
+        public void Stage_CopiesPreservedShaderTexturePropertyIntoOutputFolder()
+        {
+            const string sourcePath = ShapeSyncTestAssetPaths.ConsumerTempRoot + "/zgock/ShapeSync/Tests/EditMode/Spec17/__Spec17_6_PreservedSourceTexture.asset";
+            HumanoidBuildResult result = null; Material source = null; Material target = null; Texture2D sampler = null; UrpLitMaterialShaderAdapter adapter = null;
+            try
+            {
+                CreateFolder();
+                sampler = new Texture2D(2, 2, TextureFormat.RGBA32, false, false);
+                sampler.SetPixel(0, 0, Color.white); sampler.Apply(false, false);
+                AssetDatabase.CreateAsset(sampler, sourcePath); AssetDatabase.SaveAssets();
+                sampler = AssetDatabase.LoadAssetAtPath<Texture2D>(sourcePath);
+                source = new Material(Shader.Find("Universal Render Pipeline/Lit")); source.SetTexture("_BaseMap", sampler); source.SetTexture("_EmissionMap", sampler);
+                target = new Material(source); adapter = ScriptableObject.CreateInstance<UrpLitMaterialShaderAdapter>();
+                result = new HumanoidBuildResult(CreateMesh(source, target, adapter, new MaterialId(string.Empty, "body")));
+
+                Assert.That(InvokeStage(Root, "Look", result, out _, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
+                Texture2D copied = AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/" + Prefix + "_body.asset");
+                Material material = AssetDatabase.LoadAssetAtPath<Material>(Root + "/" + Prefix + "_body.mat");
+                Assert.That(copied, Is.Not.Null);
+                Assert.That(copied, Is.Not.SameAs(sampler));
+                Assert.That(material.GetTexture("_BaseMap"), Is.SameAs(copied));
+                Assert.That(material.GetTexture("_EmissionMap"), Is.SameAs(copied));
+            }
+            finally { result?.Dispose(); AssetDatabase.DeleteAsset(sourcePath); Destroy(source); Destroy(target); Destroy(sampler); Destroy(adapter); DeleteFolder(); }
+        }
+
+        [Test]
         public void Stage_RejectsUnreadableTransientTextureInsteadOfLeavingExternalReference()
         {
             HumanoidBuildResult result = null; Material source = null; Material target = null; Texture2D sampler = null; UrpUnlitMaterialShaderAdapter adapter = null;

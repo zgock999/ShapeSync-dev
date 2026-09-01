@@ -91,6 +91,11 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
             }
         }
 
+        public void ReleaseAssetOwnership(IDisposable transportResult)
+        {
+            if (transportResult is VrmTransportPhysicsResult vrmResult) vrmResult.ReleaseAssetOwnership();
+        }
+
         private static void ReleasePartialStageFailureOwnership(VrmTransportPhysicsResult result)
         {
             // AssetDatabase.CreateAsset transfers only the paths that completed before the

@@ -36,5 +36,7 @@ namespace zgock.ShapeSync.Editor
         /// <param name="diagnostic">A structured diagnostic when finalization fails.</param>
         /// <returns>True when persistent VRM references were finalized.</returns>
         bool TryFinalizeAssets(IDisposable transportResult, GameObject publishedPrefabRoot, out StackMachineDiagnostic diagnostic);
+        /// <summary>Releases executor ownership after staged assets became persistent but a later publish phase failed.</summary>
+        void ReleaseAssetOwnership(IDisposable transportResult);
     }
 }

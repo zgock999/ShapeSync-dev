@@ -251,6 +251,23 @@ namespace zgock.ShapeSync.Editor
                         string propertyName = properties[propertyIndex];
                         if (material.HasProperty(propertyName) && material.GetTexture(propertyName) == page.Texture) bindings.Add(new AtlasPageBinding(page, material, propertyName));
                     }
+
+                    // Atlas output owns the page texture, so every final Material property
+                    // pointing at that page must be rebound to the published page asset too.
+                    var allTextureProperties = new List<string>();
+                    material.GetTexturePropertyNames(allTextureProperties);
+                    for (int propertyIndex = 0; propertyIndex < allTextureProperties.Count; propertyIndex++)
+                    {
+                        string propertyName = allTextureProperties[propertyIndex];
+                        if (material.GetTexture(propertyName) != page.Texture) continue;
+                        bool alreadyBound = false;
+                        for (int bindingIndex = countBefore; bindingIndex < bindings.Count; bindingIndex++)
+                        {
+                            AtlasPageBinding binding = bindings[bindingIndex];
+                            if (binding.Target == material && binding.PropertyName == propertyName) { alreadyBound = true; break; }
+                        }
+                        if (!alreadyBound) bindings.Add(new AtlasPageBinding(page, material, propertyName));
+                    }
                 }
                 if (bindings.Count == countBefore) return Reject("PublishAtlasPageUnreferenced", "Individual asset staging received an Atlas page that no final candidate Material references.", out diagnostic);
             }

@@ -77,6 +77,55 @@ namespace zgock.ShapeSync.Tests.EditMode
         }
 
         [Test]
+        public void Collect_IncludesPreservedShaderTextureProperties()
+        {
+            InMemoryHumanoidMesh mesh = null; Material source = null; Material target = null; Texture2D sampler = null; RenderTexture baseTexture = null; UrpLitMaterialShaderAdapter adapter = null;
+            try
+            {
+                sampler = new Texture2D(2, 2, TextureFormat.RGBA32, false, false);
+                sampler.SetPixel(0, 0, Color.white); sampler.Apply(false, false);
+                source = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                source.SetTexture("_BaseMap", sampler); source.SetTexture("_EmissionMap", sampler);
+                target = new Material(source); baseTexture = CreateTexture(sampler); target.SetTexture("_BaseMap", baseTexture);
+                adapter = ScriptableObject.CreateInstance<UrpLitMaterialShaderAdapter>(); mesh = CreateMesh(source, target, adapter);
+
+                Assert.That(InvokeCollect(mesh, out Array entries, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
+                Assert.That(entries.Length, Is.EqualTo(2));
+                object emissionEntry = FindEntry(entries, "_EmissionMap");
+                Assert.That(PropertyNames(emissionEntry), Does.Contain("_EmissionMap"));
+                Assert.That(emissionEntry.GetType().GetProperty("Semantic", Flags).GetValue(emissionEntry).ToString(), Is.EqualTo("Preserved"));
+            }
+            finally { mesh?.Dispose(); UnityEngine.Object.DestroyImmediate(source); UnityEngine.Object.DestroyImmediate(target); UnityEngine.Object.DestroyImmediate(sampler); Release(baseTexture); UnityEngine.Object.DestroyImmediate(adapter); }
+        }
+
+        [Test]
+        public void ConfigureImporter_PreservedTextureInheritsSourceColorSemantics()
+        {
+            const string sourcePath = ShapeSyncTestAssetPaths.Spec17TexturePublishRoot + "_preserved_source.png";
+            InMemoryHumanoidMesh mesh = null; Material source = null; Material target = null; Texture2D sampler = null; RenderTexture preservedTexture = null; UrpLitMaterialShaderAdapter adapter = null;
+            try
+            {
+                AssetDatabase.DeleteAsset(TestPngPath); AssetDatabase.DeleteAsset(sourcePath);
+                var authored = new Texture2D(2, 2, TextureFormat.RGBA32, false, false); authored.SetPixel(0, 0, Color.white); authored.Apply(false, false);
+                byte[] png = authored.EncodeToPNG(); UnityEngine.Object.DestroyImmediate(authored);
+                File.WriteAllBytes(sourcePath, png); AssetDatabase.ImportAsset(sourcePath, ImportAssetOptions.ForceUpdate);
+                sampler = AssetDatabase.LoadAssetAtPath<Texture2D>(sourcePath);
+                var sourceImporter = (TextureImporter)AssetImporter.GetAtPath(sourcePath); sourceImporter.sRGBTexture = true; sourceImporter.alphaIsTransparency = true; sourceImporter.SaveAndReimport();
+                source = new Material(Shader.Find("Universal Render Pipeline/Lit")); source.SetTexture("_BaseMap", sampler); source.SetTexture("_EmissionMap", sampler);
+                target = new Material(source); preservedTexture = CreateTexture(sampler); target.SetTexture("_EmissionMap", preservedTexture);
+                adapter = ScriptableObject.CreateInstance<UrpLitMaterialShaderAdapter>(); mesh = CreateMesh(source, target, adapter);
+
+                Assert.That(InvokeCollect(mesh, out Array entries, out StackMachineDiagnostic collect), Is.True, collect?.message);
+                object preservedEntry = FindEntry(entries, "_EmissionMap");
+                File.WriteAllBytes(TestPngPath, png); AssetDatabase.ImportAsset(TestPngPath, ImportAssetOptions.ForceUpdate);
+                Assert.That(InvokeConfigure(TestPngPath, preservedEntry, out StackMachineDiagnostic configure), Is.True, configure?.message);
+                var outputImporter = (TextureImporter)AssetImporter.GetAtPath(TestPngPath);
+                Assert.That(outputImporter.sRGBTexture, Is.True); Assert.That(outputImporter.alphaIsTransparency, Is.True);
+            }
+            finally { AssetDatabase.DeleteAsset(TestPngPath); AssetDatabase.DeleteAsset(sourcePath); mesh?.Dispose(); UnityEngine.Object.DestroyImmediate(source); UnityEngine.Object.DestroyImmediate(target); UnityEngine.Object.DestroyImmediate(sampler); Release(preservedTexture); UnityEngine.Object.DestroyImmediate(adapter); }
+        }
+
+        [Test]
         public void Encode_RejectsUnpublishedUnreadableTexture2D()
         {
             InMemoryHumanoidMesh mesh = null; Material source = null; Material target = null; Texture2D sampler = null; UrpUnlitMaterialShaderAdapter adapter = null;
@@ -123,6 +172,7 @@ namespace zgock.ShapeSync.Tests.EditMode
                 invalid = new RenderTexture(2, 2, 0, RenderTextureFormat.ARGB32); invalid.Create(); target.SetTexture("_BaseMap", invalid); adapter = ScriptableObject.CreateInstance<UrpUnlitMaterialShaderAdapter>(); mesh = CreateMesh(source, target, adapter);
                 Assert.That(InvokeCollect(mesh, out Array entries, out StackMachineDiagnostic collect), Is.True, collect?.message);
                 Assert.That(InvokeEncode(entries.GetValue(0), out _, out StackMachineDiagnostic format), Is.False); Assert.That(format.domainCode, Is.EqualTo("PublishTextureFormatInvalid"));
+                Assert.That(format.detail, Does.Contain("property=_BaseMap"));
             }
             finally { mesh?.Dispose(); UnityEngine.Object.DestroyImmediate(source); UnityEngine.Object.DestroyImmediate(target); UnityEngine.Object.DestroyImmediate(sampler); Release(invalid); UnityEngine.Object.DestroyImmediate(adapter); }
         }

@@ -952,6 +952,8 @@ namespace zgock.ShapeSync.Tests.EditMode
             {
                 Calls.Add("Finalize"); ProgressDuringFinalize = ProgressReader?.Invoke(); diagnostic = null; return true;
             }
+
+            public void ReleaseAssetOwnership(IDisposable transportResult) { }
         }
 #endif
     }
