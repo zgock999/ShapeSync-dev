@@ -310,6 +310,15 @@ namespace zgock.ShapeSync.Editor
                 DisposeEscrow();
                 return false;
             }
+            string outputPath = System.IO.Path.GetDirectoryName(commit.AssetPath)?.Replace('\\', '/') ?? string.Empty;
+            if (!HumanoidPublishPathValidator.TryValidateOutputReferences(commit.AssetPath, outputPath, out diagnostic))
+            {
+                AddResidualArtifacts(new[] { pendingPrefabAssetPath });
+                Diagnostic = diagnostic;
+                Status = HumanoidBuildOperationStatus.Failed;
+                DisposeEscrow();
+                return false;
+            }
 
             publishedPrefabAssetPath = pendingPrefabAssetPath;
             pendingPrefabAssetPath = null;

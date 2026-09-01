@@ -53,6 +53,81 @@ namespace zgock.ShapeSync.Tests.EditMode
         }
 
         [Test]
+        public void Stage_CopiesPersistentSourceTextureWithoutPngReencode()
+        {
+            const string sourcePath = ShapeSyncTestAssetPaths.ConsumerTempRoot + "/zgock/ShapeSync/Tests/EditMode/Spec17/__Spec17_6_SourceTexture.png";
+            HumanoidBuildResult result = null; Material source = null; Material target = null; Texture2D sampler = null; UrpUnlitMaterialShaderAdapter adapter = null;
+            try
+            {
+                CreateFolder();
+                Texture2D authored = new Texture2D(2, 2, TextureFormat.RGBA32, true, true);
+                authored.SetPixel(0, 0, new Color(.2f, .4f, .6f, .8f)); authored.Apply(true, false);
+                File.WriteAllBytes(sourcePath, authored.EncodeToPNG()); Destroy(authored);
+                AssetDatabase.ImportAsset(sourcePath, ImportAssetOptions.ForceSynchronousImport);
+                sampler = AssetDatabase.LoadAssetAtPath<Texture2D>(sourcePath);
+                Assert.That(sampler, Is.Not.Null);
+                source = new Material(Shader.Find("Universal Render Pipeline/Unlit")); source.SetTexture("_BaseMap", sampler);
+                target = new Material(source); adapter = ScriptableObject.CreateInstance<UrpUnlitMaterialShaderAdapter>();
+                result = new HumanoidBuildResult(CreateMesh(source, target, adapter, new MaterialId(string.Empty, "body")));
+
+                Assert.That(InvokeStage(Root, "Look", result, out _, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
+                string copiedPath = Root + "/" + Prefix + "_body.png";
+                Texture2D copied = AssetDatabase.LoadAssetAtPath<Texture2D>(copiedPath);
+                Material material = AssetDatabase.LoadAssetAtPath<Material>(Root + "/" + Prefix + "_body.mat");
+                Assert.That(copied, Is.Not.Null);
+                Assert.That(copied, Is.Not.SameAs(sampler));
+                Assert.That(material.GetTexture("_BaseMap"), Is.SameAs(copied));
+                Assert.That(File.ReadAllBytes(sourcePath), Is.EqualTo(File.ReadAllBytes(copiedPath)));
+            }
+            finally { result?.Dispose(); AssetDatabase.DeleteAsset(sourcePath); Destroy(source); Destroy(target); Destroy(sampler); Destroy(adapter); DeleteFolder(); }
+        }
+
+        [Test]
+        public void Stage_RejectsUnreadableTransientTextureInsteadOfLeavingExternalReference()
+        {
+            HumanoidBuildResult result = null; Material source = null; Material target = null; Texture2D sampler = null; UrpUnlitMaterialShaderAdapter adapter = null;
+            try
+            {
+                CreateFolder();
+                sampler = new Texture2D(2, 2, TextureFormat.RGBA32, false, false); sampler.Apply(false, true);
+                source = new Material(Shader.Find("Universal Render Pipeline/Unlit")); source.SetTexture("_BaseMap", sampler);
+                target = new Material(source); adapter = ScriptableObject.CreateInstance<UrpUnlitMaterialShaderAdapter>();
+                result = new HumanoidBuildResult(CreateMesh(source, target, adapter, new MaterialId(string.Empty, "body")));
+
+                Assert.That(InvokeStage(Root, "Look", result, out _, out string[] residuals, out StackMachineDiagnostic diagnostic), Is.False);
+                Assert.That(diagnostic.domainCode, Is.EqualTo("PublishTextureSourceNotReadable"));
+                Assert.That(residuals, Is.Empty);
+                Assert.That(AssetDatabase.FindAssets(string.Empty, new[] { Root }), Is.Empty);
+            }
+            finally { result?.Dispose(); Destroy(source); Destroy(target); Destroy(sampler); Destroy(adapter); DeleteFolder(); }
+        }
+
+        [Test]
+        public void OutputReferenceValidation_RejectsMaterialTextureOutsideOutputFolder()
+        {
+            const string externalTexturePath = ShapeSyncTestAssetPaths.ConsumerTempRoot + "/zgock/ShapeSync/Tests/EditMode/Spec17/__Spec17_6_ExternalTexture.asset";
+            const string externalMaterialPath = ShapeSyncTestAssetPaths.ConsumerTempRoot + "/zgock/ShapeSync/Tests/EditMode/Spec17/__Spec17_6_ExternalMaterial.mat";
+            GameObject prefabRoot = null; Texture2D texture = null; Material material = null;
+            try
+            {
+                CreateFolder();
+                texture = new Texture2D(2, 2); texture.SetPixel(0, 0, Color.white); texture.Apply(false, false);
+                AssetDatabase.CreateAsset(texture, externalTexturePath);
+                material = new Material(Shader.Find("Universal Render Pipeline/Unlit")); material.SetTexture("_BaseMap", texture);
+                AssetDatabase.CreateAsset(material, externalMaterialPath); AssetDatabase.SaveAssets();
+                prefabRoot = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                prefabRoot.GetComponent<MeshRenderer>().sharedMaterial = material;
+                string prefabPath = Root + "/Published.prefab";
+                Assert.That(PrefabUtility.SaveAsPrefabAsset(prefabRoot, prefabPath), Is.Not.Null);
+
+                Assert.That(HumanoidPublishPathValidator.TryValidateOutputReferences(prefabPath, Root, out StackMachineDiagnostic diagnostic), Is.False);
+                Assert.That(diagnostic.domainCode, Is.EqualTo("PublishOutputReferenceOutsideFolder"));
+                Assert.That(diagnostic.detail, Does.Contain(externalMaterialPath).Or.Contain(externalTexturePath));
+            }
+            finally { Destroy(prefabRoot); AssetDatabase.DeleteAsset(externalMaterialPath); AssetDatabase.DeleteAsset(externalTexturePath); DeleteFolder(); }
+        }
+
+        [Test]
         public void Stage_RejectsNonEmptyFolderWithoutCreatingArtifacts()
         {
             try

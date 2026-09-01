@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using UnityEditor;
+using UnityEngine;
 using zgock.ShapeSync.StackMachine;
 
 namespace zgock.ShapeSync.Editor
@@ -62,10 +63,61 @@ namespace zgock.ShapeSync.Editor
             return true;
         }
 
+        /// <summary>Validates the persistent Material/Texture/Mesh/Avatar dependency graph of a published Prefab.</summary>
+        /// <remarks>Shared Shader and script infrastructure is intentionally outside the Pure Humanoid asset contract.</remarks>
+        public static bool TryValidateOutputReferences(string prefabAssetPath, string outputFolder, out StackMachineDiagnostic diagnostic)
+        {
+            diagnostic = null;
+            string prefabPath = NormalizeAssetPath(prefabAssetPath);
+            string folderPath = NormalizeAssetPath(outputFolder).TrimEnd('/');
+            if (string.IsNullOrWhiteSpace(prefabPath) || string.IsNullOrWhiteSpace(folderPath))
+                return Reject("PublishOutputReferenceValidationInvalid", "Pure Humanoid output reference validation requires a Prefab path and output folder.", out diagnostic);
+            if (AssetDatabase.LoadMainAssetAtPath(prefabPath) == null)
+                return Reject("PublishOutputReferenceValidationInvalid", "Pure Humanoid output reference validation could not load the published Prefab.", out diagnostic, prefabPath);
+            try
+            {
+                string[] dependencies = AssetDatabase.GetDependencies(prefabPath, true);
+                for (int i = 0; i < dependencies.Length; i++)
+                {
+                    string dependencyPath = NormalizeAssetPath(dependencies[i]);
+                    UnityEngine.Object dependency = AssetDatabase.LoadMainAssetAtPath(dependencyPath);
+                    if (!IsPureHumanoidReference(dependency)) continue;
+                    if (!IsUnderFolder(dependencyPath, folderPath))
+                        return Reject("PublishOutputReferenceOutsideFolder", "Pure Humanoid output references an asset outside its output folder.", out diagnostic, dependencyPath);
+                }
+                return true;
+            }
+            catch (Exception exception)
+            {
+                diagnostic = StackMachineDiagnostic.CreateDomain("humanoid", "PublishOutputReferenceValidationFailed", "Pure Humanoid output reference validation failed.", detail: exception.Message);
+                return false;
+            }
+        }
+
         private static bool Reject(string code, string message, out StackMachineDiagnostic diagnostic)
         {
             diagnostic = StackMachineDiagnostic.CreateDomain("humanoid", code, message);
             return false;
+        }
+
+        private static bool Reject(string code, string message, out StackMachineDiagnostic diagnostic, string detail)
+        {
+            diagnostic = StackMachineDiagnostic.CreateDomain("humanoid", code, message, detail: detail);
+            return false;
+        }
+
+        private static bool IsPureHumanoidReference(UnityEngine.Object asset)
+        {
+            return asset is GameObject || asset is Material || asset is Texture
+                || asset is Mesh || asset is Avatar;
+        }
+
+        private static string NormalizeAssetPath(string path) => (path ?? string.Empty).Trim().Replace('\\', '/').TrimEnd('/');
+
+        private static bool IsUnderFolder(string assetPath, string folderPath)
+        {
+            return string.Equals(assetPath, folderPath, StringComparison.Ordinal)
+                || assetPath.StartsWith(folderPath + "/", StringComparison.Ordinal);
         }
     }
 }

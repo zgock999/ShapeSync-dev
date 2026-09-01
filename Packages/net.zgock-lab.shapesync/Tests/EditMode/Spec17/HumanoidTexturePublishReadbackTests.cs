@@ -54,6 +54,46 @@ namespace zgock.ShapeSync.Tests.EditMode
         }
 
         [Test]
+        public void Collect_IncludesUnprocessedTexture2DAndEncodesReadableTransientSource()
+        {
+            InMemoryHumanoidMesh mesh = null; Material source = null; Material target = null; Texture2D sampler = null; UrpUnlitMaterialShaderAdapter adapter = null;
+            try
+            {
+                sampler = new Texture2D(2, 2, TextureFormat.RGBA32, false, false);
+                sampler.SetPixel(0, 0, Color.red); sampler.Apply(false, false);
+                source = new Material(Shader.Find("Universal Render Pipeline/Unlit")); source.SetTexture("_BaseMap", sampler);
+                target = new Material(source); adapter = ScriptableObject.CreateInstance<UrpUnlitMaterialShaderAdapter>();
+                mesh = CreateMesh(source, target, adapter);
+
+                Assert.That(InvokeCollect(mesh, out Array entries, out StackMachineDiagnostic collect), Is.True, collect?.message);
+                Assert.That(entries.Length, Is.EqualTo(1));
+                object entry = entries.GetValue(0);
+                Assert.That(entry.GetType().GetProperty("Texture", Flags).GetValue(entry), Is.SameAs(sampler));
+                SetPngEncoder(_ => new byte[] { 1, 2, 3 });
+                Assert.That(InvokeEncode(entry, out byte[] png, out StackMachineDiagnostic encode), Is.True, encode?.message);
+                Assert.That(png, Is.EqualTo(new byte[] { 1, 2, 3 }));
+            }
+            finally { SetPngEncoder(ImageConversion.EncodeToPNG); mesh?.Dispose(); UnityEngine.Object.DestroyImmediate(source); UnityEngine.Object.DestroyImmediate(target); UnityEngine.Object.DestroyImmediate(sampler); UnityEngine.Object.DestroyImmediate(adapter); }
+        }
+
+        [Test]
+        public void Encode_RejectsUnpublishedUnreadableTexture2D()
+        {
+            InMemoryHumanoidMesh mesh = null; Material source = null; Material target = null; Texture2D sampler = null; UrpUnlitMaterialShaderAdapter adapter = null;
+            try
+            {
+                sampler = new Texture2D(2, 2, TextureFormat.RGBA32, false, false);
+                sampler.Apply(false, true);
+                source = new Material(Shader.Find("Universal Render Pipeline/Unlit")); source.SetTexture("_BaseMap", sampler);
+                target = new Material(source); adapter = ScriptableObject.CreateInstance<UrpUnlitMaterialShaderAdapter>(); mesh = CreateMesh(source, target, adapter);
+                Assert.That(InvokeCollect(mesh, out Array entries, out StackMachineDiagnostic collect), Is.True, collect?.message);
+                Assert.That(InvokeEncode(entries.GetValue(0), out _, out StackMachineDiagnostic diagnostic), Is.False);
+                Assert.That(diagnostic.domainCode, Is.EqualTo("PublishTextureSourceNotReadable"));
+            }
+            finally { mesh?.Dispose(); UnityEngine.Object.DestroyImmediate(source); UnityEngine.Object.DestroyImmediate(target); UnityEngine.Object.DestroyImmediate(sampler); UnityEngine.Object.DestroyImmediate(adapter); }
+        }
+
+        [Test]
         public void Collect_DeduplicatesSharedSubmeshTexture_AndRejectsInvalidPublishInput()
         {
             InMemoryHumanoidMesh mesh = null; Material source = null; Material target = null; Texture2D sampler = null; RenderTexture texture = null; UrpUnlitMaterialShaderAdapter adapter = null;

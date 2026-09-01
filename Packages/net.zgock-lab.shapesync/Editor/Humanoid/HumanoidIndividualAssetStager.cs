@@ -120,16 +120,31 @@ namespace zgock.ShapeSync.Editor
             for (int i = 0; i < entries.Count; i++)
             {
                 HumanoidTextureReadbackEntry entry = entries[i];
-                if (!HumanoidTexturePublishReadback.TryEncodePng(entry, out byte[] png, out diagnostic)) return false;
                 int index = indexByMaterial.TryGetValue(entry.MaterialId, out int value) ? value : 0;
                 indexByMaterial[entry.MaterialId] = index + 1;
                 string suffix = countByMaterial[entry.MaterialId] > 1 ? "_" + index : string.Empty;
-                string path = CombineAssetPath(folder, AssetBaseName(assetPrefix, entry.MaterialId) + suffix + ".png");
+                string sourceAssetPath = entry.Texture is Texture2D sourceTexture ? AssetDatabase.GetAssetPath(sourceTexture) : null;
+                bool copyPersistentAsset = !string.IsNullOrWhiteSpace(sourceAssetPath);
+                string extension = copyPersistentAsset ? Path.GetExtension(sourceAssetPath) : ".png";
+                if (string.IsNullOrWhiteSpace(extension)) extension = ".asset";
+                string path = CombineAssetPath(folder, AssetBaseName(assetPrefix, entry.MaterialId) + suffix + extension);
                 if (AssetDatabase.LoadMainAssetAtPath(path) != null || File.Exists(ToAbsolutePath(path))) return Reject("PublishAssetPathOccupied", "Individual asset staging found an occupied output asset path.", out diagnostic, entry.MaterialId.EntryId);
-                WriteAllBytes(ToAbsolutePath(path), png);
-                created.Add(path);
-                ImportAsset(path);
-                if (!HumanoidTexturePublishReadback.TryConfigureImporter(path, entry, out diagnostic)) return false;
+                if (copyPersistentAsset)
+                {
+                    if (!AssetDatabase.CopyAsset(sourceAssetPath, path))
+                        return Reject("PublishTextureAssetCopyFailed", "Individual asset staging could not copy a persistent source texture asset.", out diagnostic, sourceAssetPath);
+                    created.Add(path);
+                    if (AssetDatabase.LoadAssetAtPath<Texture2D>(path) == null)
+                        return Reject("PublishTextureAssetMissing", "Individual asset staging could not reload a copied source texture asset.", out diagnostic, path);
+                }
+                else
+                {
+                    if (!HumanoidTexturePublishReadback.TryEncodePng(entry, out byte[] png, out diagnostic)) return false;
+                    WriteAllBytes(ToAbsolutePath(path), png);
+                    created.Add(path);
+                    ImportAsset(path);
+                    if (!HumanoidTexturePublishReadback.TryConfigureImporter(path, entry, out diagnostic)) return false;
+                }
                 paths.Add(entry, path);
             }
             return true;

@@ -43,6 +43,8 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
                 out ShapeSyncVrmDatabaseRegistry registry, out diagnostic)) return false;
             if (registry == null) return true;
 
+            string vrmFolder = ResolveVrmFolder(rootPath, registry.GenerationVrmPath);
+
             if (database == null || database.Registry == null || database.Registry.BaseFigures == null
                 || database.Registry.BaseFigures.Count != 1 || database.Registry.BaseFigures[0] == null)
             {
@@ -69,7 +71,8 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
             try
             {
                 SkinnedMeshRenderer[] renderers = contents.GetComponentsInChildren<SkinnedMeshRenderer>(true);
-                if (renderers.Length == 0) return true;
+                if (renderers.Length == 0)
+                    return ValidateVrmFolderContents(vrmFolder, null, out diagnostic);
                 if (renderers.Length != 1)
                 {
                     diagnostic = "VrmGenerateFinalizeRendererInvalid: Final VRM wiring requires exactly one merged Figure Renderer.";
@@ -88,6 +91,7 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
                     return false;
                 }
                 AssetDatabase.SaveAssets();
+                if (!ValidateVrmFolderContents(vrmFolder, null, out diagnostic)) return false;
                 return true;
             }
             finally
@@ -145,6 +149,13 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
                 EnsureFolder(vrmFolder);
                 AddGeneratedPath(generatedPaths, prefabPath);
 
+                var legacyCatalogPaths = new HashSet<string>(StringComparer.Ordinal);
+                if (ShapeSyncGenerateCatalog.TryRead(rootPath, out List<string> previousCatalogPaths,
+                    out _, out _))
+                {
+                    foreach (string path in previousCatalogPaths) legacyCatalogPaths.Add(path);
+                }
+
                 InitializeFigurePrefab(prefabPath);
                 GameObject prefabRoot = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
                 if (prefabRoot == null) throw new InvalidOperationException("Initialized Figure Prefab could not be reloaded.");
@@ -168,7 +179,7 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
                     EditorUtility.SetDirty(expressionProxy);
                 }
 
-                if (!TryTransferPhysics(database, registry, figureName, prefabPath, vrmFolder,
+                if (!TryTransferPhysics(database, registry, figureName, prefabPath,
                     generatedPaths, out string physicsDiagnostic))
                     throw new InvalidOperationException(physicsDiagnostic ?? "Physics transfer failed.");
 
@@ -196,7 +207,7 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
                 if (PrefabUtility.SavePrefabAsset(prefabRoot) == null)
                     throw new InvalidOperationException("Initialized VRM Figure Prefab could not be saved.");
                 AssetDatabase.SaveAssets();
-                ValidateGeneratedOutput(prefabRoot, persistedVrm, baked, vrmFolder);
+                ValidateGeneratedOutput(prefabRoot, persistedVrm, baked, vrmFolder, legacyCatalogPaths);
                 diagnostic = expressionDiagnostic;
                 return true;
             }
@@ -209,7 +220,7 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
 
         private static bool TryTransferPhysics(ShapeSyncDatabase database,
             ShapeSyncVrmDatabaseRegistry registry, string figureName, string figurePrefabPath,
-            string vrmFolder, ICollection<string> generatedPaths, out string diagnostic)
+            ICollection<string> generatedPaths, out string diagnostic)
         {
             diagnostic = null;
             ShapeSyncVrmDatabaseRegistry.FigurePhysicsReference figureRelation =
@@ -225,9 +236,8 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
                     diagnostic = "VrmGeneratePhysicsOwnerMismatch: Figure Physics Registry owner does not match the canonical Figure owner.";
                     return false;
                 }
-                string carrierPath = vrmFolder + "/PHYS_" + figureName + ".prefab";
-                if (!ShapeSyncVrmPhysicsGenerateTransfer.TryTransferFigure(figureRelation, figureName,
-                    figurePrefabPath, carrierPath, generatedPaths, out diagnostic)) return false;
+                if (!ShapeSyncVrmPhysicsGenerateTransfer.TryTransferFigure(figureRelation,
+                    figurePrefabPath, generatedPaths, out diagnostic)) return false;
             }
 
             ShapeSyncDatabaseRegistry.GenerationPathSettings paths = database.Registry.GenerationPaths;
@@ -253,9 +263,8 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
 
                 string outputFolder = rootPathForOutfit(figurePrefabPath, outfitsFolder);
                 string outputPath = outputFolder + "/" + relation.OutfitIdentity + ".prefab";
-                string carrierPath = vrmFolder + "/PHYS_" + relation.OutfitIdentity + ".prefab";
-                if (!ShapeSyncVrmPhysicsGenerateTransfer.TryTransferOutfit(relation, relation.OutfitIdentity,
-                    outputPath, carrierPath, generatedPaths, out diagnostic)) return false;
+                if (!ShapeSyncVrmPhysicsGenerateTransfer.TryTransferOutfit(relation,
+                    outputPath, generatedPaths, out diagnostic)) return false;
             }
             return true;
         }
@@ -735,7 +744,7 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
         }
 
         private static void ValidateGeneratedOutput(GameObject prefabRoot, VRM10Object vrm,
-            BakedExpressionSet baked, string vrmFolder)
+            BakedExpressionSet baked, string vrmFolder, IReadOnlyCollection<string> legacyCatalogPaths)
         {
             Vrm10Instance instance = prefabRoot == null ? null : prefabRoot.GetComponent<Vrm10Instance>();
             if (instance == null || instance.Vrm != vrm || vrm == null || vrm.Prefab != prefabRoot)
@@ -771,6 +780,45 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
             }
             if (!IsAssetUnderFolder(AssetDatabase.GetAssetPath(vrm), vrmFolder))
                 throw new InvalidOperationException("Initialized VRM10Object is outside the configured VRM folder.");
+            if (!ValidateVrmFolderContents(vrmFolder, legacyCatalogPaths, out string folderDiagnostic))
+                throw new InvalidOperationException(folderDiagnostic);
+        }
+
+        private static bool ValidateVrmFolderContents(string vrmFolder,
+            IReadOnlyCollection<string> legacyCatalogPaths, out string diagnostic)
+        {
+            diagnostic = null;
+            if (!AssetDatabase.IsValidFolder(vrmFolder))
+            {
+                diagnostic = "VrmGenerateOutputFolderMissing: Configured VRM output folder does not exist.";
+                return false;
+            }
+
+            var legacyPaths = legacyCatalogPaths == null
+                ? new HashSet<string>(StringComparer.Ordinal)
+                : new HashSet<string>(legacyCatalogPaths, StringComparer.Ordinal);
+            string[] guids = AssetDatabase.FindAssets(string.Empty, new[] { vrmFolder });
+            for (int i = 0; i < guids.Length; i++)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guids[i]).Replace('\\', '/');
+                if (!IsAssetUnderFolder(path, vrmFolder)) continue;
+                if (legacyPaths.Contains(path) && IsLegacyPhysicsCarrier(path)) continue;
+
+                UnityEngine.Object asset = AssetDatabase.LoadMainAssetAtPath(path);
+                if (!path.EndsWith(".asset", StringComparison.OrdinalIgnoreCase)
+                    || !(asset is VRM10Object) && !(asset is VRM10Expression))
+                {
+                    diagnostic = "VrmGenerateOutputContractViolation: VRM output folder contains a non-UniVRM asset: " + path;
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static bool IsLegacyPhysicsCarrier(string path)
+        {
+            return path.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase)
+                && Path.GetFileNameWithoutExtension(path).StartsWith("PHYS_", StringComparison.Ordinal);
         }
 
         private static T PersistAsset<T>(T asset, string path, ICollection<string> generatedPaths) where T : UnityEngine.Object

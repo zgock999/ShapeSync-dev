@@ -16,18 +16,18 @@ namespace zgock.ShapeSync.Editor
     /// <summary>Identifies the importer treatment required by one compiler-produced texture.</summary>
     internal enum HumanoidPublishTextureSemantic { BaseColor, Normal }
 
-    /// <summary>One non-owning mapping from a compiler RenderTexture to its target material property.</summary>
+    /// <summary>One non-owning mapping from a compiler texture to its target material property.</summary>
     internal readonly struct HumanoidTextureReadbackEntry
     {
-        internal HumanoidTextureReadbackEntry(MaterialId materialId, HumanoidPublishTextureSemantic semantic, RenderTexture texture, Texture samplerSource, Material targetMaterial, string propertyName, bool isAtlasPage = false)
+        internal HumanoidTextureReadbackEntry(MaterialId materialId, HumanoidPublishTextureSemantic semantic, Texture texture, Texture samplerSource, Material targetMaterial, string propertyName, bool isAtlasPage = false)
         {
             MaterialId = materialId; Semantic = semantic; Texture = texture; SamplerSource = samplerSource; TargetMaterial = targetMaterial; PropertyNames = new[] { propertyName }; IsAtlasPage = isAtlasPage;
         }
-        internal HumanoidTextureReadbackEntry(MaterialId materialId, HumanoidPublishTextureSemantic semantic, RenderTexture texture, Texture samplerSource, Material targetMaterial, string[] propertyNames, bool isAtlasPage = false)
+        internal HumanoidTextureReadbackEntry(MaterialId materialId, HumanoidPublishTextureSemantic semantic, Texture texture, Texture samplerSource, Material targetMaterial, string[] propertyNames, bool isAtlasPage = false)
         { MaterialId = materialId; Semantic = semantic; Texture = texture; SamplerSource = samplerSource; TargetMaterial = targetMaterial; PropertyNames = propertyNames; IsAtlasPage = isAtlasPage; }
         internal MaterialId MaterialId { get; }
         internal HumanoidPublishTextureSemantic Semantic { get; }
-        internal RenderTexture Texture { get; }
+        internal Texture Texture { get; }
         internal Texture SamplerSource { get; }
         internal Material TargetMaterial { get; }
         internal IReadOnlyList<string> PropertyNames { get; }
@@ -35,7 +35,7 @@ namespace zgock.ShapeSync.Editor
         internal bool IsAtlasPage { get; }
     }
 
-    /// <summary>Editor-only GPU readback and PNG importer configuration for compiler-owned RenderTextures.</summary>
+    /// <summary>Editor-only texture collection, GPU readback, and PNG importer configuration for Humanoid publish.</summary>
     internal static class HumanoidTexturePublishReadback
     {
         internal static Func<bool> AsyncGpuReadbackSupported = () => SystemInfo.supportsAsyncGPUReadback;
@@ -76,7 +76,10 @@ namespace zgock.ShapeSync.Editor
                         string propertyName = properties[propertyIndex];
                         int propertyId = Shader.PropertyToID(propertyName);
                         if (!target.HasProperty(propertyId)) return Reject("PublishTexturePropertyMissing", "Compiler material is missing an adapter-mapped texture property.", out diagnostic, slot.MaterialId.EntryId);
-                        if (!(target.GetTexture(propertyId) is RenderTexture texture) || atlasTextureIds.Contains(texture.GetInstanceID())) continue;
+                        Texture texture = target.GetTexture(propertyId);
+                        if (texture == null || atlasTextureIds.Contains(texture.GetInstanceID())) continue;
+                        if (!(texture is RenderTexture) && !(texture is Texture2D))
+                            return Reject("PublishTextureTypeUnsupported", "Texture publish requires a Texture2D or compiler RenderTexture for an adapter-mapped property.", out diagnostic, slot.MaterialId.EntryId);
                         Texture samplerSource = slot.SourceMaterial.HasProperty(propertyId) ? slot.SourceMaterial.GetTexture(propertyId) : null;
                         string key = target.GetInstanceID() + ":" + slot.MaterialId.RegistryId + ":" + slot.MaterialId.EntryId + ":" + publishSemantic + ":" + texture.GetInstanceID();
                         if (!indices.TryGetValue(key, out int existingIndex))
@@ -100,7 +103,10 @@ namespace zgock.ShapeSync.Editor
         {
             png = null;
             diagnostic = null;
-            RenderTexture texture = entry.Texture;
+            if (entry.Texture is Texture2D sourceTexture)
+                return TryEncodeSourceTexturePng(sourceTexture, entry, out png, out diagnostic);
+
+            if (!(entry.Texture is RenderTexture texture)) return Reject("PublishRenderTextureRequired", "Texture publish requires a compiler RenderTexture or a Texture2D source asset.", out diagnostic, entry.MaterialId.EntryId);
             if (texture == null || !texture.IsCreated()) return Reject("PublishRenderTextureRequired", "Texture publish requires a created compiler RenderTexture.", out diagnostic, entry.MaterialId.EntryId);
             if (texture.width <= 0 || texture.height <= 0) return Reject("PublishTextureExtentInvalid", "Texture publish requires a positive RenderTexture extent.", out diagnostic, entry.MaterialId.EntryId);
             if (texture.graphicsFormat != UnityEngine.Experimental.Rendering.GraphicsFormat.R16G16B16A16_SFloat) return Reject("PublishTextureFormatInvalid", "Texture publish requires the compiler linear RGBAHalf RenderTexture format.", out diagnostic, entry.MaterialId.EntryId);
@@ -124,6 +130,25 @@ namespace zgock.ShapeSync.Editor
             }
             catch (Exception exception) { return Reject("PublishPngEncodeFailed", exception.Message, out diagnostic, entry.MaterialId.EntryId); }
             finally { UnityEngine.Object.DestroyImmediate(encoded); }
+        }
+
+        private static bool TryEncodeSourceTexturePng(Texture2D texture, HumanoidTextureReadbackEntry entry,
+            out byte[] png, out StackMachineDiagnostic diagnostic)
+        {
+            png = null;
+            diagnostic = null;
+            if (texture == null) return Reject("PublishTextureSourceMissing", "Texture publish requires a Texture2D source.", out diagnostic, entry.MaterialId.EntryId);
+            if (!texture.isReadable)
+                return Reject("PublishTextureSourceNotReadable", "A non-asset Texture2D must be readable before it can be published independently.", out diagnostic, entry.MaterialId.EntryId);
+            if (texture.width <= 0 || texture.height <= 0)
+                return Reject("PublishTextureExtentInvalid", "Texture publish requires a positive Texture2D extent.", out diagnostic, entry.MaterialId.EntryId);
+            try
+            {
+                png = PngEncoder(texture);
+                if (png == null || png.Length == 0) return Reject("PublishPngEncodeFailed", "PNG encoding produced no texture bytes.", out diagnostic, entry.MaterialId.EntryId);
+                return true;
+            }
+            catch (Exception exception) { return Reject("PublishPngEncodeFailed", exception.Message, out diagnostic, entry.MaterialId.EntryId); }
         }
 
         internal static bool TryConfigureImporter(string assetPath, HumanoidTextureReadbackEntry entry, out StackMachineDiagnostic diagnostic)

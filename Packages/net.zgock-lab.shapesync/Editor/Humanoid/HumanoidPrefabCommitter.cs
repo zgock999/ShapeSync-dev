@@ -2,6 +2,7 @@
 // Copyright (c) 2026 zgock999
 
 using System;
+using System.IO;
 using UnityEditor;
 using UnityEngine;
 using zgock.ShapeSync.StackMachine;
@@ -52,6 +53,8 @@ namespace zgock.ShapeSync.Editor
                 if (prefab == null) return Reject("PublishPrefabSaveFailed", "Prefab commit did not create a persistent Prefab asset.", out diagnostic);
                 SaveAssets();
                 if (!TryVerifyReload(assetPath, stage, out diagnostic)) return false;
+                string outputPath = Path.GetDirectoryName(assetPath)?.Replace('\\', '/') ?? string.Empty;
+                if (!HumanoidPublishPathValidator.TryValidateOutputReferences(assetPath, outputPath, out diagnostic)) return false;
                 GameObject persistentPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
                 if (persistentPrefab == null) return Reject("PublishPrefabReloadFailed", "Prefab commit could not reload its persistent Prefab asset.", out diagnostic);
                 commit = new HumanoidPrefabCommit(assetPath, persistentPrefab);

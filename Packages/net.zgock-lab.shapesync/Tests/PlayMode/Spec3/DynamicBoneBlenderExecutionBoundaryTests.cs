@@ -132,7 +132,10 @@ namespace zgock.ShapeSync.Tests.PlayMode
             DynamicBoneBlenderPostVrmProbe healthyProbe = healthy.AddComponent<DynamicBoneBlenderPostVrmProbe>();
             DynamicBoneBlenderPostVrmProbe reproProbe = repro.AddComponent<DynamicBoneBlenderPostVrmProbe>();
             yield return null;
-            yield return new WaitForEndOfFrame();
+            // WaitForEndOfFrame is not evoked by Unity's batchmode test runner. A
+            // second frame still observes the probes after their LateUpdate while
+            // keeping the geometry oracle unchanged in both interactive and batch runs.
+            yield return null;
 
             string result = Compare("with raw Vrm10Instance disabled", healthyProbe.Snapshot, reproProbe.Snapshot);
             Assert.That(healthyProbe.Snapshot, Is.Not.Null);

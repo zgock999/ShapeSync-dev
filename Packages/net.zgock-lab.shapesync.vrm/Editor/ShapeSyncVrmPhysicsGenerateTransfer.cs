@@ -4,7 +4,6 @@
 #if UNITY_EDITOR && SHAPESYNC_USE_UNIVRM
 using System;
 using System.Collections.Generic;
-using System.IO;
 using UniHumanoid;
 using UniVRM10;
 using UnityEditor;
@@ -21,9 +20,7 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
     {
         internal static bool TryTransferFigure(
             ShapeSyncVrmDatabaseRegistry.FigurePhysicsReference relation,
-            string ownerName,
             string targetPrefabPath,
-            string physicsPrefabPath,
             ICollection<string> generatedPaths,
             out string diagnostic)
         {
@@ -53,7 +50,6 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
                     return false;
 
                 ApplyFigurePlan(source, destination, contents.transform, figurePlan);
-                SavePhysicsCarrier(contents, ownerName, physicsPrefabPath, generatedPaths);
                 if (!PrefabUtility.SaveAsPrefabAsset(contents, targetPrefabPath, out bool saved) || !saved)
                 {
                     diagnostic = "VrmGenerateFigurePhysicsSaveFailed: Generated Figure Prefab could not be saved.";
@@ -76,9 +72,7 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
 
         internal static bool TryTransferOutfit(
             ShapeSyncVrmDatabaseRegistry.MeshOutfitPhysicsReference relation,
-            string ownerName,
             string targetPrefabPath,
-            string physicsPrefabPath,
             ICollection<string> generatedPaths,
             out string diagnostic)
         {
@@ -98,7 +92,6 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
                 }
 
                 ApplyOutfitPlan(source, contents.transform, plan);
-                SavePhysicsCarrier(contents, ownerName, physicsPrefabPath, generatedPaths);
                 if (!PrefabUtility.SaveAsPrefabAsset(contents, targetPrefabPath, out bool saved) || !saved)
                 {
                     diagnostic = "VrmGenerateOutfitPhysicsSaveFailed: Generated Outfit Prefab could not be saved.";
@@ -496,37 +489,6 @@ namespace zgock.ShapeSync.VrmIntegration.Editor
                 for (int i = 0; i < current.childCount; i++) stack.Push(current.GetChild(i));
             }
             return result;
-        }
-
-        private static void SavePhysicsCarrier(GameObject contents, string ownerName, string path,
-            ICollection<string> generatedPaths)
-        {
-            if (string.IsNullOrWhiteSpace(path)) return;
-            string directory = Path.GetDirectoryName(path)?.Replace('\\', '/');
-            if (!string.IsNullOrWhiteSpace(directory)) EnsureFolder(directory);
-            GameObject carrier = UnityEngine.Object.Instantiate(contents);
-            try
-            {
-                carrier.name = "PHYS_" + ownerName;
-                if (!PrefabUtility.SaveAsPrefabAsset(carrier, path, out bool saved) || !saved)
-                    throw new InvalidOperationException("Physics carrier Prefab could not be saved: " + path);
-                AddGeneratedPath(generatedPaths, path);
-            }
-            finally
-            {
-                UnityEngine.Object.DestroyImmediate(carrier);
-            }
-        }
-
-        private static void EnsureFolder(string path)
-        {
-            if (AssetDatabase.IsValidFolder(path)) return;
-            string parent = Path.GetDirectoryName(path)?.Replace('\\', '/');
-            if (string.IsNullOrWhiteSpace(parent)) throw new InvalidOperationException("Physics output folder has no valid parent: " + path);
-            EnsureFolder(parent);
-            if (!AssetDatabase.IsValidFolder(path)
-                && string.IsNullOrEmpty(AssetDatabase.CreateFolder(parent, Path.GetFileName(path))))
-                throw new InvalidOperationException("Physics output folder could not be created: " + path);
         }
 
         private static string GetRelativePath(Transform root, Transform target)

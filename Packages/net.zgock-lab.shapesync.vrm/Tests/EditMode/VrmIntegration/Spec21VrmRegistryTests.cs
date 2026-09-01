@@ -999,7 +999,7 @@ namespace zgock.ShapeSync.Tests.EditMode.VrmIntegration
             Assert.That(figureInstance.SpringBone, Is.Not.Null);
             Assert.That(figureInstance.SpringBone.Springs, Has.Count.EqualTo(1));
             Assert.That(figureInstance.SpringBone.Springs[0].Joints[0].transform.root, Is.EqualTo(generatedFigure.transform));
-            Assert.That(generatedPaths, Does.Contain(rootPath + "/GeneratedVrm/PHYS_Figure.prefab"));
+            Assert.That(generatedPaths, Does.Not.Contain(rootPath + "/GeneratedVrm/PHYS_Figure.prefab"));
             Assert.That(generatedFigure.GetComponentInChildren<SkinnedMeshRenderer>(true).sharedMesh, Is.EqualTo(canonicalFigure.Mesh));
             Assert.That(generatedFigure.GetComponentInChildren<SkinnedMeshRenderer>(true).sharedMaterials.Single(), Is.EqualTo(canonicalFigure.Material));
 
@@ -1008,19 +1008,18 @@ namespace zgock.ShapeSync.Tests.EditMode.VrmIntegration
             Assert.That(outfitData, Is.Not.Null);
             Assert.That(outfitData.Springs, Has.Count.EqualTo(1));
             Assert.That(outfitData.Springs[0].Joints[0].transform.root, Is.EqualTo(generatedOutfit.transform));
-            Assert.That(generatedPaths, Does.Contain(rootPath + "/GeneratedVrm/PHYS_Hair.prefab"));
-            Assert.That(AssetDatabase.LoadAssetAtPath<GameObject>(rootPath + "/GeneratedVrm/PHYS_Figure.prefab"), Is.Not.Null);
-            Assert.That(AssetDatabase.LoadAssetAtPath<GameObject>(rootPath + "/GeneratedVrm/PHYS_Hair.prefab"), Is.Not.Null);
+            Assert.That(generatedPaths, Does.Not.Contain(rootPath + "/GeneratedVrm/PHYS_Hair.prefab"));
+            Assert.That(AssetDatabase.LoadAssetAtPath<GameObject>(rootPath + "/GeneratedVrm/PHYS_Figure.prefab"), Is.Null);
+            Assert.That(AssetDatabase.LoadAssetAtPath<GameObject>(rootPath + "/GeneratedVrm/PHYS_Hair.prefab"), Is.Null);
             Assert.That(generatedOutfit.GetComponentInChildren<SkinnedMeshRenderer>(true).sharedMesh, Is.EqualTo(canonicalOutfit.Mesh));
             Assert.That(generatedOutfit.GetComponentInChildren<SkinnedMeshRenderer>(true).sharedMaterials.Single(), Is.EqualTo(canonicalOutfit.Material));
-            string figureCarrierGuid = AssetDatabase.AssetPathToGUID(rootPath + "/GeneratedVrm/PHYS_Figure.prefab");
-            string outfitCarrierGuid = AssetDatabase.AssetPathToGUID(rootPath + "/GeneratedVrm/PHYS_Hair.prefab");
-
             var regeneratedPaths = new HashSet<string>(StringComparer.Ordinal);
             Assert.That(ShapeSyncVrmGeneratePost.TryGenerate(database, rootPath, regeneratedPaths,
                 out string regenerateDiagnostic), Is.True, regenerateDiagnostic);
-            Assert.That(AssetDatabase.AssetPathToGUID(rootPath + "/GeneratedVrm/PHYS_Figure.prefab"), Is.EqualTo(figureCarrierGuid));
-            Assert.That(AssetDatabase.AssetPathToGUID(rootPath + "/GeneratedVrm/PHYS_Hair.prefab"), Is.EqualTo(outfitCarrierGuid));
+            Assert.That(regeneratedPaths, Does.Not.Contain(rootPath + "/GeneratedVrm/PHYS_Figure.prefab"));
+            Assert.That(regeneratedPaths, Does.Not.Contain(rootPath + "/GeneratedVrm/PHYS_Hair.prefab"));
+            Assert.That(AssetDatabase.LoadAssetAtPath<GameObject>(rootPath + "/GeneratedVrm/PHYS_Figure.prefab"), Is.Null);
+            Assert.That(AssetDatabase.LoadAssetAtPath<GameObject>(rootPath + "/GeneratedVrm/PHYS_Hair.prefab"), Is.Null);
             Assert.That(AssetDatabase.GetAssetDependencyHash(source.PrefabPath), Is.EqualTo(sourceHashBefore));
         }
 
@@ -1102,16 +1101,14 @@ namespace zgock.ShapeSync.Tests.EditMode.VrmIntegration
             Assert.That(ShapeSyncVrmGeneratePost.TryGenerate(database, rootPath, generatedPaths,
                 out string generateDiagnostic), Is.True, generateDiagnostic);
             Assert.That(generateDiagnostic, Does.Not.Contain("VrmGenerateFigurePhysicsTransformMissing"));
-            Assert.That(generatedPaths, Does.Contain(rootPath + "/VRM/PHYS_Figure.prefab"));
+            Assert.That(generatedPaths, Does.Not.Contain(rootPath + "/VRM/PHYS_Figure.prefab"));
 
             GameObject generatedFigure = AssetDatabase.LoadAssetAtPath<GameObject>(figurePath);
             Assert.That(generatedFigure, Is.Not.Null);
             Assert.That(generatedFigure.transform.Find("ExtraBone/Tip"), Is.Null);
             Vrm10Instance generatedInstance = generatedFigure.GetComponent<Vrm10Instance>();
             Assert.That(generatedInstance.SpringBone.Springs, Is.Empty);
-            GameObject figureCarrier = AssetDatabase.LoadAssetAtPath<GameObject>(rootPath + "/VRM/PHYS_Figure.prefab");
-            Assert.That(figureCarrier, Is.Not.Null);
-            Assert.That(figureCarrier.transform.Find("ExtraBone/Tip"), Is.Null);
+            Assert.That(AssetDatabase.LoadAssetAtPath<GameObject>(rootPath + "/VRM/PHYS_Figure.prefab"), Is.Null);
         }
 
         private static GameObject CreateHumanoidFigure(string name, Transform intermediate,
