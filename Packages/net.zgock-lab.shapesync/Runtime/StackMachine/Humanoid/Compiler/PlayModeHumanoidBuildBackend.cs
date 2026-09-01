@@ -31,6 +31,7 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
         private bool disposed;
 
         /// <summary>Creates a backend using independent scene-local hosts for NORMAL and MATERIAL textures.</summary>
+        /// <remarks>The runtime Hot Bake product is a Pure Humanoid, so its Mesh machine publishes the resolved Humanoid rest pose.</remarks>
         public PlayModeHumanoidBuildBackend(TextureStackMachineHost normalHost, TextureStackMachineHost materialHost)
             : this(new PlayModeHumanoidMeshStackMachine(normalHost), new PlayModeHumanoidMaterialStackMachine(materialHost)) { }
 

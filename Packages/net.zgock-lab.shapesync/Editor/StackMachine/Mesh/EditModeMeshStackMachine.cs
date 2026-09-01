@@ -24,8 +24,13 @@ namespace zgock.ShapeSync.Editor
     {
         private readonly TextureEditModeStackMachine normalTextureMachine;
 
-        internal EditModeMeshStackMachine() { }
-        internal EditModeMeshStackMachine(TextureEditModeStackMachine normalTextureMachine) { this.normalTextureMachine = normalTextureMachine; }
+        internal EditModeMeshStackMachine() : this(null, false) { }
+        internal EditModeMeshStackMachine(TextureEditModeStackMachine normalTextureMachine) : this(normalTextureMachine, false) { }
+        internal EditModeMeshStackMachine(TextureEditModeStackMachine normalTextureMachine, bool publishResolvedHumanoidRestPose)
+            : base(publishResolvedHumanoidRestPose)
+        {
+            this.normalTextureMachine = normalTextureMachine;
+        }
         internal new EditModeMeshExecutionStatus Status => (EditModeMeshExecutionStatus)base.Status;
         internal new StackMachineDiagnostic Diagnostic => base.Diagnostic;
         internal new bool Start(GameObject figureRoot, ShapeSyncDocument document, out StackMachineDiagnostic diagnostic)

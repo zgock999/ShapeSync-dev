@@ -13,7 +13,12 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
         private ulong nextOrigin = 1;
 
         /// <summary>Creates a Mesh adapter bound to one scene-local Texture StackMachine host.</summary>
-        public PlayModeHumanoidMeshStackMachine(TextureStackMachineHost host) { executor = new TextureExecutor(host); }
+        /// <remarks>Hot Bake publishes a Pure Humanoid, so the resolved Humanoid rest pose is part of its output contract.</remarks>
+        public PlayModeHumanoidMeshStackMachine(TextureStackMachineHost host)
+            : base(true)
+        {
+            executor = new TextureExecutor(host);
+        }
 
         protected override bool TryStartNormal(TextureExecutionPlan plan, out StackMachineDiagnostic diagnostic)
             => executor.TryExecute(plan, new TextureExecutionOriginKey(nextOrigin++), null, out handle, out diagnostic);

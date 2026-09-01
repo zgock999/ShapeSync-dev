@@ -23,7 +23,7 @@ namespace zgock.ShapeSync.Editor
         private bool materialActive;
 
         internal EditModeHumanoidBuildBackend(TextureEditModeStackMachine normalTextureMachine, TextureEditModeStackMachine materialTextureMachine)
-            : this(new EditModeMeshStackMachine(normalTextureMachine), new EditModeMaterialStackMachine(materialTextureMachine)) { }
+            : this(new EditModeMeshStackMachine(normalTextureMachine, true), new EditModeMaterialStackMachine(materialTextureMachine)) { }
 
         internal EditModeHumanoidBuildBackend(IEditModeMeshBuildPhaseMachine meshMachine, IEditModeMaterialBuildPhaseMachine materialMachine)
         {

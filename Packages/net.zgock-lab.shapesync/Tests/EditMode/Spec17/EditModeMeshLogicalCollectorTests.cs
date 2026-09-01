@@ -1692,7 +1692,7 @@ namespace zgock.ShapeSync.Tests.EditMode
         }
 
         [Test]
-        public void SkeletonBuilder_StoresResolvedBcpInAvatarWhileRetainingLocalClonePose()
+        public void SkeletonBuilder_StoresResolvedBcpInAvatarAndRestoresResolvedRestPoseOnRequest()
         {
             var root = new GameObject("skeleton-bcp-source");
             Avatar avatar = null;
@@ -1723,12 +1723,66 @@ namespace zgock.ShapeSync.Tests.EditMode
                         Assert.That(cloneBone.localPosition.y, Is.EqualTo(sourcePosition.y).Within(0.0001f));
                         SkeletonBone resolvedAvatarBone = FindSkeletonBone(escrow.Avatar.humanDescription, cloneBone.name);
                         Assert.That(resolvedAvatarBone.position.x, Is.EqualTo(sourcePosition.x + 1f).Within(0.0001f));
+                        // The internal build pose remains authoring-space until
+                        // skinning inputs are finalized. The publish path must be
+                        // able to restore the resolved FBM/BCP rest pose without
+                        // sampling or playing an Animator.
+                        escrow.RestoreResolvedHumanoidPose();
+                        Assert.That(cloneBone.localPosition.x, Is.EqualTo(sourcePosition.x + 1f).Within(0.0001f));
                         Assert.That(sourceBone.localPosition.x, Is.EqualTo(sourcePosition.x).Within(0.0001f));
                     }
                 }
             }
             finally { if (avatar != null) Object.DestroyImmediate(avatar); Object.DestroyImmediate(root); }
         }
+
+#if SHAPESYNC_RICH_TEST
+        [Test]
+        public void EditorHumanoidPublisher_UsesResolvedRestPoseForPureCandidate()
+        {
+            const string figurePath = "Assets/zgock/ShapeSync/PlayTest/Common/Figure.prefab";
+            const string documentPath = "Assets/zgock/ShapeSync/PlayTest/Common/ShapeDocument_B.asset";
+            GameObject figurePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(figurePath);
+            ShapeDocument document = AssetDatabase.LoadAssetAtPath<ShapeDocument>(documentPath);
+            Assert.That(figurePrefab, Is.Not.Null, figurePath);
+            Assert.That(document, Is.Not.Null, documentPath);
+            Assert.That(document.TryGetSnapshot(out ShapeSyncDocument payload, out StackMachineDiagnostic snapshotDiagnostic), Is.True, snapshotDiagnostic?.message);
+
+            GameObject figure = null;
+            MeshBuildPayload meshPayload = null;
+            var backend = new EditModeHumanoidBuildBackend((TextureEditModeStackMachine)null, (TextureEditModeStackMachine)null);
+            try
+            {
+                figure = Object.Instantiate(figurePrefab);
+                Assert.That(backend.TryBeginMeshPhase(new HumanoidBuildSource(figure, payload), out StackMachineDiagnostic startDiagnostic), Is.True, startDiagnostic?.message);
+                HumanoidBuildPhaseStatus status = HumanoidBuildPhaseStatus.Pending;
+                StackMachineDiagnostic pumpDiagnostic = null;
+                for (int i = 0; i < 32 && status == HumanoidBuildPhaseStatus.Pending; i++)
+                    status = backend.PumpMeshPhase(out meshPayload, out pumpDiagnostic);
+                Assert.That(status, Is.EqualTo(HumanoidBuildPhaseStatus.Succeeded), pumpDiagnostic?.message);
+                Assert.That(meshPayload, Is.Not.Null);
+
+                GameObject candidate = meshPayload.Mesh.Root;
+                Assert.That(candidate, Is.Not.Null);
+                Assert.That(candidate.GetComponentInChildren<DynamicBoneBlender>(true), Is.Null, "Published candidate must be Pure Humanoid.");
+                Animator animator = candidate.GetComponent<Animator>();
+                Assert.That(animator, Is.Not.Null);
+                Assert.That(animator.avatar, Is.Not.Null);
+                Transform hips = animator.GetBoneTransform(HumanBodyBones.Hips);
+                Assert.That(hips, Is.Not.Null);
+                SkeletonBone resolvedAvatarBone = FindSkeletonBone(animator.avatar.humanDescription, hips.name);
+                Assert.That(hips.localPosition.x, Is.EqualTo(resolvedAvatarBone.position.x).Within(0.0001f));
+                Assert.That(hips.localPosition.y, Is.EqualTo(resolvedAvatarBone.position.y).Within(0.0001f));
+                Assert.That(hips.localPosition.z, Is.EqualTo(resolvedAvatarBone.position.z).Within(0.0001f));
+            }
+            finally
+            {
+                meshPayload?.Dispose();
+                backend.Cancel();
+                if (figure != null) Object.DestroyImmediate(figure);
+            }
+        }
+#endif
 
         [Test]
         public void EditModeMeshStackMachine_FinalResolvedHumanoidRootResetsTransformWithoutMutatingSource()

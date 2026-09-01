@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.2.0-preview8] - Unreleased
+## [0.2.0-preview9] - Unreleased
 
-- Core and companion versions are locked to 0.2.0-preview8.
+- Core and companion versions are locked to 0.2.0-preview9.
 - Third-party binaries are not redistributed; UniVRM remains an external package dependency.

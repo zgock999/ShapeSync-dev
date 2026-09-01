@@ -8,10 +8,35 @@ using zgock.ShapeSync.StackMachine;
 
 namespace zgock.ShapeSync.StackMachine.Humanoid
 {
+    internal readonly struct HumanoidMeshTransformPose
+    {
+        private readonly Transform transform;
+        private readonly Vector3 position;
+        private readonly Quaternion rotation;
+        private readonly Vector3 scale;
+
+        public HumanoidMeshTransformPose(Transform transform)
+        {
+            this.transform = transform;
+            position = transform == null ? default : transform.localPosition;
+            rotation = transform == null ? default : transform.localRotation;
+            scale = transform == null ? default : transform.localScale;
+        }
+
+        public void Restore()
+        {
+            if (transform == null) return;
+            transform.localPosition = position;
+            transform.localRotation = rotation;
+            transform.localScale = scale;
+        }
+    }
+
     /// <summary>Compiler-owned local humanoid hierarchy used only for BCP, bindpose, and later Avatar finalization.</summary>
     public sealed class HumanoidMeshSkeletonEscrow : IDisposable
     {
         private readonly TransformPose[] initialPose;
+        private readonly HumanoidMeshTransformPose[] resolvedHumanoidPose;
         private readonly HumanoidMeshAnimatorSnapshot animatorSnapshot;
         private bool disposed;
 
@@ -25,11 +50,17 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
         }
 
         internal HumanoidMeshSkeletonEscrow(GameObject root, Animator animator, Avatar avatar, HumanoidMeshAnimatorSnapshot animatorSnapshot)
+            : this(root, animator, avatar, animatorSnapshot, null)
+        {
+        }
+
+        internal HumanoidMeshSkeletonEscrow(GameObject root, Animator animator, Avatar avatar, HumanoidMeshAnimatorSnapshot animatorSnapshot, HumanoidMeshTransformPose[] resolvedHumanoidPose)
         {
             Root = root;
             Animator = animator;
             Avatar = avatar;
             this.animatorSnapshot = animatorSnapshot;
+            this.resolvedHumanoidPose = resolvedHumanoidPose ?? Array.Empty<HumanoidMeshTransformPose>();
             initialPose = CapturePose(root);
         }
 
@@ -135,6 +166,13 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
         {
             if (initialPose == null) return;
             for (int i = 0; i < initialPose.Length; i++) initialPose[i].Restore();
+        }
+
+        /// <summary>Restores the resolved FBM/BCP Humanoid rest pose without sampling an Animator.</summary>
+        internal void RestoreResolvedHumanoidPose()
+        {
+            if (resolvedHumanoidPose == null) return;
+            for (int i = 0; i < resolvedHumanoidPose.Length; i++) resolvedHumanoidPose[i].Restore();
         }
 
         /// <summary>Normalizes the detached Pure Humanoid root without touching its resolved child skeleton.</summary>
@@ -381,13 +419,18 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
                 return false;
             }
 
-            // DDB writes the resolved FBM/BCP values into its dynamic Avatar, then
-            // retains the Figure's authoring humanoid Transform pose.  Keep the same
-            // split: final skinning consumes the physical pose while Animator owns
-            // the resolved HumanDescription at runtime.
+            // Keep the FBM/BCP-resolved pose available to the Editor publisher.
+            // The shared Mesh machine decides whether to publish it: Runtime/DDB
+            // keeps the authoring split, while the Editor output is Pure Humanoid.
+            HumanoidMeshTransformPose[] resolvedHumanoidPose = CaptureHumanoidPose(animator);
+
+            // Keep the authoring pose for the internal Avatar-Rebind and bindpose
+            // construction steps. For Pure Humanoid, the resolved FBM/BCP snapshot
+            // is restored by the build machine before final skinning and again
+            // before publish handoff.
             RestoreHumanoidPose(physicalHumanoidPose);
 
-            escrow = new HumanoidMeshSkeletonEscrow(clone, animator, avatar, animatorSnapshot);
+            escrow = new HumanoidMeshSkeletonEscrow(clone, animator, avatar, animatorSnapshot, resolvedHumanoidPose);
             return true;
         }
 
@@ -475,29 +518,6 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
             if (poses == null) return;
             for (int i = 0; i < poses.Length; i++) poses[i].Restore();
         }
-
-        private readonly struct HumanoidMeshTransformPose
-        {
-            private readonly Transform transform;
-            private readonly Vector3 position;
-            private readonly Quaternion rotation;
-            private readonly Vector3 scale;
-            public HumanoidMeshTransformPose(Transform transform)
-            {
-                this.transform = transform;
-                position = transform.localPosition;
-                rotation = transform.localRotation;
-                scale = transform.localScale;
-            }
-            public void Restore()
-            {
-                if (transform == null) return;
-                transform.localPosition = position;
-                transform.localRotation = rotation;
-                transform.localScale = scale;
-            }
-        }
-
 
         private static bool Fail(string code, string message, out StackMachineDiagnostic diagnostic, string detail = null)
         {

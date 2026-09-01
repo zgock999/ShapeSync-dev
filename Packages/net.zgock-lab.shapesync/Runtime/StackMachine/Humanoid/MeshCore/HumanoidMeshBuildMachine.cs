@@ -35,12 +35,18 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
     /// <typeparam name="TNormal">Backend-specific completion returned for one Normal Texture StackMachine execution.</typeparam>
     public abstract class HumanoidMeshBuildMachine<TNormal> : IDisposable
     {
+        private readonly bool publishResolvedHumanoidRestPose;
         private HumanoidMeshLogicalPlan plan;
         private HumanoidMeshFbmBakeResult mesh;
         private readonly List<TNormal> normals = new List<TNormal>();
         private int nextNormal;
         private HumanoidMeshNormalSource activeNormal;
         private bool disposed;
+
+        protected HumanoidMeshBuildMachine(bool publishResolvedHumanoidRestPose = false)
+        {
+            this.publishResolvedHumanoidRestPose = publishResolvedHumanoidRestPose;
+        }
 
         /// <summary>Gets the current machine lifecycle state.</summary>
         public HumanoidMeshBuildStatus Status { get; private set; }
@@ -128,10 +134,18 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
                 // Mesh vertices must therefore be lowered into that normalized
                 // renderer space, not the source Figure's authoring placement.
                 mesh.Skeleton.ResetRootTransform();
+                // The Editor publisher emits a Pure Humanoid, so its static
+                // output must use the resolved FBM/BCP hierarchy. Runtime/DDB
+                // callers retain the authoring/physical skinning contract.
+                if (publishResolvedHumanoidRestPose) mesh.Skeleton.RestoreResolvedHumanoidPose();
                 if (!HumanoidMeshFinalMeshBuilder.TryBuild(mesh, out diagnostic)
                     || !HumanoidMeshMaterialSlotBuilder.TryCreate(mesh, out HumanoidMeshMaterialSlot[] slots, out diagnostic)) return false;
                 mesh.SetMaterialSlots(slots);
                 if (!mesh.Skeleton.TryRestoreSampledAnimatorState(out diagnostic)) return false;
+                // Rebind/Update is needed to preserve the Animator's controller
+                // state, but the Editor publisher must hand off the resolved
+                // Pure Humanoid rest pose instead of the sampled source pose.
+                if (publishResolvedHumanoidRestPose) mesh.Skeleton.RestoreResolvedHumanoidPose();
                 plan = null;
                 Status = HumanoidMeshBuildStatus.Succeeded;
                 return true;
