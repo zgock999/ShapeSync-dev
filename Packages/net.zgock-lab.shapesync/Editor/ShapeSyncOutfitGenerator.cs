@@ -10,6 +10,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using zgock.ShapeSync.Materials;
 using zgock.ShapeSync.StackMachine;
+using zgock.ShapeSync.Utilities;
 
 namespace zgock.ShapeSync.Editor
 {
@@ -257,7 +258,7 @@ namespace zgock.ShapeSync.Editor
             {
                 SkinnedMeshRenderer renderer = baseRenderers[rendererIndex];
                 string path = RelativePath(output.transform, renderer.transform);
-                Mesh mesh = UnityEngine.Object.Instantiate(renderer.sharedMesh);
+                Mesh mesh = ShapeSyncMeshCloneUtility.Clone(renderer.sharedMesh);
                 mesh.name = output.name + (string.IsNullOrEmpty(path) ? "_Mesh" : "_" + path.Replace('/', '_') + "_Mesh");
                 mesh.ClearBlendShapes();
                 foreach (ShapeSyncDatabaseRegistry.OutfitAxisFigureEntry axis in outfit.AxisFigures.Where(value => value != null && value.ShapeKey != ShapeSyncDatabaseRegistry.BaseShapeKey))
@@ -709,7 +710,7 @@ namespace zgock.ShapeSync.Editor
                 }
             }
 
-            Mesh payloadMesh = UnityEngine.Object.Instantiate(sourceMesh);
+            Mesh payloadMesh = ShapeSyncMeshCloneUtility.Clone(sourceMesh);
             payloadMesh.name = outfit.Identity + "_ProfileControlledMorphMesh";
             payloadMesh.ClearBlendShapes();
             BlendShapeBakeUtility.AddBlendShapeFrameOrThrow(payloadMesh, BlendShapeReservedPrefixes.Pcm + outfit.Identity, basePcmDelta, null, null);
@@ -800,7 +801,7 @@ namespace zgock.ShapeSync.Editor
             bool hasProjectedVertex = mask.Any(value => value);
             if (!hasProjectedVertex) return new Vector3[sourceMesh.vertexCount];
 
-            Mesh posedMesh = UnityEngine.Object.Instantiate(sourceMesh);
+            Mesh posedMesh = ShapeSyncMeshCloneUtility.Clone(sourceMesh);
             GameObject projectionSpace = null;
             try
             {

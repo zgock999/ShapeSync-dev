@@ -397,6 +397,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec20
                 ShapeSyncDatabaseWindow.NavigationTreeView tree = window.CreateNavigationTreeViewForTest();
 
                 Assert.That(window.TrySelectOutfitForTest("MeshB"), Is.True);
+                int meshBItemId = tree.GetOutfitItemIdForTest("MeshB");
                 Assert.That(window.TryMoveSelectedOutfitForTest(true, out string moveDiagnostic), Is.True, moveDiagnostic);
                 Assert.That(tree.OutfitDisplayNamesForTest(ShapeSyncDatabaseRegistry.OutfitKind.Mesh), Is.EqualTo(new[] { "Mesh B", "Mesh A" }));
                 Assert.That(tree.OutfitDisplayNamesForTest(ShapeSyncDatabaseRegistry.OutfitKind.Material), Is.EqualTo(new[] { "Material A", "Material B" }));
@@ -410,6 +411,9 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec20
                     Is.EqualTo(new[] { "MeshA", "MeshB" }));
                 Assert.That(window.TrySaveOutfitForTest(out string saveDiagnostic), Is.True, saveDiagnostic);
                 Assert.That(window.IsOutfitDetailDirtyForTest, Is.False);
+                Assert.That(tree.SelectedItemIdsForTest, Is.EqualTo(new[] { tree.GetOutfitItemIdForTest("MeshB") }));
+                Assert.That(tree.SelectedItemIdsForTest, Is.Not.EqualTo(new[] { meshBItemId }),
+                    "Outfit order save must update accepted selection after dynamic item IDs are rebuilt.");
 
                 Assert.That(window.TrySelectOutfitForTest("MaterialB"), Is.True);
                 Assert.That(window.TryMoveSelectedOutfitForTest(true, out moveDiagnostic), Is.True, moveDiagnostic);
@@ -417,6 +421,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec20
                 Assert.That(tree.OutfitDisplayNamesForTest(ShapeSyncDatabaseRegistry.OutfitKind.Material), Is.EqualTo(new[] { "Material B", "Material A" }));
                 Assert.That(window.IsOutfitDetailDirtyForTest, Is.True);
                 Assert.That(window.TrySaveOutfitForTest(out saveDiagnostic), Is.True, saveDiagnostic);
+                Assert.That(tree.SelectedItemIdsForTest, Is.EqualTo(new[] { tree.GetOutfitItemIdForTest("MaterialB") }));
 
                 Assert.That(ShapeSyncDatabaseAsset.TryOpen(databasePath, out ShapeSyncDatabase reopened, out string openDiagnostic), Is.True, openDiagnostic);
                 Assert.That(reopened.Registry.Outfits.Where(entry => entry.Kind == ShapeSyncDatabaseRegistry.OutfitKind.Mesh).Select(entry => entry.Identity),
@@ -491,8 +496,11 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec20
                 Assert.That(window.TrySetDatabase(database, out string bindDiagnostic), Is.True, bindDiagnostic);
                 Assert.That(window.TryBeginShapeDraftForTest("discard-shape", "Discard Shape", ShapeSyncDatabaseRegistry.ShapeKind.Outfit, out string draftDiagnostic), Is.True, draftDiagnostic);
                 Assert.That(window.IsSelectedShapeIdReadOnlyForTest, Is.False);
+                ShapeSyncDatabaseWindow.NavigationTreeView tree = window.CreateNavigationTreeViewForTest();
+                Assert.That(tree.GetShapeItemIdForTest("discard-shape"), Is.GreaterThan(0));
                 window.DiscardSelectedShapeDraftForTest();
                 Assert.That(database.Registry.Shapes.Any(entry => entry != null && entry.ShapeId == "discard-shape"), Is.False);
+                Assert.That(tree.SelectedItemIdsForTest, Is.EqualTo(new[] { ShapeSyncDatabaseWindow.NavigationTreeView.ShapesItemId }));
                 Assert.That(window.TryBeginShapeDraftForTest("saved-shape", "Saved Shape", ShapeSyncDatabaseRegistry.ShapeKind.Outfit, out draftDiagnostic), Is.True, draftDiagnostic);
                 Assert.That(window.TrySaveSelectedShapeDraftForTest(out string saveDiagnostic), Is.True, saveDiagnostic);
                 Assert.That(window.IsSelectedShapeIdReadOnlyForTest, Is.True);
@@ -5707,6 +5715,61 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec20
                 tree.ApplySelectionChangeForTest(new[] { ShapeSyncDatabaseWindow.NavigationTreeView.ShapeTagsItemId });
                 Assert.That(window.ShapesDetailViewForTest, Is.EqualTo("Tags"));
                 Assert.That(window.SelectedShapeIdForTest, Is.Null);
+            }
+            finally { Object.DestroyImmediate(window); }
+        }
+
+        [Test]
+        public void ShapesTree_RemoveResetsAcceptedSelectionToShapesRoot()
+        {
+            Assert.That(ShapeSyncDatabaseAsset.TryCreate(Root, out ShapeSyncDatabase database, out string createDiagnostic), Is.True, createDiagnostic);
+            string path = AssetDatabase.GetAssetPath(database);
+            Assert.That(ShapeSyncDatabaseTransaction.TryEditStructure(path, (contents, _) =>
+            {
+                Assert.That(contents.Registry.TryAddShape("hair", "Hair", ShapeSyncDatabaseRegistry.ShapeKind.Hair, 0, Array.Empty<string>(), out string shapeDiagnostic), Is.True, shapeDiagnostic);
+            }, out string transactionDiagnostic), Is.True, transactionDiagnostic);
+            ShapeSyncDatabaseWindow window = ScriptableObject.CreateInstance<ShapeSyncDatabaseWindow>();
+            try
+            {
+                Assert.That(window.TrySetDatabase(database, out string bindDiagnostic), Is.True, bindDiagnostic);
+                ShapeSyncDatabaseWindow.NavigationTreeView tree = window.CreateNavigationTreeViewForTest();
+                int shapeItemId = tree.GetShapeItemIdForTest("hair");
+                tree.ApplySelectionChangeForTest(new[] { shapeItemId });
+                Assert.That(tree.SelectedItemIdsForTest, Is.EqualTo(new[] { shapeItemId }));
+                Assert.That(window.TryRemoveSelectedShapeForTest(out string removeDiagnostic), Is.True, removeDiagnostic);
+                Assert.That(window.ShapesDetailViewForTest, Is.EqualTo("Root"));
+                Assert.That(window.SelectedShapeIdForTest, Is.Null);
+                Assert.That(tree.SelectedItemIdsForTest, Is.EqualTo(new[] { ShapeSyncDatabaseWindow.NavigationTreeView.ShapesItemId }));
+
+                tree.ApplySelectionChangeForTest(new[] { 999999 });
+                Assert.That(tree.SelectedItemIdsForTest, Is.EqualTo(new[] { ShapeSyncDatabaseWindow.NavigationTreeView.ShapesItemId }));
+            }
+            finally { Object.DestroyImmediate(window); }
+        }
+
+        [Test]
+        public void ShapesTree_SaveSynchronizesAcceptedSelectionWhenWindowSelectsShapeDirectly()
+        {
+            Assert.That(ShapeSyncDatabaseAsset.TryCreate(Root, out ShapeSyncDatabase database, out string createDiagnostic), Is.True, createDiagnostic);
+            string path = AssetDatabase.GetAssetPath(database);
+            Assert.That(ShapeSyncDatabaseTransaction.TryEditStructure(path, (contents, _) =>
+            {
+                Assert.That(contents.Registry.TryAddShape("hair", "Hair", ShapeSyncDatabaseRegistry.ShapeKind.Hair, 0, Array.Empty<string>(), out string shapeDiagnostic), Is.True, shapeDiagnostic);
+            }, out string transactionDiagnostic), Is.True, transactionDiagnostic);
+            ShapeSyncDatabaseWindow window = ScriptableObject.CreateInstance<ShapeSyncDatabaseWindow>();
+            try
+            {
+                Assert.That(window.TrySetDatabase(database, out string bindDiagnostic), Is.True, bindDiagnostic);
+                ShapeSyncDatabaseWindow.NavigationTreeView tree = window.CreateNavigationTreeViewForTest();
+                tree.ApplySelectionChangeForTest(new[] { ShapeSyncDatabaseWindow.NavigationTreeView.ShapesItemId });
+                Assert.That(window.TrySelectShapeForTest("hair"), Is.True);
+                int shapeItemId = tree.GetShapeItemIdForTest("hair");
+                window.SetSelectedShapeMetadataDraftForTest("Saved Hair", 1, Array.Empty<string>());
+                Assert.That(window.TrySaveSelectedShapeDraftForTest(out string saveDiagnostic), Is.True, saveDiagnostic);
+                Assert.That(tree.SelectedItemIdsForTest, Is.EqualTo(new[] { shapeItemId }));
+
+                tree.ApplySelectionChangeForTest(new[] { 999999 });
+                Assert.That(tree.SelectedItemIdsForTest, Is.EqualTo(new[] { shapeItemId }));
             }
             finally { Object.DestroyImmediate(window); }
         }

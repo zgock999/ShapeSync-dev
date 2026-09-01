@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using R3;
 using UnityEngine;
 using zgock.ShapeSync.StackMachine;
+using zgock.ShapeSync.Utilities;
 
 namespace zgock.ShapeSync
 {
@@ -364,10 +365,10 @@ namespace zgock.ShapeSync
             Mesh sourceMesh = targetSkinnedMeshRenderer.sharedMesh;
             runtimeMesh = dynamicMorphAdapter != null
                 ? dynamicMorphAdapter.CreateInitialRuntimeMesh(sourceMesh)
-                : Instantiate(sourceMesh);
+                : ShapeSyncMeshCloneUtility.Clone(sourceMesh);
             if (runtimeMesh == null)
             {
-                runtimeMesh = Instantiate(sourceMesh);
+                runtimeMesh = ShapeSyncMeshCloneUtility.Clone(sourceMesh);
             }
             runtimeMesh.name = "ShapeSyncRuntimeMesh";
             targetSkinnedMeshRenderer.sharedMesh = runtimeMesh;

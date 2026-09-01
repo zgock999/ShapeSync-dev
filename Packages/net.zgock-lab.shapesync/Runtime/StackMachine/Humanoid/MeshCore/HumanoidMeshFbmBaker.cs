@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using UnityEngine;
 using zgock.ShapeSync.StackMachine;
+using zgock.ShapeSync.Utilities;
 
 namespace zgock.ShapeSync.StackMachine.Humanoid
 {
@@ -157,7 +158,7 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
                 Vector4[] tangents = sourceMesh.tangents;
                 bool hasNormals = normals.Length == vertices.Length;
                 bool hasTangents = tangents.Length == vertices.Length;
-                copy = UnityEngine.Object.Instantiate(sourceMesh);
+                copy = ShapeSyncMeshCloneUtility.Clone(sourceMesh, copyBlendShapes: false);
                 copy.name = sourceMesh.name + " (Spec17 FBM Baked)";
                 copy.ClearBlendShapes();
 

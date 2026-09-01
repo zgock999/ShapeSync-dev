@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
+using zgock.ShapeSync.Utilities;
 using zgock.ShapeSync.Materials;
 using zgock.ShapeSync.StackMachine;
 using zgock.ShapeSync.StackMachine.Humanoid;
@@ -246,7 +247,9 @@ namespace zgock.ShapeSync.Editor
             persisted = null; diagnostic = null;
             if (source == null) return Reject(failureCode, "Individual asset staging cannot clone a null source asset.", out diagnostic);
             if (AssetDatabase.LoadMainAssetAtPath(path) != null || File.Exists(ToAbsolutePath(path))) return Reject("PublishAssetPathOccupied", "Individual asset staging found an occupied output asset path.", out diagnostic);
-            T clone = UnityEngine.Object.Instantiate(source);
+            T clone = source is Mesh mesh
+                ? (T)(UnityEngine.Object)ShapeSyncMeshCloneUtility.Clone(mesh)
+                : UnityEngine.Object.Instantiate(source);
             try
             {
                 clone.name = Path.GetFileNameWithoutExtension(path);

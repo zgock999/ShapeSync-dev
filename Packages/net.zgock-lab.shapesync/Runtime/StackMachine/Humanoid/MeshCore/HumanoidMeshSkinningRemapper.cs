@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using zgock.ShapeSync.StackMachine;
+using zgock.ShapeSync.Utilities;
 
 namespace zgock.ShapeSync.StackMachine.Humanoid
 {
@@ -34,7 +35,7 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
             Transform[] sourceBones = source.Source.Renderer.bones;
             if (!HasWeightedBone(source.Mesh))
             {
-                remapped = UnityEngine.Object.Instantiate(source.Mesh);
+                remapped = ShapeSyncMeshCloneUtility.Clone(source.Mesh);
                 remapped.name = source.Mesh.name + " (ShapeSync Final Skinning)";
                 remapped.bindposes = table.Bindposes;
                 return true;
@@ -58,7 +59,7 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
                 finalIndexBySourceIndex[i] = finalIndex;
             }
 
-            Mesh clone = UnityEngine.Object.Instantiate(source.Mesh);
+            Mesh clone = ShapeSyncMeshCloneUtility.Clone(source.Mesh);
             clone.name = source.Mesh.name + " (ShapeSync Final Skinning)";
             try
             {

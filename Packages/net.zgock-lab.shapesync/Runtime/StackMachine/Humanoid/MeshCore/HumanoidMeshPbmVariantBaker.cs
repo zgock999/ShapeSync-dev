@@ -3,6 +3,7 @@
 
 using UnityEngine;
 using zgock.ShapeSync.StackMachine;
+using zgock.ShapeSync.Utilities;
 
 namespace zgock.ShapeSync.StackMachine.Humanoid
 {
@@ -32,7 +33,7 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
             if (bake == null || source == null) return Fail("VariantSourceMeshRequired", "Variant requires an authoring Mesh.", out diagnostic);
             if (frameNames == null || frameWeights == null || frameNames.Length != frameWeights.Length)
                 return Fail("VariantFramePlanInvalid", "Variant source frames and weights must have the same length.", out diagnostic);
-            variant = Object.Instantiate(source);
+            variant = ShapeSyncMeshCloneUtility.Clone(source);
             Vector3[] vertices = source.vertices;
             for (int frame = 0; frame < frameNames.Length; frame++)
             {

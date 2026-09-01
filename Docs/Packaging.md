@@ -104,7 +104,7 @@ $coreUrl = "https://github.com/$packageRepository.git?path=Packages/net.zgock-la
 $companionUrl = "https://github.com/$packageRepository.git?path=Packages/net.zgock-lab.shapesync.vrm#$gitRevision"
 ```
 
-Spec22 applied values: `packageRepository = zgock999/ShapeSync-dev`, `repositoryDirectory = ShapeSync-dev`, `packageVersion = 0.2.0-preview7`, `gitRevision = 0.2.0-preview7`. These are the current application values,
+Spec23 applied values: `packageRepository = zgock999/ShapeSync-dev`, `repositoryDirectory = ShapeSync-dev`, `packageVersion = 0.2.0-preview8`, `gitRevision = 0.2.0-preview8`. These are the current application values,
 not fixed requirements of this reusable process; Spec24 replaces them at the
 parameter line above.
 

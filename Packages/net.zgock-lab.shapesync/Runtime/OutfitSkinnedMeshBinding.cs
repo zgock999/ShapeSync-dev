@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using zgock.ShapeSync.Utilities;
 
 namespace zgock.ShapeSync
 {
@@ -259,7 +260,7 @@ namespace zgock.ShapeSync
                 return false;
             }
 
-            Mesh clonedMesh = UnityEngine.Object.Instantiate(sourceMesh);
+            Mesh clonedMesh = ShapeSyncMeshCloneUtility.Clone(sourceMesh);
             clonedMesh.name = $"{sourceMesh.name} (ShapeSync Outfit Runtime)";
             renderer.sharedMesh = clonedMesh;
             binding = new OutfitSkinnedMeshBinding(renderer, clonedMesh, baseTrs, preserveMeshBaseBindposes ? baseSourceBindposes : null, preserveMeshBaseBindposes, caches);

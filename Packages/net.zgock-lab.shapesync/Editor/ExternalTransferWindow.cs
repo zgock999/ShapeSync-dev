@@ -7,6 +7,7 @@ using System.Globalization;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
+using zgock.ShapeSync.Utilities;
 
 namespace zgock.ShapeSync.Editor
 {
@@ -107,7 +108,7 @@ namespace zgock.ShapeSync.Editor
             if (string.IsNullOrEmpty(prefabPath)) return;
             string folder = Path.GetDirectoryName(prefabPath)?.Replace('\\', '/');
             string meshPath = AssetDatabase.GenerateUniqueAssetPath(Path.Combine(folder, Path.GetFileNameWithoutExtension(prefabPath) + "_Mesh.asset").Replace('\\', '/'));
-            Mesh mesh = Instantiate(sourceMesh);
+            Mesh mesh = ShapeSyncMeshCloneUtility.Clone(sourceMesh);
             GameObject clone = null;
             bool meshSaved = false;
             try

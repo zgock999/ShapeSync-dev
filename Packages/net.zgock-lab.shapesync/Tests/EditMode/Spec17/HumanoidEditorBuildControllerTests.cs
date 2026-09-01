@@ -7,12 +7,15 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
+using Unity.Collections;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 using zgock.ShapeSync.Editor;
 using zgock.ShapeSync.Materials;
 using zgock.ShapeSync.StackMachine;
 using zgock.ShapeSync.StackMachine.Humanoid;
+using zgock.ShapeSync.Utilities;
 
 namespace zgock.ShapeSync.Tests.EditMode
 {
@@ -20,6 +23,123 @@ namespace zgock.ShapeSync.Tests.EditMode
     {
         private const string StageFolder = ShapeSyncTestAssetPaths.Spec17ControllerStageRoot;
         private const string StagePrefix = "__Spec17_6_ControllerStage";
+
+        [Test]
+        public void ConcreteBackend_ResolvesComputeShadersFromDevelopmentProjectByGuid()
+        {
+            Type type = typeof(HumanoidCompilerWindow).Assembly.GetType("zgock.ShapeSync.Editor.HumanoidEditorBuildController", true);
+            object controller = Activator.CreateInstance(type, BindingFlags.Instance | BindingFlags.NonPublic, null, Array.Empty<object>(), null);
+            try
+            {
+                object[] arguments = { null };
+                object backend = Invoke(controller, "CreateConcreteBackend", arguments);
+                StackMachineDiagnostic diagnostic = (StackMachineDiagnostic)arguments[0];
+                Assert.That(backend, Is.Not.Null, diagnostic?.message);
+                Assert.That(diagnostic, Is.Null);
+            }
+            finally { ((IDisposable)controller).Dispose(); }
+        }
+
+        [Test]
+        public void CloneSourceMesh_DoesNotDirtyPersistentSourceAsset()
+        {
+            string path = ShapeSyncTestAssetPaths.ConsumerAssetPath("zgock/ShapeSync/Tests/EditMode/Spec17/__Spec17_6_PersistentMesh.asset");
+            Mesh fixture = CreateMeshCloneRoundTripFixture();
+            AssetDatabase.CreateAsset(fixture, path);
+            AssetDatabase.SaveAssets();
+            Mesh source = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            Assert.That(source, Is.Not.Null);
+            Assert.That(EditorUtility.IsPersistent(source), Is.True);
+            Assert.That(EditorUtility.IsDirty(source), Is.False, "The source Mesh must be clean before the clone regression check.");
+
+            Mesh clone = null;
+            try
+            {
+                clone = ShapeSyncMeshCloneUtility.Clone(source);
+                Assert.That(clone, Is.Not.Null);
+                Assert.That(EditorUtility.IsPersistent(clone), Is.False);
+                Assert.That(clone.vertexCount, Is.EqualTo(source.vertexCount));
+                Assert.That(clone.subMeshCount, Is.EqualTo(source.subMeshCount));
+                Assert.That(clone.blendShapeCount, Is.EqualTo(source.blendShapeCount));
+                Assert.That(EditorUtility.IsDirty(source), Is.False, "Cloning a persistent source Mesh must not mark the source dirty.");
+            }
+            finally
+            {
+                if (clone != null) UnityEngine.Object.DestroyImmediate(clone);
+                if (source != null) EditorUtility.ClearDirty(source);
+                AssetDatabase.DeleteAsset(path);
+            }
+        }
+
+        [Test]
+        public void CloneMesh_RoundTripsVertexLayoutSubmeshesSkinningAndBlendShapes()
+        {
+            Mesh source = CreateMeshCloneRoundTripFixture();
+            Mesh clone = null;
+            try
+            {
+                clone = ShapeSyncMeshCloneUtility.Clone(source);
+                Assert.That(clone, Is.Not.Null);
+                Assert.That(clone.vertexCount, Is.EqualTo(source.vertexCount));
+                Assert.That(clone.subMeshCount, Is.EqualTo(source.subMeshCount));
+                Assert.That(clone.indexFormat, Is.EqualTo(source.indexFormat));
+                Assert.That(clone.bindposes.Length, Is.EqualTo(source.bindposes.Length));
+                for (int i = 0; i < source.bindposes.Length; i++) Assert.That(clone.bindposes[i], Is.EqualTo(source.bindposes[i]));
+
+                VertexAttributeDescriptor[] sourceAttributes = source.GetVertexAttributes();
+                VertexAttributeDescriptor[] cloneAttributes = clone.GetVertexAttributes();
+                Assert.That(cloneAttributes.Length, Is.EqualTo(sourceAttributes.Length));
+                for (int i = 0; i < sourceAttributes.Length; i++)
+                {
+                    Assert.That(cloneAttributes[i].attribute, Is.EqualTo(sourceAttributes[i].attribute));
+                    Assert.That(cloneAttributes[i].format, Is.EqualTo(sourceAttributes[i].format));
+                    Assert.That(cloneAttributes[i].dimension, Is.EqualTo(sourceAttributes[i].dimension));
+                    Assert.That(cloneAttributes[i].stream, Is.EqualTo(sourceAttributes[i].stream));
+                }
+
+                Color[] sourceColors = source.colors;
+                Color[] cloneColors = clone.colors;
+                Assert.That(cloneColors.Length, Is.EqualTo(sourceColors.Length));
+                for (int i = 0; i < sourceColors.Length; i++)
+                {
+                    Assert.That(cloneColors[i].r, Is.EqualTo(sourceColors[i].r).Within(0.0000001f));
+                    Assert.That(cloneColors[i].g, Is.EqualTo(sourceColors[i].g).Within(0.0000001f));
+                    Assert.That(cloneColors[i].b, Is.EqualTo(sourceColors[i].b).Within(0.0000001f));
+                    Assert.That(cloneColors[i].a, Is.EqualTo(sourceColors[i].a).Within(0.0000001f));
+                }
+
+                var sourceUv2 = new List<Vector2>();
+                var cloneUv2 = new List<Vector2>();
+                var sourceUv3 = new List<Vector3>();
+                var cloneUv3 = new List<Vector3>();
+                source.GetUVs(0, sourceUv2); clone.GetUVs(0, cloneUv2);
+                source.GetUVs(1, sourceUv3); clone.GetUVs(1, cloneUv3);
+                Assert.That(cloneUv2, Is.EqualTo(sourceUv2));
+                Assert.That(cloneUv3, Is.EqualTo(sourceUv3));
+                for (int submesh = 0; submesh < source.subMeshCount; submesh++)
+                {
+                    SubMeshDescriptor sourceDescriptor = source.GetSubMesh(submesh);
+                    SubMeshDescriptor cloneDescriptor = clone.GetSubMesh(submesh);
+                    Assert.That(sourceDescriptor.baseVertex, Is.GreaterThan(0), "The round-trip fixture must exercise a non-zero baseVertex.");
+                    Assert.That(cloneDescriptor.baseVertex, Is.EqualTo(sourceDescriptor.baseVertex));
+                    Assert.That(cloneDescriptor.indexStart, Is.EqualTo(sourceDescriptor.indexStart));
+                    Assert.That(cloneDescriptor.indexCount, Is.EqualTo(sourceDescriptor.indexCount));
+                    Assert.That(cloneDescriptor.firstVertex, Is.EqualTo(sourceDescriptor.firstVertex));
+                    Assert.That(cloneDescriptor.vertexCount, Is.EqualTo(sourceDescriptor.vertexCount));
+                    Assert.That(cloneDescriptor.topology, Is.EqualTo(sourceDescriptor.topology));
+                    Assert.That(clone.GetIndices(submesh, false), Is.EqualTo(source.GetIndices(submesh, false)));
+                }
+
+                AssertVariableBoneWeightsEqual(source, clone);
+                AssertBlendShapesEqual(source, clone);
+            }
+            finally
+            {
+                if (clone != null) UnityEngine.Object.DestroyImmediate(clone);
+                UnityEngine.Object.DestroyImmediate(source);
+            }
+        }
+
         [Test]
         public void StartAndCancel_DestroysUnpublishedCandidateAndCancelsBackend()
         {
@@ -700,6 +820,106 @@ namespace zgock.ShapeSync.Tests.EditMode
         private static void SetProperty(object instance, string name, object value) => instance.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.NonPublic).SetValue(instance, value);
         private static void SetField(object instance, string name, object value) => instance.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic).SetValue(instance, value);
         private static int Count(System.Collections.IEnumerable values) { int count = 0; foreach (object ignored in values) count++; return count; }
+        private static Mesh CreateMeshCloneRoundTripFixture()
+        {
+            var mesh = new Mesh { name = "Spec17_MeshCloneRoundTrip" };
+            mesh.indexFormat = IndexFormat.UInt32;
+            mesh.vertices = new[]
+            {
+                new Vector3(0.1f, 0.2f, 0.3f), new Vector3(1.1f, 0.2f, 0.3f), new Vector3(0.1f, 1.2f, 0.3f), new Vector3(0.1f, 0.2f, 1.3f),
+                new Vector3(1.1f, 1.2f, 0.3f), new Vector3(1.1f, 0.2f, 1.3f), new Vector3(0.1f, 1.2f, 1.3f), new Vector3(1.1f, 1.2f, 1.3f)
+            };
+            mesh.normals = Enumerable.Repeat(Vector3.up, mesh.vertexCount).ToArray();
+            mesh.tangents = Enumerable.Repeat(new Vector4(1f, 0f, 0f, -1f), mesh.vertexCount).ToArray();
+            mesh.colors = new[]
+            {
+                new Color(0.12345f, 0.67891f, 0.22223f, 0.98765f), new Color(0.23456f, 0.78912f, 0.33334f, 0.87654f),
+                new Color(0.34567f, 0.89123f, 0.44445f, 0.76543f), new Color(0.45678f, 0.91234f, 0.55556f, 0.65432f),
+                new Color(0.56789f, 0.12345f, 0.66667f, 0.54321f), new Color(0.67891f, 0.23456f, 0.77778f, 0.43210f),
+                new Color(0.78912f, 0.34567f, 0.88889f, 0.32109f), new Color(0.89123f, 0.45678f, 0.99999f, 0.21098f)
+            };
+            mesh.SetUVs(0, new[]
+            {
+                new Vector2(0.01f, 0.02f), new Vector2(0.11f, 0.12f), new Vector2(0.21f, 0.22f), new Vector2(0.31f, 0.32f),
+                new Vector2(0.41f, 0.42f), new Vector2(0.51f, 0.52f), new Vector2(0.61f, 0.62f), new Vector2(0.71f, 0.72f)
+            });
+            mesh.SetUVs(1, new[]
+            {
+                new Vector3(1.01f, 1.02f, 1.03f), new Vector3(1.11f, 1.12f, 1.13f), new Vector3(1.21f, 1.22f, 1.23f), new Vector3(1.31f, 1.32f, 1.33f),
+                new Vector3(1.41f, 1.42f, 1.43f), new Vector3(1.51f, 1.52f, 1.53f), new Vector3(1.61f, 1.62f, 1.63f), new Vector3(1.71f, 1.72f, 1.73f)
+            });
+            mesh.subMeshCount = 2;
+            mesh.SetIndices(new[] { 0, 1, 2 }, MeshTopology.Triangles, 0, false, 3);
+            mesh.SetIndices(new[] { 0, 2, 3 }, MeshTopology.Triangles, 1, false, 4);
+            mesh.bindposes = Enumerable.Repeat(Matrix4x4.identity, 6).ToArray();
+
+            var bonesPerVertex = new NativeArray<byte>(new byte[] { 1, 3, 2, 1, 2, 1, 1, 1 }, Allocator.Temp);
+            var weights = new NativeArray<BoneWeight1>(new[]
+            {
+                new BoneWeight1 { boneIndex = 0, weight = 1f },
+                new BoneWeight1 { boneIndex = 0, weight = 0.2f }, new BoneWeight1 { boneIndex = 1, weight = 0.3f }, new BoneWeight1 { boneIndex = 2, weight = 0.5f },
+                new BoneWeight1 { boneIndex = 1, weight = 0.4f }, new BoneWeight1 { boneIndex = 3, weight = 0.6f },
+                new BoneWeight1 { boneIndex = 2, weight = 1f },
+                new BoneWeight1 { boneIndex = 4, weight = 0.25f }, new BoneWeight1 { boneIndex = 5, weight = 0.75f },
+                new BoneWeight1 { boneIndex = 0, weight = 1f }, new BoneWeight1 { boneIndex = 5, weight = 1f }, new BoneWeight1 { boneIndex = 4, weight = 1f }
+            }, Allocator.Temp);
+            try { mesh.SetBoneWeights(bonesPerVertex, weights); }
+            finally { bonesPerVertex.Dispose(); weights.Dispose(); }
+
+            var shapeVertices = Enumerable.Repeat(new Vector3(0.01f, 0.02f, 0.03f), mesh.vertexCount).ToArray();
+            var shapeNormals = Enumerable.Repeat(new Vector3(0.04f, 0.05f, 0.06f), mesh.vertexCount).ToArray();
+            var shapeTangents = Enumerable.Repeat(new Vector3(0.07f, 0.08f, 0.09f), mesh.vertexCount).ToArray();
+            mesh.AddBlendShapeFrame("RoundTripShape", 37f, shapeVertices, shapeNormals, shapeTangents);
+            for (int i = 0; i < shapeVertices.Length; i++) { shapeVertices[i] *= 2f; shapeNormals[i] *= 2f; shapeTangents[i] *= 2f; }
+            mesh.AddBlendShapeFrame("RoundTripShape", 100f, shapeVertices, shapeNormals, shapeTangents);
+            mesh.bounds = new Bounds(new Vector3(2f, 3f, 4f), new Vector3(5f, 6f, 7f));
+            return mesh;
+        }
+
+        private static void AssertVariableBoneWeightsEqual(Mesh expected, Mesh actual)
+        {
+            NativeArray<byte> expectedCounts = expected.GetBonesPerVertex();
+            NativeArray<byte> actualCounts = actual.GetBonesPerVertex();
+            NativeArray<BoneWeight1> expectedWeights = expected.GetAllBoneWeights();
+            NativeArray<BoneWeight1> actualWeights = actual.GetAllBoneWeights();
+            try
+            {
+                Assert.That(actualCounts.Length, Is.EqualTo(expectedCounts.Length));
+                Assert.That(actualWeights.Length, Is.EqualTo(expectedWeights.Length));
+                for (int i = 0; i < expectedCounts.Length; i++) Assert.That(actualCounts[i], Is.EqualTo(expectedCounts[i]));
+                for (int i = 0; i < expectedWeights.Length; i++)
+                {
+                    Assert.That(actualWeights[i].boneIndex, Is.EqualTo(expectedWeights[i].boneIndex));
+                    Assert.That(actualWeights[i].weight, Is.EqualTo(expectedWeights[i].weight).Within(0.0000001f));
+                }
+            }
+            finally
+            {
+                expectedCounts.Dispose(); actualCounts.Dispose(); expectedWeights.Dispose(); actualWeights.Dispose();
+            }
+        }
+
+        private static void AssertBlendShapesEqual(Mesh expected, Mesh actual)
+        {
+            Assert.That(actual.blendShapeCount, Is.EqualTo(expected.blendShapeCount));
+            for (int shape = 0; shape < expected.blendShapeCount; shape++)
+            {
+                Assert.That(actual.GetBlendShapeName(shape), Is.EqualTo(expected.GetBlendShapeName(shape)));
+                Assert.That(actual.GetBlendShapeFrameCount(shape), Is.EqualTo(expected.GetBlendShapeFrameCount(shape)));
+                for (int frame = 0; frame < expected.GetBlendShapeFrameCount(shape); frame++)
+                {
+                    Assert.That(actual.GetBlendShapeFrameWeight(shape, frame), Is.EqualTo(expected.GetBlendShapeFrameWeight(shape, frame)).Within(0.0000001f));
+                    var expectedVertices = new Vector3[expected.vertexCount]; var actualVertices = new Vector3[actual.vertexCount];
+                    var expectedNormals = new Vector3[expected.vertexCount]; var actualNormals = new Vector3[actual.vertexCount];
+                    var expectedTangents = new Vector3[expected.vertexCount]; var actualTangents = new Vector3[actual.vertexCount];
+                    expected.GetBlendShapeFrameVertices(shape, frame, expectedVertices, expectedNormals, expectedTangents);
+                    actual.GetBlendShapeFrameVertices(shape, frame, actualVertices, actualNormals, actualTangents);
+                    Assert.That(actualVertices, Is.EqualTo(expectedVertices));
+                    Assert.That(actualNormals, Is.EqualTo(expectedNormals));
+                    Assert.That(actualTangents, Is.EqualTo(expectedTangents));
+                }
+            }
+        }
         private static InMemoryHumanoidMesh CreateMesh(Material source, Material target, MaterialShaderAdapter adapter)
         {
             var mesh = new Mesh { subMeshCount = 1 }; var result = new InMemoryHumanoidMesh(mesh);

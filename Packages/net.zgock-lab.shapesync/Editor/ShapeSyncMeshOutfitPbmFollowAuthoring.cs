@@ -8,6 +8,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using zgock.ShapeSync.StackMachine;
+using zgock.ShapeSync.Utilities;
 
 namespace zgock.ShapeSync.Editor
 {
@@ -182,7 +183,7 @@ namespace zgock.ShapeSync.Editor
             {
                 if (renderer.sharedMesh == null)
                     throw new InvalidOperationException("PBMFollowSourceInvalid: source clone renderer Mesh is missing; shapeKey=" + item.ShapeKey);
-                Mesh mesh = UnityEngine.Object.Instantiate(renderer.sharedMesh);
+                Mesh mesh = ShapeSyncMeshCloneUtility.Clone(renderer.sharedMesh);
                 mesh.name = sourceName + "_SkinnedMesh";
                 transaction.AddSubAsset(mesh);
                 renderer.sharedMesh = mesh;

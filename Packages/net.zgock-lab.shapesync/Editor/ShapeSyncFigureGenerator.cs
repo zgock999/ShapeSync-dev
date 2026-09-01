@@ -9,6 +9,7 @@ using UnityEditor;
 using UnityEngine;
 using zgock.ShapeSync.Materials;
 using zgock.ShapeSync.StackMachine;
+using zgock.ShapeSync.Utilities;
 
 namespace zgock.ShapeSync.Editor
 {
@@ -243,7 +244,9 @@ namespace zgock.ShapeSync.Editor
                 if (existing.GetType() != asset.GetType()) throw new InvalidOperationException("Generate output path has a different asset type: " + path);
                 UnityEngine.Object backup = existing is Texture texture
                     ? ShapeSyncEditorTextureUtility.Clone(texture)
-                    : UnityEngine.Object.Instantiate(existing);
+                    : existing is Mesh mesh
+                        ? ShapeSyncMeshCloneUtility.Clone(mesh)
+                        : UnityEngine.Object.Instantiate(existing);
                 overwrittenAssets.Add(new KeyValuePair<UnityEngine.Object, UnityEngine.Object>(existing, backup));
                     existing.name = persistedName;
                     // CopySerialized does not preserve Material texture PPtrs when replacing an

@@ -1636,14 +1636,21 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec20
             mesh.subMeshCount = materialNames.Length;
             for (int subMeshIndex = 0; subMeshIndex < materialNames.Length; subMeshIndex++)
                 mesh.SetTriangles(new[] { 0, 1, 2 }, subMeshIndex);
-            mesh.bindposes = new[] { bone.transform.worldToLocalMatrix * root.transform.localToWorldMatrix };
+            // Keep the top-level Extra Bone parent in the renderer bone table as an
+            // unweighted slot.  Outfit topology normalization uses the table to
+            // reconstruct the parent path for the weighted Bone slot.
+            mesh.bindposes = new[]
+            {
+                bone.transform.worldToLocalMatrix * root.transform.localToWorldMatrix,
+                root.transform.worldToLocalMatrix * root.transform.localToWorldMatrix
+            };
             mesh.boneWeights = new[]
             {
                 new BoneWeight { boneIndex0 = 0, weight0 = 1f }, new BoneWeight { boneIndex0 = 0, weight0 = 1f }, new BoneWeight { boneIndex0 = 0, weight0 = 1f }
             };
             renderer.sharedMesh = mesh;
             renderer.rootBone = bone.transform;
-            renderer.bones = new[] { bone.transform };
+            renderer.bones = new[] { bone.transform, root.transform };
             Material[] materials = new Material[materialNames.Length];
             for (int materialIndex = 0; materialIndex < materialNames.Length; materialIndex++)
             {
@@ -2540,8 +2547,13 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec20
                 Object.DestroyImmediate(root);
             }
 
-            string generatedPath = ShapeSyncTestAssetPaths.ConsumerAssetPath("zgock/ShapeSync/PlayTest/Spec20/Generated/Outfits/hair-1.prefab");
-            GameObject source = AssetDatabase.LoadAssetAtPath<GameObject>(generatedPath);
+            const string humanTestGeneratedOutfitPath = "Assets/zgock/ShapeSync/PlayTest/Spec20/Generated/Outfits/hair-1.prefab";
+            GameObject source = AssetDatabase.LoadAssetAtPath<GameObject>(humanTestGeneratedOutfitPath);
+            if (source == null)
+            {
+                string consumerFixturePath = ShapeSyncTestAssetPaths.ConsumerAssetPath("zgock/ShapeSync/PlayTest/Spec20/Generated/Outfits/hair-1.prefab");
+                source = AssetDatabase.LoadAssetAtPath<GameObject>(consumerFixturePath);
+            }
             if (source == null) Assert.Ignore("The Human Test Generated Outfit fixture is not present.");
             GameObject instance = Object.Instantiate(source);
             try
@@ -3524,9 +3536,15 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec20
             mesh.vertices = new[] { Vector3.zero, Vector3.right, Vector3.up, Vector3.right * 2f, Vector3.right * 3f, Vector3.right * 2f + Vector3.up };
             mesh.SetTriangles(new[] { 0, 1, 2 }, 0);
             mesh.SetTriangles(new[] { 3, 4, 5 }, 1);
-            mesh.bindposes = new[] { bone.transform.worldToLocalMatrix * root.transform.localToWorldMatrix };
+            // Keep the top-level Extra Bone parent in the renderer bone table as an
+            // unweighted slot so topology normalization can reconstruct the parent path.
+            mesh.bindposes = new[]
+            {
+                bone.transform.worldToLocalMatrix * root.transform.localToWorldMatrix,
+                root.transform.worldToLocalMatrix * root.transform.localToWorldMatrix
+            };
             mesh.boneWeights = Enumerable.Repeat(new BoneWeight { boneIndex0 = 0, weight0 = 1f }, 6).ToArray();
-            renderer.sharedMesh = mesh; renderer.rootBone = bone.transform; renderer.bones = new[] { bone.transform };
+            renderer.sharedMesh = mesh; renderer.rootBone = bone.transform; renderer.bones = new[] { bone.transform, root.transform };
             Material keep = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "Keep" };
             Material discard = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "Discard" };
             Texture2D sharedTexture = new Texture2D(1, 1) { name = "SharedTexture" };

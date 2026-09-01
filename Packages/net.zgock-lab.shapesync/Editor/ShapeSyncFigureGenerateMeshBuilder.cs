@@ -8,6 +8,7 @@ using System.Linq;
 using UnityEngine;
 using zgock.ShapeSync.Materials;
 using zgock.ShapeSync.StackMachine;
+using zgock.ShapeSync.Utilities;
 
 namespace zgock.ShapeSync.Editor
 {
@@ -87,7 +88,7 @@ namespace zgock.ShapeSync.Editor
                 RemoveInputRuntimeGraph(output);
                 SkinnedMeshRenderer outputRenderer = output.GetComponentsInChildren<SkinnedMeshRenderer>(true).Single();
                 Mesh sourceMesh = outputRenderer.sharedMesh;
-                mesh = UnityEngine.Object.Instantiate(sourceMesh);
+                mesh = ShapeSyncMeshCloneUtility.Clone(sourceMesh);
                 mesh.name = snapshot.BaseFigure.Name + "_Mesh";
                 mesh.ClearBlendShapes();
                 var fbmAxes = snapshot.Axes.Where(axis => axis.Kind == ShapeSyncDatabaseRegistry.FigureAxisKind.Fbm).OrderBy(axis => axis.Name, StringComparer.Ordinal).ToArray();

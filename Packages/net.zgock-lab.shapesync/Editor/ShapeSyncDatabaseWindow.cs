@@ -563,6 +563,7 @@ namespace zgock.ShapeSync.Editor
             return true;
         }
         internal bool TrySaveSelectedShapeDraftForTest(out string diagnostic) => TrySaveSelectedShapeDraft(out diagnostic);
+        internal bool TryRemoveSelectedShapeForTest(out string diagnostic) => TryRemoveShape(out diagnostic);
         internal bool TryMoveSelectedShapeForTest(bool moveUp, out string saveDiagnostic) => TryMoveSelectedShape(moveUp, out saveDiagnostic);
         internal bool TrySaveOutfitForTest(out string saveDiagnostic) => TrySaveOutfit(out saveDiagnostic);
         internal bool TryMoveSelectedOutfitForTest(bool moveUp, out string saveDiagnostic) => TryMoveSelectedOutfit(moveUp, out saveDiagnostic);
@@ -1840,6 +1841,7 @@ namespace zgock.ShapeSync.Editor
                     selectedShapePartsDraft = persisted.Parts.Select(part => part.Clone()).ToList();
                     acceptedShapeNameDraft = "\u0001" + persisted.ShapeId;
                 }
+                treeView?.SelectShapeId(selectedShapeId);
             }
             return saved;
         }
@@ -1857,7 +1859,7 @@ namespace zgock.ShapeSync.Editor
                 selectedShapeTagsDraft.Clear();
                 selectedShapeMorphsDraft.Clear();
                 selectedShapePartsDraft.Clear();
-                treeView?.Reload();
+                treeView?.SelectShapesRoot();
                 return;
             }
             ShapeSyncDatabaseRegistry.ShapeEntry shape = database?.Registry?.Shapes.FirstOrDefault(value => value != null && value.ShapeId == selectedShapeId);
@@ -1977,7 +1979,7 @@ namespace zgock.ShapeSync.Editor
                 selectedShapeId = null;
                 shapesDetailView = ShapesDetailView.Root;
                 ResetShapeOrderDraft();
-                treeView?.Reload();
+                treeView?.SelectShapesRoot();
                 saveDiagnostic = null;
                 diagnostic = null;
                 return true;
@@ -1988,7 +1990,7 @@ namespace zgock.ShapeSync.Editor
                 selectedShapeId = null;
                 shapesDetailView = ShapesDetailView.Root;
                 ResetShapeOrderDraft();
-                treeView?.Reload();
+                treeView?.SelectShapesRoot();
             }
             return result;
         }
@@ -3707,7 +3709,7 @@ namespace zgock.ShapeSync.Editor
                 return false;
             }
             ResetOutfitOrderDraft();
-            treeView?.Reload();
+            if (!string.IsNullOrEmpty(selectedOutfitIdentity)) treeView?.SelectOutfitIdentity(selectedOutfitIdentity);
             diagnostic = null;
             return true;
         }
@@ -5175,6 +5177,9 @@ namespace zgock.ShapeSync.Editor
                     .Select(pair => pair.Key)
                     .FirstOrDefault();
             }
+            internal int GetOutfitItemIdForTest(string identity)
+                => outfitIdentityByItemId.FirstOrDefault(pair => string.Equals(pair.Value, identity, StringComparison.Ordinal)
+                    && !outfitChildLabelByItemId.ContainsKey(pair.Key)).Key;
             internal string[] ShapeGroupDisplayNamesForTest => Enum.GetValues(typeof(ShapeSyncDatabaseRegistry.ShapeKind)).Cast<ShapeSyncDatabaseRegistry.ShapeKind>().Select(kind => kind + " Shapes").ToArray();
             internal int GetShapeItemIdForTest(string shapeId) => shapeIdByItemId.FirstOrDefault(pair => string.Equals(pair.Value, shapeId, StringComparison.Ordinal)).Key;
             internal string[] ShapeDisplayNamesForTest(ShapeSyncDatabaseRegistry.ShapeKind kind)
@@ -5192,6 +5197,11 @@ namespace zgock.ShapeSync.Editor
             {
                 Reload();
                 SetAcceptedSelection(OutfitsItemId);
+            }
+            internal void SelectShapesRoot()
+            {
+                Reload();
+                SetAcceptedSelection(ShapesItemId);
             }
             internal void SelectShapeId(string shapeId)
             {

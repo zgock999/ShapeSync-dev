@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using zgock.ShapeSync;
+using zgock.ShapeSync.Utilities;
 
 namespace zgock.ShapeSync.Editor
 {
@@ -111,7 +112,7 @@ namespace zgock.ShapeSync.Editor
                     throw new InvalidOperationException(error);
                 }
 
-                targetBindposeMesh = Instantiate(cloneRenderer.sharedMesh);
+                targetBindposeMesh = ShapeSyncMeshCloneUtility.Clone(cloneRenderer.sharedMesh);
                 targetBindposeMesh.name = cloneRenderer.sharedMesh.name + " (FBM Body Source)";
                 if (!TryApplyRegistryBindposes(targetBindposeMesh, target.targetRegistry, out error))
                 {

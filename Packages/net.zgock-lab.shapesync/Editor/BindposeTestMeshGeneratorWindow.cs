@@ -4,6 +4,7 @@
 using System.IO;
 using UnityEditor;
 using UnityEngine;
+using zgock.ShapeSync.Utilities;
 
 namespace zgock.ShapeSync.Editor
 {
@@ -61,7 +62,7 @@ namespace zgock.ShapeSync.Editor
                 return;
             }
 
-            Mesh generatedMesh = Instantiate(sourceMesh);
+            Mesh generatedMesh = ShapeSyncMeshCloneUtility.Clone(sourceMesh);
             generatedMesh.name = Path.GetFileNameWithoutExtension(outputPath);
             generatedMesh.bindposes = targetBindposeMesh.bindposes;
 

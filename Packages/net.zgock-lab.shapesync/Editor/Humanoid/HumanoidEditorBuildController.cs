@@ -15,8 +15,8 @@ namespace zgock.ShapeSync.Editor
     /// <summary>Owns one unpublished Pure Humanoid candidate and its caller-driven compiler operation.</summary>
     internal sealed class HumanoidEditorBuildController : IDisposable
     {
-        private const string TextureComputePath = "Assets/zgock/ShapeSync/Runtime/StackMachine/Texture/TextureStackMachine.compute";
-        private const string NormalComputePath = "Assets/zgock/ShapeSync/Runtime/StackMachine/Texture/NormalTextureStackMachine.compute";
+        private const string TextureComputeGuid = "9b3984bbd2b6468cbd6bc33d76df21d1";
+        private const string NormalComputeGuid = "60c577b8d7a146a3bd3de517353d9e78";
         internal static Action<string> LogInfo = message => Debug.Log(message);
         internal static Action<string> LogWarning = message => Debug.LogWarning(message);
 
@@ -472,8 +472,8 @@ namespace zgock.ShapeSync.Editor
         private IAtlasBakerPageExecutor CreateConcreteAtlasExecutor(out StackMachineDiagnostic diagnostic)
         {
             diagnostic = null;
-            ComputeShader texture = AssetDatabase.LoadAssetAtPath<ComputeShader>(TextureComputePath);
-            ComputeShader normal = AssetDatabase.LoadAssetAtPath<ComputeShader>(NormalComputePath);
+            ComputeShader texture = LoadComputeShader(TextureComputeGuid);
+            ComputeShader normal = LoadComputeShader(NormalComputeGuid);
             if (texture == null || normal == null)
             {
                 Reject("EditorComputeProgramRequired", "Atlas bake requires the Texture and Normal ComputeShader assets.", out diagnostic);
@@ -508,12 +508,18 @@ namespace zgock.ShapeSync.Editor
         private IHumanoidBuildBackend CreateConcreteBackend(out StackMachineDiagnostic diagnostic)
         {
             diagnostic = null;
-            ComputeShader texture = AssetDatabase.LoadAssetAtPath<ComputeShader>(TextureComputePath);
-            ComputeShader normal = AssetDatabase.LoadAssetAtPath<ComputeShader>(NormalComputePath);
+            ComputeShader texture = LoadComputeShader(TextureComputeGuid);
+            ComputeShader normal = LoadComputeShader(NormalComputeGuid);
             if (texture == null || normal == null) { Reject("EditorComputeProgramRequired", "Humanoid Editor build requires the Texture and Normal ComputeShader assets.", out diagnostic); return null; }
             normalTextureMachine = new TextureEditModeStackMachine(texture, normal);
             materialTextureMachine = new TextureEditModeStackMachine(texture);
             return new EditModeHumanoidBuildBackend(normalTextureMachine, materialTextureMachine);
+        }
+
+        private static ComputeShader LoadComputeShader(string guid)
+        {
+            string assetPath = AssetDatabase.GUIDToAssetPath(guid);
+            return string.IsNullOrEmpty(assetPath) ? null : AssetDatabase.LoadAssetAtPath<ComputeShader>(assetPath);
         }
 
         private void DisposeEscrow()

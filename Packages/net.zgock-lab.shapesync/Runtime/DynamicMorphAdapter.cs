@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using zgock.ShapeSync.Utilities;
 
 namespace zgock.ShapeSync
 {
@@ -104,7 +105,7 @@ namespace zgock.ShapeSync
             EnsureWorkingBuffers(sourceMesh.vertexCount);
             EnsureRegistrationTables();
             CacheBlendShapeNames(sourceMesh);
-            runtimeMesh = Instantiate(sourceMesh);
+            runtimeMesh = ShapeSyncMeshCloneUtility.Clone(sourceMesh);
             targetRenderer.sharedMesh = runtimeMesh;
             schemaValidated = ValidateSchema(sourceMesh, out _);
             return runtimeMesh;
@@ -400,7 +401,7 @@ namespace zgock.ShapeSync
             // clear only its frames, then replay them in their original order.  This preserves
             // every vertex channel, sub-mesh descriptor and skinning datum without ShapeSync
             // allocating managed geometry arrays during attach.
-            Mesh rebuilt = Instantiate(source);
+            Mesh rebuilt = ShapeSyncMeshCloneUtility.Clone(source);
             rebuilt.ClearBlendShapes();
 
             int replacementStart = slotSchema.FirstSlotBlendShapeIndex + groupIndex * slotSchema.GroupSize;
