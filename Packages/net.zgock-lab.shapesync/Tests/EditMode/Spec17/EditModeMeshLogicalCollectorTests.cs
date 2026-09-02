@@ -2150,7 +2150,7 @@ namespace zgock.ShapeSync.Tests.EditMode
         {
             const string figurePath = "Assets/zgock/ShapeSync/PlayTest/Common/Figure.prefab";
             const string documentPath = "Assets/zgock/ShapeSync/PlayTest/Common/ShapeDocument_A.asset";
-            const string publishedPath = "Assets/zgock/ShapeSync/PlayTest/Spec19/Preview11/DocA/DocA.prefab";
+            const string publishedPath = "Assets/zgock/ShapeSync/PlayTest/Spec17/Pure/DocA/DocA.prefab";
             const string controllerPath = "Assets/zgock/Assets/CC0Animation/Walking.controller";
             GameObject figurePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(figurePath);
             ShapeDocument document = AssetDatabase.LoadAssetAtPath<ShapeDocument>(documentPath);
@@ -2393,10 +2393,10 @@ namespace zgock.ShapeSync.Tests.EditMode
 
         [TestCase(
             "Assets/zgock/ShapeSync/PlayTest/Common/ShapeDocument_A.asset",
-            "Assets/zgock/ShapeSync/PlayTest/Spec19/Preview11/DocA/DocA.prefab")]
+            "Assets/zgock/ShapeSync/PlayTest/Spec17/Pure/DocA/DocA.prefab")]
         [TestCase(
             "Assets/zgock/ShapeSync/PlayTest/Common/ShapeDocument_B.asset",
-            "Assets/zgock/ShapeSync/PlayTest/Spec19/Preview11/DocB/DocB.prefab")]
+            "Assets/zgock/ShapeSync/PlayTest/Spec17/Pure/DocB/DocB.prefab")]
         public void ActualSpec17FinalPublishedPrefab_MatchesPureCompilerMeshOracle(
             string documentPath,
             string prefabPath)
