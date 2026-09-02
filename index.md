@@ -30,7 +30,7 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 | 8 | **[第8章: 高度な Outfit 登録 / Mask](./figuremask.html)** | VRoid Studio 内での靴補正用 Mask 作成、Database への Mask 登録、動作確認 | 公開中 |
 | 9 | **[第9章: VRM 連携](./vrmintegration.html)** | 表情と Physics 用 VRM を登録し、生成と動作確認を行う | 公開中 |
 | 10 | **[第10章: Document 保存](./documentstorage.html)** | ここまでの Shape をまとめ、Document を保存する | 公開中 |
-| 11 | **第11章: Humanoid Compiler** | 作成した Document から Humanoid を生成する | 準備中 |
+| 11 | **[第11章: Humanoid Compiler](./humanoidcompiler.html)** | 作成した Document から Humanoid を生成する | 公開中 |
 | 12 | **第12章: Atlas** | Atlas Editor による設定と Humanoid 再生成 | 準備中 |
 | 13 | **第13章: Hot Bake** | Figure / Document / Atlas による Runtime Humanoid 再生 | 準備中 |
 
@@ -125,7 +125,16 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 * Template List 全解除からの Document A / B の Load 読み込みと状態復元確認
 * **[よくあるトラブルと解決策（トラブルシューティング）](./documentstorage.html#7-よくあるトラブルと解決策トラブルシューティング)**
 
-### 第11章 〜 第13章（準備中）
+### [第11章: Humanoid Compiler](./humanoidcompiler.html)（公開中）
+* Document A（`ShapeSyncDocumentA`）を入力とした Pure Humanoid 生成の概要
+* Humanoid Compiler ウィンドウの起動と入力設定（Figure: `BasicFemale.prefab`、Document: `ShapeSyncDocumentA.asset`、Atlas Schema: 空欄）
+* VRM 連携環境における `Transport VRM Physics` トグル設定
+* 出力先フォルダー（`Assets/ShapeSync/Compiler/DocumentA/`）の指定と Generate 実行
+* `DocumentA` 接頭語の生成物（`DocumentA.prefab`、`DocumentA.asset`、`DocumentA_avatar.asset`、Material / Texture 等）の確認
+* Scene 配置と Pure Humanoid 構造（Unity 標準 Animator / Avatar を持ち ShapeSync 実行時コンポーネントを含まない構成）の確認
+* **[よくあるトラブルと解決策（トラブルシューティング）](./humanoidcompiler.html#6-よくあるトラブルと解決策トラブルシューティング)**
+
+### 第12章 〜 第13章（準備中）
 各章のチュートリアル本文は順次公開予定です。
 
 ---
