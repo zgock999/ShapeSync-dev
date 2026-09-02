@@ -2150,7 +2150,7 @@ namespace zgock.ShapeSync.Tests.EditMode
         {
             const string figurePath = "Assets/zgock/ShapeSync/PlayTest/Common/Figure.prefab";
             const string documentPath = "Assets/zgock/ShapeSync/PlayTest/Common/ShapeDocument_A.asset";
-            const string publishedPath = "Assets/zgock/ShapeSync/PlayTest/Spec17/DocA/DocA.prefab";
+            const string publishedPath = "Assets/zgock/ShapeSync/PlayTest/Spec19/Preview11/DocA/DocA.prefab";
             const string controllerPath = "Assets/zgock/Assets/CC0Animation/Walking.controller";
             GameObject figurePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(figurePath);
             ShapeDocument document = AssetDatabase.LoadAssetAtPath<ShapeDocument>(documentPath);
@@ -2182,6 +2182,7 @@ namespace zgock.ShapeSync.Tests.EditMode
                         SkinnedMeshRenderer publishedRenderer = published.GetComponentInChildren<SkinnedMeshRenderer>(true);
                         Assert.That(publishedAnimator, Is.Not.Null);
                         Assert.That(publishedRenderer, Is.Not.Null);
+                        AssertPersistedHumanoidRestPoseMatchesAvatar(published, publishedAnimator);
                         publishedAnimator.runtimeAnimatorController = controller;
                         publishedAnimator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
                         published.SetActive(true);
@@ -2392,11 +2393,11 @@ namespace zgock.ShapeSync.Tests.EditMode
 
         [TestCase(
             "Assets/zgock/ShapeSync/PlayTest/Common/ShapeDocument_A.asset",
-            "Assets/zgock/ShapeSync/PlayTest/Spec17/DocA/DocA.prefab")]
+            "Assets/zgock/ShapeSync/PlayTest/Spec19/Preview11/DocA/DocA.prefab")]
         [TestCase(
             "Assets/zgock/ShapeSync/PlayTest/Common/ShapeDocument_B.asset",
-            "Assets/zgock/ShapeSync/PlayTest/Spec17/DocB/DocB.prefab")]
-        public void ActualSpec17FinalPublishedPrefab_MatchesRuntimeDdbFigureMeshOracle(
+            "Assets/zgock/ShapeSync/PlayTest/Spec19/Preview11/DocB/DocB.prefab")]
+        public void ActualSpec17FinalPublishedPrefab_MatchesPureCompilerMeshOracle(
             string documentPath,
             string prefabPath)
         {
@@ -2407,49 +2408,84 @@ namespace zgock.ShapeSync.Tests.EditMode
             Assert.That(document, Is.Not.Null, documentPath);
             Assert.That(document.TryGetSnapshot(out ShapeSyncDocument payload, out StackMachineDiagnostic snapshotDiagnostic), Is.True, snapshotDiagnostic?.message);
 
-            GameObject runtimeFigure = null;
+            GameObject compilerFigure = null;
             GameObject contents = null;
-            bool previousIgnoreFailingMessages = LogAssert.ignoreFailingMessages;
             try
             {
-                LogAssert.ignoreFailingMessages = true;
-                runtimeFigure = Object.Instantiate(figurePrefab);
-                DynamicBoneBlender runtimeBlender = runtimeFigure.GetComponent<DynamicBoneBlender>();
-                MeshStackMachine runtimeMachine = runtimeFigure.GetComponent<MeshStackMachine>();
-                Animator runtimeAnimator = runtimeFigure.GetComponent<Animator>();
-                SkinnedMeshRenderer runtimeFigureRenderer = runtimeFigure.GetComponentInChildren<SkinnedMeshRenderer>();
-                Assert.That(runtimeBlender, Is.Not.Null);
-                Assert.That(runtimeMachine, Is.Not.Null);
-                Assert.That(runtimeAnimator, Is.Not.Null);
-                Assert.That(runtimeFigureRenderer, Is.Not.Null);
-                DisableOptionalVrmPhysicsIntegration(runtimeFigure);
-                InvokePrivateInstanceMethod(runtimeBlender, "Start");
-                Assert.That(runtimeMachine.TryAcceptRecipePayload(payload, out StackMachineExecutionResult runtimeResult, out StackMachineDiagnostic runtimeDiagnostic), Is.True, runtimeDiagnostic?.message ?? runtimeResult?.Diagnostic?.message);
-                runtimeAnimator.Update(0f);
-                InvokePrivateInstanceMethod(runtimeBlender, "LateUpdate");
+                compilerFigure = Object.Instantiate(figurePrefab);
+                compilerFigure.name = "Spec17 Pure Compiler Oracle";
+                using (var compilerMachine = new EditModeMeshStackMachine(null, true))
+                {
+                    Assert.That(compilerMachine.Start(compilerFigure, payload, out StackMachineDiagnostic startDiagnostic), Is.True, startDiagnostic?.message);
+                    Assert.That(compilerMachine.Pump(out StackMachineDiagnostic pumpDiagnostic), Is.EqualTo(EditModeMeshExecutionStatus.Succeeded), pumpDiagnostic?.message);
+                    Assert.That(compilerMachine.TryTakeFbmBakeResult(out HumanoidMeshFbmBakeResult compilerResult), Is.True);
+                    using (compilerResult)
+                    {
+                        Assert.That(compilerResult.FinalMesh, Is.Not.Null);
+                        Assert.That(compilerResult.Skeleton, Is.Not.Null);
+                        Assert.That(compilerResult.Skeleton.Avatar, Is.Not.Null);
+                        Assert.That(compilerResult.BoneTable, Is.Not.Null);
 
-                contents = PrefabUtility.LoadPrefabContents(prefabPath);
-                Assert.That(contents, Is.Not.Null, "Final publish Prefab must exist and reload: " + prefabPath);
-                Animator persistedAnimator = contents.GetComponent<Animator>();
-                SkinnedMeshRenderer persistedRenderer = contents.GetComponentInChildren<SkinnedMeshRenderer>(true);
-                Assert.That(persistedAnimator, Is.Not.Null, "Final publish Prefab must retain its Animator: " + prefabPath);
-                Assert.That(persistedAnimator.avatar, Is.Not.Null, "Final publish Prefab must retain its rebuilt Avatar: " + prefabPath);
-                Assert.That(persistedRenderer, Is.Not.Null, "Final publish Prefab must retain its combined SkinnedMeshRenderer: " + prefabPath);
-                Assert.That(persistedRenderer.sharedMesh, Is.Not.Null, "Final publish Prefab must retain its combined Mesh: " + prefabPath);
-                Assert.That(persistedRenderer.bones, Is.Not.Empty, "Final publish Prefab must retain its resolved bone table: " + prefabPath);
-                var expected = new System.Collections.Generic.List<Vector3>();
-                AppendSkinnedVertices(runtimeFigureRenderer, runtimeFigureRenderer.transform.worldToLocalMatrix, expected);
-                var actual = new System.Collections.Generic.List<Vector3>();
-                AppendSkinnedVertexRange(persistedRenderer.sharedMesh, persistedRenderer.bones, persistedRenderer.transform.worldToLocalMatrix, 0, runtimeFigureRenderer.sharedMesh.vertexCount, actual);
-                Assert.That(actual, Has.Count.EqualTo(expected.Count), "Final publish Figure vertex range must match the runtime Figure range: " + prefabPath);
-                AssertSkinnedGeometryMatches("final publish Prefab Figure " + prefabPath, expected, actual, new[] { runtimeFigureRenderer }, null);
-                AssertHumanDescriptionApproximatelyEqual(runtimeAnimator.avatar.humanDescription, persistedAnimator.avatar.humanDescription);
+                        contents = PrefabUtility.LoadPrefabContents(prefabPath);
+                        Assert.That(contents, Is.Not.Null, "Final publish Prefab must exist and reload: " + prefabPath);
+                        Animator persistedAnimator = contents.GetComponent<Animator>();
+                        SkinnedMeshRenderer persistedRenderer = contents.GetComponentInChildren<SkinnedMeshRenderer>(true);
+                        Assert.That(persistedAnimator, Is.Not.Null, "Final publish Prefab must retain its Animator: " + prefabPath);
+                        Assert.That(persistedAnimator.avatar, Is.Not.Null, "Final publish Prefab must retain its rebuilt Avatar: " + prefabPath);
+                        Assert.That(persistedRenderer, Is.Not.Null, "Final publish Prefab must retain its combined SkinnedMeshRenderer: " + prefabPath);
+                        Assert.That(persistedRenderer.sharedMesh, Is.Not.Null, "Final publish Prefab must retain its combined Mesh: " + prefabPath);
+                        Assert.That(persistedRenderer.bones, Is.Not.Empty, "Final publish Prefab must retain its resolved bone table: " + prefabPath);
+
+                        // These Preview11 fixtures are Pure Humanoid outputs. Their persisted
+                        // hierarchy must agree with the Avatar rest skeleton and with the same
+                        // resolved compiler output; a runtime DDB physical-pose oracle is a
+                        // different contract and is covered by the preceding Document B test.
+                        AssertPersistedHumanoidRestPoseMatchesAvatar(contents, persistedAnimator);
+                        AssertHumanDescriptionApproximatelyEqual(compilerResult.Skeleton.Avatar.humanDescription, persistedAnimator.avatar.humanDescription);
+                        AssertPublishedMeshMatchesCompilerResult(compilerResult, persistedRenderer, prefabPath);
+                    }
+                }
             }
             finally
             {
                 if (contents != null) PrefabUtility.UnloadPrefabContents(contents);
-                if (runtimeFigure != null) Object.DestroyImmediate(runtimeFigure);
-                LogAssert.ignoreFailingMessages = previousIgnoreFailingMessages;
+                if (compilerFigure != null) Object.DestroyImmediate(compilerFigure);
+            }
+        }
+
+        private static void AssertPublishedMeshMatchesCompilerResult(HumanoidMeshFbmBakeResult compilerResult, SkinnedMeshRenderer persistedRenderer, string subject)
+        {
+            Mesh expected = compilerResult.FinalMesh;
+            Mesh actual = persistedRenderer.sharedMesh;
+            Assert.That(actual.vertexCount, Is.EqualTo(expected.vertexCount), subject + " vertex count");
+            Assert.That(actual.subMeshCount, Is.EqualTo(expected.subMeshCount), subject + " submesh count");
+            Assert.That(actual.blendShapeCount, Is.EqualTo(expected.blendShapeCount), subject + " blendshape count");
+            AssertVerticesApproximatelyEqual(expected.vertices, actual.vertices);
+            Assert.That(actual.boneWeights, Is.EqualTo(expected.boneWeights), subject + " bone weights");
+            Assert.That(actual.triangles, Is.EqualTo(expected.triangles), subject + " triangles");
+            Assert.That(actual.bindposes, Has.Length.EqualTo(expected.bindposes.Length), subject + " bindpose count");
+            for (int i = 0; i < expected.bindposes.Length; i++) AssertMatrixApproximatelyEqual(expected.bindposes[i], actual.bindposes[i]);
+            Assert.That(persistedRenderer.bones, Has.Length.EqualTo(compilerResult.BoneTable.Bones.Length), subject + " bone table count");
+            for (int i = 0; i < compilerResult.BoneTable.Bones.Length; i++)
+            {
+                string expectedPath = GetRelativePath(compilerResult.Skeleton.Root.transform, compilerResult.BoneTable.Bones[i]);
+                string actualPath = GetRelativePath(persistedRenderer.transform.root, persistedRenderer.bones[i]);
+                Assert.That(actualPath, Is.EqualTo(expectedPath), subject + " bone[" + i + "] path");
+            }
+            for (int shape = 0; shape < expected.blendShapeCount; shape++)
+            {
+                Assert.That(actual.GetBlendShapeName(shape), Is.EqualTo(expected.GetBlendShapeName(shape)), subject + " blendshape[" + shape + "] name");
+                int frameCount = expected.GetBlendShapeFrameCount(shape);
+                Assert.That(actual.GetBlendShapeFrameCount(shape), Is.EqualTo(frameCount), subject + " blendshape[" + shape + "] frame count");
+                for (int frame = 0; frame < frameCount; frame++)
+                {
+                    Assert.That(actual.GetBlendShapeFrameWeight(shape, frame), Is.EqualTo(expected.GetBlendShapeFrameWeight(shape, frame)).Within(0.0001f), subject + " blendshape frame weight");
+                    var expectedDelta = new Vector3[expected.vertexCount];
+                    var actualDelta = new Vector3[actual.vertexCount];
+                    expected.GetBlendShapeFrameVertices(shape, frame, expectedDelta, null, null);
+                    actual.GetBlendShapeFrameVertices(shape, frame, actualDelta, null, null);
+                    AssertVerticesApproximatelyEqual(expectedDelta, actualDelta);
+                }
             }
         }
 
@@ -3648,6 +3684,22 @@ namespace zgock.ShapeSync.Tests.EditMode
             AssertVectorApproximatelyEqual(expectedBone.position, actualBone.position, name + ".position");
             AssertQuaternionApproximatelyEqual(expectedBone.rotation, actualBone.rotation, name + ".rotation");
             AssertVectorApproximatelyEqual(expectedBone.scale, actualBone.scale, name + ".scale");
+        }
+
+        private static void AssertPersistedHumanoidRestPoseMatchesAvatar(GameObject root, Animator animator)
+        {
+            Assert.That(root, Is.Not.Null);
+            Assert.That(animator, Is.Not.Null);
+            Assert.That(animator.avatar, Is.Not.Null);
+            var transformsByName = new System.Collections.Generic.Dictionary<string, Transform>();
+            foreach (Transform transform in root.GetComponentsInChildren<Transform>(true)) transformsByName[transform.name] = transform;
+            foreach (SkeletonBone expected in animator.avatar.humanDescription.skeleton)
+            {
+                Assert.That(transformsByName.TryGetValue(expected.name, out Transform actual), Is.True, "Published Avatar skeleton missing " + expected.name);
+                Assert.That(Vector3.Distance(actual.localPosition, expected.position), Is.LessThanOrEqualTo(0.00001f), expected.name + " persisted rest position");
+                Assert.That(Quaternion.Angle(actual.localRotation, expected.rotation), Is.LessThanOrEqualTo(0.001f), expected.name + " persisted rest rotation");
+                Assert.That(Vector3.Distance(actual.localScale, expected.scale), Is.LessThanOrEqualTo(0.00001f), expected.name + " persisted rest scale");
+            }
         }
 
         private static void AssertHumanDescriptionApproximatelyEqual(HumanDescription expected, HumanDescription actual)

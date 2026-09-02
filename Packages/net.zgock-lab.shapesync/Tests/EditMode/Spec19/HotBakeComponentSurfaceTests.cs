@@ -165,7 +165,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec19
             const string figurePath = "Assets/zgock/ShapeSync/PlayTest/Common/Figure.prefab";
             const string documentPath = "Assets/zgock/ShapeSync/PlayTest/Common/ShapeDocument_B.asset";
             const string atlasPath = "Assets/zgock/ShapeSync/PlayTest/Spec18/AtlasDocB-2page.asset";
-            const string offPath = "Assets/zgock/ShapeSync/PlayTest/Spec17/DocB/DocB.prefab";
+            const string offPath = "Assets/zgock/ShapeSync/PlayTest/Spec19/Preview11/DocB/DocB.prefab";
             const string onPath = "Assets/zgock/ShapeSync/PlayTest/Spec18/DocBAtlas/DocBAtlas.prefab";
             GameObject figure = AssetDatabase.LoadAssetAtPath<GameObject>(figurePath);
             ShapeSyncDocumentAsset document = AssetDatabase.LoadAssetAtPath<ShapeSyncDocumentAsset>(documentPath);

@@ -180,7 +180,17 @@ namespace zgock.ShapeSync.Editor
             diagnostic = null;
             if (texture == null) return Reject("PublishTextureSourceMissing", "Texture publish requires a Texture2D source.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry));
             if (!texture.isReadable)
-                return Reject("PublishTextureSourceNotReadable", "A non-asset Texture2D must be readable before it can be published independently.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, texture));
+            {
+                // VRM/GLTF importers commonly expose embedded Texture2D sub-assets
+                // without CPU-readable pixels. They are persistent source assets even
+                // though they are not the container's main asset, so copy the GPU
+                // sample into a readable staging texture. Runtime/transient textures
+                // remain an explicit reject because there is no stable source asset
+                // whose pixels can be reproduced after the publish transaction.
+                if (!IsPersistentTextureSubAsset(texture))
+                    return Reject("PublishTextureSourceNotReadable", "A non-asset Texture2D must be readable before it can be published independently.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, texture));
+                return TryEncodePersistentUnreadableTexturePng(texture, entry, out png, out diagnostic);
+            }
             if (texture.width <= 0 || texture.height <= 0)
                 return Reject("PublishTextureExtentInvalid", "Texture publish requires a positive Texture2D extent.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, texture));
             try
@@ -190,6 +200,57 @@ namespace zgock.ShapeSync.Editor
                 return true;
             }
             catch (Exception exception) { return Reject("PublishPngEncodeFailed", exception.Message, out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, texture)); }
+        }
+
+        private static bool TryEncodePersistentUnreadableTexturePng(Texture2D source, HumanoidTextureReadbackEntry entry,
+            out byte[] png, out StackMachineDiagnostic diagnostic)
+        {
+            png = null;
+            diagnostic = null;
+            if (source.width <= 0 || source.height <= 0)
+                return Reject("PublishTextureExtentInvalid", "Texture publish requires a positive Texture2D extent.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, source));
+            if (!AsyncGpuReadbackSupported())
+                return Reject("PublishGpuReadbackUnsupported", "Publishing a non-readable persistent Texture2D requires Async GPU readback; CPU fallback is not supported.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, source));
+
+            RenderTexture copy = null;
+            Texture2D encoded = null;
+            try
+            {
+                RenderTextureReadWrite readWrite = source.isDataSRGB ? RenderTextureReadWrite.sRGB : RenderTextureReadWrite.Linear;
+                copy = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32, readWrite);
+                Graphics.Blit(source, copy);
+                byte[] data = ReadbackRgba32(copy);
+                int expectedBytes = source.width * source.height * 4;
+                if (data == null) return Reject("PublishGpuReadbackFailed", "GPU readback failed for a persistent source Texture2D.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, source));
+                if (data.Length != expectedBytes) return Reject("PublishGpuReadbackLengthInvalid", "GPU readback did not return an RGBA32 texture of the expected extent.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, source));
+
+                // The readback bytes are already in the source texture's color
+                // encoding because the temporary target uses the matching sRGB
+                // policy. Keep the encoded Texture2D's data flag aligned with it;
+                // EncodeToPNG then writes those bytes without another conversion.
+                encoded = new Texture2D(source.width, source.height, TextureFormat.RGBA32, false, !source.isDataSRGB);
+                encoded.LoadRawTextureData(data);
+                encoded.Apply(false, false);
+                png = PngEncoder(encoded);
+                if (png == null || png.Length == 0) return Reject("PublishPngEncodeFailed", "PNG encoding produced no texture bytes.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, source));
+                return true;
+            }
+            catch (Exception exception)
+            {
+                return Reject("PublishGpuReadbackFailed", exception.Message, out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, source));
+            }
+            finally
+            {
+                if (encoded != null) UnityEngine.Object.DestroyImmediate(encoded);
+                if (copy != null) RenderTexture.ReleaseTemporary(copy);
+            }
+        }
+
+        private static bool IsPersistentTextureSubAsset(Texture2D texture)
+        {
+            string assetPath = AssetDatabase.GetAssetPath(texture);
+            return !string.IsNullOrWhiteSpace(assetPath)
+                && AssetDatabase.LoadMainAssetAtPath(assetPath) != texture;
         }
 
         internal static bool TryConfigureImporter(string assetPath, HumanoidTextureReadbackEntry entry, out StackMachineDiagnostic diagnostic)
