@@ -43,8 +43,8 @@ namespace zgock.ShapeSync.Tests.EditMode
                 Assert.That(baseOutput, Is.Not.Null);
                 Assert.That(normalOutput, Is.Not.Null);
                 Assert.That(baseOutput, Is.Not.SameAs(normalOutput));
-                Assert.That(AssetDatabase.GetAssetPath(baseOutput), Does.Contain(Prefix + "_texture_"));
-                Assert.That(AssetDatabase.GetAssetPath(normalOutput), Does.Contain(Prefix + "_texture_"));
+                Assert.That(AssetDatabase.GetAssetPath(baseOutput), Does.EndWith(Prefix + "_outfitA_cloth_0.png"));
+                Assert.That(AssetDatabase.GetAssetPath(normalOutput), Does.EndWith(Prefix + "_outfitA_cloth_1.png"));
                 Assert.That(source.GetTexture("_BaseMap"), Is.SameAs(sampler));
                 Assert.That(source.GetTexture("_BumpMap"), Is.SameAs(sampler));
                 Assert.That(target.GetTexture("_BaseMap"), Is.SameAs(baseTexture));
@@ -78,8 +78,7 @@ namespace zgock.ShapeSync.Tests.EditMode
                 Assert.That(textureGuids, Has.Length.EqualTo(1));
                 Texture2D shared = AssetDatabase.LoadAssetAtPath<Texture2D>(AssetDatabase.GUIDToAssetPath(textureGuids[0]));
                 string sharedPath = AssetDatabase.GetAssetPath(shared);
-                Assert.That(sharedPath, Does.Contain(Prefix + "_texture_SharedSource_"));
-                Assert.That(sharedPath, Does.Not.Contain("_shirt_"));
+                Assert.That(sharedPath, Does.EndWith(Prefix + "_shirt_Body_0.png"));
                 Material shirt = AssetDatabase.LoadAssetAtPath<Material>(Root + "/" + Prefix + "_shirt_Body.mat");
                 Material skirt = AssetDatabase.LoadAssetAtPath<Material>(Root + "/" + Prefix + "_skirt_Body.mat");
                 Assert.That(shirt.GetTexture("_BaseMap"), Is.SameAs(shared));
@@ -115,6 +114,7 @@ namespace zgock.ShapeSync.Tests.EditMode
                 Assert.That(copied, Is.Not.Null);
                 Assert.That(copied, Is.Not.SameAs(sampler));
                 Assert.That(material.GetTexture("_BaseMap"), Is.SameAs(copied));
+                Assert.That(copiedPath, Does.EndWith(Prefix + "_body_0.png"));
                 Assert.That(File.ReadAllBytes(sourcePath), Is.EqualTo(File.ReadAllBytes(copiedPath)));
             }
             finally { result?.Dispose(); AssetDatabase.DeleteAsset(sourcePath); Destroy(source); Destroy(target); Destroy(sampler); Destroy(adapter); DeleteFolder(); }
@@ -145,8 +145,8 @@ namespace zgock.ShapeSync.Tests.EditMode
                 Assert.That(baseOutput, Is.Not.SameAs(sampler));
                 Assert.That(preservedOutput, Is.Not.SameAs(sampler));
                 Assert.That(baseOutput, Is.Not.SameAs(preservedOutput));
-                Assert.That(AssetDatabase.GetAssetPath(baseOutput), Does.Contain("_basecolor_"));
-                Assert.That(AssetDatabase.GetAssetPath(preservedOutput), Does.Contain("_preserved_"));
+                Assert.That(AssetDatabase.GetAssetPath(baseOutput), Does.EndWith(Prefix + "_body_0.asset"));
+                Assert.That(AssetDatabase.GetAssetPath(preservedOutput), Does.EndWith(Prefix + "_body_1.asset"));
             }
             finally { result?.Dispose(); AssetDatabase.DeleteAsset(sourcePath); Destroy(source); Destroy(target); Destroy(sampler); Destroy(adapter); DeleteFolder(); }
         }
@@ -265,8 +265,7 @@ namespace zgock.ShapeSync.Tests.EditMode
                 Assert.That(InvokeStage(Root, "Look", result, out _, out string[] residuals, out StackMachineDiagnostic diagnostic), Is.False);
                 Assert.That(diagnostic.domainCode, Is.EqualTo("PublishAssetStagingFailed"));
                 Assert.That(residuals, Has.Length.EqualTo(1));
-                Assert.That(residuals[0], Does.Contain(Root + "/" + Prefix + "_texture_"));
-                Assert.That(residuals[0], Does.EndWith(".png"));
+                Assert.That(residuals[0], Does.EndWith(Root + "/" + Prefix + "_body_0.png"));
                 Assert.That(diagnostic.detail, Does.Contain(residuals[0]));
                 Assert.That(AssetDatabase.LoadAssetAtPath<Texture2D>(residuals[0]), Is.Not.Null);
             }
@@ -285,8 +284,7 @@ namespace zgock.ShapeSync.Tests.EditMode
                 Assert.That(InvokeStage(Root, "Look", result, out _, out string[] residuals, out StackMachineDiagnostic diagnostic), Is.False);
                 Assert.That(diagnostic.domainCode, Is.EqualTo("PublishAssetStagingFailed"));
                 Assert.That(residuals, Has.Length.EqualTo(1));
-                Assert.That(residuals[0], Does.Contain(Root + "/" + Prefix + "_texture_"));
-                Assert.That(residuals[0], Does.EndWith(".png"));
+                Assert.That(residuals[0], Does.EndWith(Root + "/" + Prefix + "_body_0.png"));
                 Assert.That(File.Exists(Path.GetFullPath(residuals[0])), Is.True);
             }
             finally { SetImporter(path => AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate)); SetWriter(File.WriteAllBytes); result?.Dispose(); Destroy(source); Destroy(target); Destroy(sampler); Release(texture); Destroy(adapter); DeleteFolder(); }

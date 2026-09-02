@@ -118,9 +118,12 @@ namespace zgock.ShapeSync.Editor
         {
             diagnostic = null;
             var stagedByTexture = new Dictionary<string, string>(StringComparer.Ordinal);
+            var indexByMaterial = new Dictionary<MaterialId, int>();
             for (int i = 0; i < entries.Count; i++)
             {
                 HumanoidTextureReadbackEntry entry = entries[i];
+                int index = indexByMaterial.TryGetValue(entry.MaterialId, out int materialIndex) ? materialIndex : 0;
+                indexByMaterial[entry.MaterialId] = index + 1;
                 string textureKey = entry.OutputTextureKey;
                 if (stagedByTexture.TryGetValue(textureKey, out string existingPath))
                 {
@@ -139,7 +142,7 @@ namespace zgock.ShapeSync.Editor
                     && AssetDatabase.LoadMainAssetAtPath(sourceAssetPath) == sourceTexture;
                 string extension = copyPersistentAsset ? Path.GetExtension(sourceAssetPath) : ".png";
                 if (string.IsNullOrWhiteSpace(extension)) extension = ".asset";
-                string path = CombineAssetPath(folder, TextureAssetBaseName(assetPrefix, entry) + extension);
+                string path = CombineAssetPath(folder, TextureAssetBaseName(assetPrefix, entry, index) + extension);
                 if (AssetDatabase.LoadMainAssetAtPath(path) != null || File.Exists(ToAbsolutePath(path))) return Reject("PublishAssetPathOccupied", "Individual asset staging found an occupied output asset path.", out diagnostic, entry.MaterialId.EntryId);
                 if (copyPersistentAsset)
                 {
@@ -324,14 +327,7 @@ namespace zgock.ShapeSync.Editor
         }
 
         private static string AssetBaseName(string assetPrefix, MaterialId materialId) => string.IsNullOrEmpty(materialId.RegistryId) ? assetPrefix + "_" + materialId.EntryId : assetPrefix + "_" + materialId.RegistryId + "_" + materialId.EntryId;
-        private static string TextureAssetBaseName(string assetPrefix, HumanoidTextureReadbackEntry entry)
-        {
-            string sourceName = entry.Texture == null || string.IsNullOrWhiteSpace(entry.Texture.name) ? "texture" : entry.Texture.name;
-            char[] invalid = Path.GetInvalidFileNameChars();
-            for (int i = 0; i < invalid.Length; i++) sourceName = sourceName.Replace(invalid[i], '_');
-            string digest = Hash128.Compute(entry.OutputTextureKey).ToString().Substring(0, 12);
-            return assetPrefix + "_texture_" + sourceName + "_" + entry.Semantic.ToString().ToLowerInvariant() + "_" + digest;
-        }
+        private static string TextureAssetBaseName(string assetPrefix, HumanoidTextureReadbackEntry entry, int index) => AssetBaseName(assetPrefix, entry.MaterialId) + "_" + index;
         private static string CombineAssetPath(string folder, string file) => (folder.TrimEnd('/', '\\') + "/" + file).Replace('\\', '/');
         private static string ToAbsolutePath(string assetPath) => Path.GetFullPath(assetPath);
         private static bool FailWithResidual(List<string> created, StackMachineDiagnostic source, out string[] residualAssetPaths, out StackMachineDiagnostic diagnostic)
