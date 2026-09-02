@@ -13,24 +13,31 @@ namespace zgock.ShapeSync.StackMachine
     {
         /// <summary>Validates the Phase-0 Atlas texture semantics for one entry.</summary>
         public static bool TryValidateSemantics(Texture baseColor, Texture normal, out StackMachineDiagnostic diagnostic)
+            => TryValidateSemantics(baseColor, normal, null, null, null, out diagnostic);
+
+        /// <summary>Validates Atlas texture semantics after asking the assigned adapter about semantic neutrality.</summary>
+        public static bool TryValidateSemantics(Texture baseColor, Texture normal, Material material, MaterialShaderAdapter adapter, string normalTexturePropertyName, out StackMachineDiagnostic diagnostic)
         {
             if (baseColor == null) return Fail("AtlasBaseColorRequired", "Atlas requires a BaseColor texture.", out diagnostic);
             if (normal == null) return Fail("AtlasNormalRequired", "Atlas requires a Normal texture.", out diagnostic);
+            bool normalIsNeutral = false;
+            if (adapter != null && !string.IsNullOrWhiteSpace(normalTexturePropertyName))
+            {
+                if (!adapter.TryGetEffectiveNeutralTexture(material, normalTexturePropertyName, normal, out normalIsNeutral, out MaterialProxyDiagnostic adapterDiagnostic))
+                    return Fail("AtlasAdapterInvalid", adapterDiagnostic.message, out diagnostic);
+            }
             if (!TextureGpuCapabilityProbe.IsPhase0Edge(baseColor.width) || !TextureGpuCapabilityProbe.IsPhase0Edge(baseColor.height)
-                || (!IsNeutralNormalPlaceholder(normal) && (!TextureGpuCapabilityProbe.IsPhase0Edge(normal.width) || !TextureGpuCapabilityProbe.IsPhase0Edge(normal.height))))
+                || (!normalIsNeutral && (!TextureGpuCapabilityProbe.IsPhase0Edge(normal.width) || !TextureGpuCapabilityProbe.IsPhase0Edge(normal.height))))
                 return Fail("AtlasSourceExtentUnsupported", "Atlas source texture extent is unsupported.", out diagnostic);
             diagnostic = null;
             return true;
         }
 
-        /// <summary>Determines whether a Unity built-in neutral Normal placeholder is represented by the Atlas page clear color rather than copied as a source rectangle.</summary>
-        public static bool IsNeutralNormalPlaceholder(Texture texture)
-            => texture != null && texture.width == 8 && texture.height == 8 && string.Equals(texture.name, "Shader_NoneNormal.normal", StringComparison.Ordinal);
         /// <summary>Describes the owner and stable material key of one Atlas validation target.</summary>
         public sealed class Target
         {
             /// <summary>Creates one validation target.</summary>
-            public Target(string owner, MaterialId materialId, int submesh, bool excluded = false, Material material = null, MaterialShaderAdapter adapter = null, Texture baseColor = null, Texture normal = null, int pageIndex = -1, bool hasUvSet = false, Vector2 uvScale = default, Vector2 uvOffset = default) { Owner = owner ?? string.Empty; MaterialId = materialId; Submesh = submesh; Excluded = excluded; Material = material; Adapter = adapter; BaseColor = baseColor; Normal = normal; PageIndex = pageIndex; HasUvSet = hasUvSet; UvScale = hasUvSet ? uvScale : Vector2.one; UvOffset = hasUvSet ? uvOffset : Vector2.zero; }
+            public Target(string owner, MaterialId materialId, int submesh, bool excluded = false, Material material = null, MaterialShaderAdapter adapter = null, Texture baseColor = null, Texture normal = null, int pageIndex = -1, bool hasUvSet = false, Vector2 uvScale = default, Vector2 uvOffset = default, string normalTexturePropertyName = null) { Owner = owner ?? string.Empty; MaterialId = materialId; Submesh = submesh; Excluded = excluded; Material = material; Adapter = adapter; BaseColor = baseColor; Normal = normal; PageIndex = pageIndex; HasUvSet = hasUvSet; UvScale = hasUvSet ? uvScale : Vector2.one; UvOffset = hasUvSet ? uvOffset : Vector2.zero; NormalTexturePropertyName = normalTexturePropertyName; }
             /// <summary>Gets the Figure or Outfit owner.</summary>
             public string Owner { get; }
             /// <summary>Gets the stable material key.</summary>
@@ -47,6 +54,8 @@ namespace zgock.ShapeSync.StackMachine
             public Texture BaseColor { get; }
             /// <summary>Gets the resolved Normal source texture.</summary>
             public Texture Normal { get; }
+            /// <summary>Gets the adapter property that supplied the resolved Normal source texture.</summary>
+            public string NormalTexturePropertyName { get; }
             /// <summary>Gets the dense Atlas page index when resolved.</summary>
             public int PageIndex { get; }
             /// <summary>Gets whether the final candidate material transform comes from a Document UVSET payload.</summary>
@@ -186,7 +195,7 @@ namespace zgock.ShapeSync.StackMachine
             // require the complete entry contract atomically.
             bool hasMaterialInput = target.Material != null || target.Adapter != null || target.BaseColor != null || target.Normal != null;
             if (!hasMaterialInput && !requireComplete) { diagnostic = null; return true; }
-            if (!TryValidateSemantics(target.BaseColor, target.Normal, out diagnostic)) return false;
+            if (!TryValidateSemantics(target.BaseColor, target.Normal, target.Material, target.Adapter, target.NormalTexturePropertyName, out diagnostic)) return false;
             if (!TryValidateMainTextureTransform(target.Material, target.Adapter, target.UvScale, target.UvOffset, out diagnostic)) return false;
             return TryValidateAdapter(target.Material, target.Adapter, out diagnostic);
         }

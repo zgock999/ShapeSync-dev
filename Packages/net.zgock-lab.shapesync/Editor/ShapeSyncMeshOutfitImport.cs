@@ -674,7 +674,9 @@ namespace zgock.ShapeSync.Editor
                         string logicalName = ShapeSyncEntryAssetNaming.GetTextureName(
                             outfitIdentity + "_" + artifactShapeName, classification.EntryName, propertyIndex++);
                         textureCopy = UnityEngine.Object.Instantiate(sourceTexture);
-                        textureCopy.name = logicalName;
+                        textureCopy.name = ShapeSyncEditorTextureUtility.IsLegacyNeutralNormalPlaceholder(sourceTexture)
+                            ? ShapeSyncEditorTextureUtility.LegacyNeutralNormalPlaceholderName
+                            : logicalName;
                         transaction.AddSubAsset(textureCopy);
                         if (!registry.TryRegisterTextureResource(logicalName, textureCopy,
                             ShapeSyncDatabaseRegistry.TextureResourceOwner.Outfit(outfitIdentity, shapeKey),

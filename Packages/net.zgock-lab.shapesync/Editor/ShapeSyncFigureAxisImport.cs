@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using zgock.ShapeSync.StackMachine;
 using zgock.ShapeSync;
 
 namespace zgock.ShapeSync.Editor
@@ -414,7 +415,9 @@ namespace zgock.ShapeSync.Editor
                     {
                         string logicalName = ShapeSyncEntryAssetNaming.GetTextureName(fbmName, entry.LogicalName, textureIndex++);
                         Texture texture = UnityEngine.Object.Instantiate(sourceTexture);
-                        texture.name = logicalName;
+                        texture.name = ShapeSyncEditorTextureUtility.IsLegacyNeutralNormalPlaceholder(sourceTexture)
+                            ? ShapeSyncEditorTextureUtility.LegacyNeutralNormalPlaceholderName
+                            : logicalName;
                         transaction.AddSubAsset(texture);
                         if (!database.Registry.TryRegisterTextureResource(logicalName, texture, ShapeSyncDatabaseRegistry.TextureResourceOwner.FigureFbm(fbmName), out string diagnostic)) throw new InvalidOperationException(diagnostic);
                         imported = new ImportedTexture(logicalName, texture);

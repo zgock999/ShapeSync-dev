@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using zgock.ShapeSync;
+using zgock.ShapeSync.StackMachine;
 
 namespace zgock.ShapeSync.Editor
 {
@@ -420,7 +421,9 @@ namespace zgock.ShapeSync.Editor
                             if (!textureCopies.TryGetValue(sourceTexture, out Texture textureCopy))
                             {
                                 textureCopy = UnityEngine.Object.Instantiate(sourceTexture);
-                                textureCopy.name = MakeDatabaseSubAssetName(figureName, sourceTexture.name, usedNames);
+                                textureCopy.name = ShapeSyncEditorTextureUtility.IsLegacyNeutralNormalPlaceholder(sourceTexture)
+                                    ? ShapeSyncEditorTextureUtility.LegacyNeutralNormalPlaceholderName
+                                    : MakeDatabaseSubAssetName(figureName, sourceTexture.name, usedNames);
                                 textureCopies.Add(sourceTexture, textureCopy);
                                 textures.Add(textureCopy);
                             }

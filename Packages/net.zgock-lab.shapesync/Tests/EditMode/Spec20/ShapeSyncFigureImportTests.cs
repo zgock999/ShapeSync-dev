@@ -213,6 +213,38 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec20
         }
 
         [Test]
+        public void DatabaseMaterialCopies_PreserveNeutralNormalContentAfterRename()
+        {
+            Texture2D neutral = new Texture2D(8, 8, TextureFormat.RGBA32, false, true) { name = ShapeSyncEditorTextureUtility.LegacyNeutralNormalPlaceholderName };
+            Color[] neutralPixels = new Color[64];
+            for (int i = 0; i < neutralPixels.Length; i++) neutralPixels[i] = new Color(.5f, .5f, 1f, 1f);
+            neutral.SetPixels(neutralPixels); neutral.Apply(false, false);
+            Texture2D baseColor = new Texture2D(128, 128) { name = "SourceBaseColor" };
+            Material source = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "SourceMaterial" };
+            UrpLitMaterialShaderAdapter adapter = ScriptableObject.CreateInstance<UrpLitMaterialShaderAdapter>();
+            ShapeSyncFigureImport.DatabaseMaterialCopies copies = null;
+            try
+            {
+                source.SetTexture("_BaseMap", baseColor);
+                source.SetTexture("_BumpMap", neutral);
+                source.EnableKeyword("_NORMALMAP");
+                Assert.That(ShapeSyncFigureImport.DatabaseMaterialCopies.TryCreate("Figure", new[] { source }, out copies, out string diagnostic), Is.True, diagnostic);
+                Texture copiedNormal = copies.Materials.Single().GetTexture("_BumpMap");
+                Assert.That(copiedNormal.name, Is.EqualTo(ShapeSyncEditorTextureUtility.LegacyNeutralNormalPlaceholderName));
+                copiedNormal.name = "DatabaseRenamedNormal";
+                Assert.That(AtlasMeshValidator.TryValidateSemantics(baseColor, copiedNormal, copies.Materials.Single(), adapter, "_BumpMap", out StackMachineDiagnostic validation), Is.True, validation?.message);
+            }
+            finally
+            {
+                copies?.Dispose();
+                Object.DestroyImmediate(source);
+                Object.DestroyImmediate(adapter);
+                Object.DestroyImmediate(neutral);
+                Object.DestroyImmediate(baseColor);
+            }
+        }
+
+        [Test]
         public void AxisImport_RegistersFbmWithDatabaseLocalHumanoidAnimatorAndAvatar()
         {
             const string basePath = Root + "/AxisBase.prefab";

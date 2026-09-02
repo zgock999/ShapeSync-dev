@@ -24,7 +24,7 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
         public void AtlasOn_PumpsAfterMaterialSuccess_AppliesPagesAndReleasesThemWithCandidateEscrow()
         {
             CreateFixture(out GameObject figure, out ShapeSyncDocumentAsset document, out Material source, out Texture2D baseColor);
-            var neutralNormal = new Texture2D(8, 8) { name = "Shader_NoneNormal.normal" };
+            var neutralNormal = NeutralNormal();
             source.SetTexture("_BumpMap", neutralNormal);
             var adapter = ScriptableObject.CreateInstance<UrpLitMaterialShaderAdapter>();
             var schema = CreateSchema(figure, document, source);
@@ -63,7 +63,7 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
         public void AtlasOn_PageStartFailure_AbortsCandidateAndClearsSchemaEscrow()
         {
             CreateFixture(out GameObject figure, out ShapeSyncDocumentAsset document, out Material source, out Texture2D baseColor);
-            var neutralNormal = new Texture2D(8, 8) { name = "Shader_NoneNormal.normal" };
+            var neutralNormal = NeutralNormal();
             source.SetTexture("_BumpMap", neutralNormal);
             var adapter = ScriptableObject.CreateInstance<UrpLitMaterialShaderAdapter>();
             var schema = CreateSchema(figure, document, source);
@@ -91,7 +91,7 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
         public void AtlasOn_AllExcludedSchema_SucceedsAsNoOpAndEmitsOneInfo()
         {
             CreateFixture(out GameObject figure, out ShapeSyncDocumentAsset document, out Material source, out Texture2D baseColor);
-            var neutralNormal = new Texture2D(8, 8) { name = "Shader_NoneNormal.normal" };
+            var neutralNormal = NeutralNormal();
             source.SetTexture("_BumpMap", neutralNormal);
             var adapter = ScriptableObject.CreateInstance<UrpLitMaterialShaderAdapter>();
             var schema = CreateSchema(figure, document, source, excluded: true);
@@ -151,7 +151,7 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
         public void CompilerWindow_AtlasPendingPhaseDisplaysBakingAtlas()
         {
             CreateFixture(out GameObject figure, out ShapeSyncDocumentAsset document, out Material source, out Texture2D baseColor);
-            var neutralNormal = new Texture2D(8, 8) { name = "Shader_NoneNormal.normal" }; source.SetTexture("_BumpMap", neutralNormal);
+            var neutralNormal = NeutralNormal(); source.SetTexture("_BumpMap", neutralNormal);
             var adapter = ScriptableObject.CreateInstance<UrpLitMaterialShaderAdapter>(); var backend = new SuccessfulBackend(source, adapter, baseColor); var schema = CreateSchema(figure, document, source); var window = ScriptableObject.CreateInstance<HumanoidCompilerWindow>();
             FieldInfo backendFactory = typeof(HumanoidCompilerWindow).GetField("BackendFactoryForTests", BindingFlags.Static | BindingFlags.NonPublic); object previousBackend = backendFactory.GetValue(null);
             SuccessfulExecutor executor = null;
@@ -178,7 +178,7 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
         public void AtlasOn_CancelDuringPageExecution_CancelsExecutorAndClearsCandidateEscrow()
         {
             CreateFixture(out GameObject figure, out ShapeSyncDocumentAsset document, out Material source, out Texture2D baseColor);
-            var neutralNormal = new Texture2D(8, 8) { name = "Shader_NoneNormal.normal" };
+            var neutralNormal = NeutralNormal();
             source.SetTexture("_BumpMap", neutralNormal);
             var adapter = ScriptableObject.CreateInstance<UrpLitMaterialShaderAdapter>();
             var schema = CreateSchema(figure, document, source);
@@ -229,6 +229,14 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
         }
 
         private static void CleanupFixture() { if (AssetDatabase.IsValidFolder(FixtureFolder)) AssetDatabase.DeleteAsset(FixtureFolder); }
+        private static Texture2D NeutralNormal()
+        {
+            var texture = new Texture2D(8, 8, TextureFormat.RGBA32, false, true) { name = "DatabaseRenamedNormal" };
+            var pixels = new Color[64];
+            for (int i = 0; i < pixels.Length; i++) pixels[i] = new Color(.5f, .5f, 1f, 1f);
+            texture.SetPixels(pixels); texture.Apply(false, false);
+            return texture;
+        }
         private static object CreateController(Func<IHumanoidBuildBackend> backend, Func<IAtlasBakerPageExecutor> executor)
             => Activator.CreateInstance(ControllerType, BindingFlags.Instance | BindingFlags.NonPublic, null, new object[] { backend, executor }, null);
         private static bool InvokeStartWithAtlas(object controller, GameObject figure, ShapeSyncDocumentAsset document, AtlasSchema schema, out StackMachineDiagnostic diagnostic)

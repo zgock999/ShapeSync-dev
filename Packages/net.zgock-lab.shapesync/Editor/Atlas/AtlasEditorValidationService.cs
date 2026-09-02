@@ -30,11 +30,19 @@ namespace zgock.ShapeSync.Editor.Atlas
                     diagnostic = StackMachineDiagnostic.CreateDomain("atlas", "AtlasEditorMaterialReadRejected", sourceDiagnostic.message, detail: "owner=" + entry.Candidate.Owner + ";materialId=" + entry.Candidate.MaterialId + ";cause=" + sourceDiagnostic.code);
                     return false;
                 }
+                var normalTextureProperties = new List<string>();
+                if (!binding.adapter.TryGetPublishTextureProperties(MaterialProxySemantic.NormalTexture, normalTextureProperties, out MaterialProxyDiagnostic normalPropertyDiagnostic))
+                {
+                    state.MarkDryRunFailed();
+                    diagnostic = StackMachineDiagnostic.CreateDomain("atlas", "AtlasEditorMaterialReadRejected", normalPropertyDiagnostic.message, detail: "owner=" + entry.Candidate.Owner + ";materialId=" + entry.Candidate.MaterialId + ";cause=" + normalPropertyDiagnostic.code);
+                    return false;
+                }
+                string normalTexturePropertyName = normalTextureProperties.Count == 0 ? null : normalTextureProperties[0];
                 if (!layout.TryGetCell(entry.Candidate.MaterialId, out AtlasLayoutCell cell)) { state.MarkDryRunFailed(); diagnostic = StackMachineDiagnostic.CreateDomain("atlas", "AtlasEditorLayoutCellRequired", "Atlas Editor layout did not assign an included candidate.", detail: "materialId=" + entry.Candidate.MaterialId); return false; }
                 if (!targetsByMesh.TryGetValue(mesh, out List<AtlasMeshValidator.Target> targets)) { targets = new List<AtlasMeshValidator.Target>(); targetsByMesh.Add(mesh, targets); }
                 targets.Add(new AtlasMeshValidator.Target(entry.Candidate.Owner, entry.Candidate.MaterialId, binding.materialChannel, false,
                     material, binding.adapter, values.baseColorTexture, values.normalTexture, cell.PageIndex,
-                    values.applyUvTransform, values.uvScale, values.uvOffset));
+                    values.applyUvTransform, values.uvScale, values.uvOffset, normalTexturePropertyName));
             }
             foreach (KeyValuePair<Mesh, List<AtlasMeshValidator.Target>> pair in targetsByMesh)
                 if (!AtlasMeshValidator.TryValidateResolved(pair.Key, pair.Value, out diagnostic)) { state.MarkDryRunFailed(); layout = null; return false; }

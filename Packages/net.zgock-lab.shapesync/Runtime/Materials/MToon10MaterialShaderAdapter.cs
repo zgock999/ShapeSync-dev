@@ -21,6 +21,17 @@ namespace zgock.ShapeSync.Materials
         }
 
         /// <inheritdoc />
+        public override bool TryGetEffectiveNeutralTexture(Material material, string propertyName, Texture texture, out bool isNeutral, out MaterialProxyDiagnostic diagnostic)
+        {
+            isNeutral = false;
+            if (!TryValidateMaterial(material, out diagnostic)) return false;
+            if (propertyName != "_BumpMap") return base.TryGetEffectiveNeutralTexture(material, propertyName, texture, out isNeutral, out diagnostic);
+            if (!material.HasProperty(propertyName)) return base.TryGetEffectiveNeutralTexture(material, propertyName, texture, out isNeutral, out diagnostic);
+            if (!material.IsKeywordEnabled("_NORMALMAP")) { isNeutral = true; diagnostic = default; return true; }
+            return TryMatchNeutralTextureContent(texture, new Color(.5f, .5f, 1f, 1f), out isNeutral, out diagnostic);
+        }
+
+        /// <inheritdoc />
         public override bool TryGetAtlasBaseColorTransform(Material material, out string propertyName, out Vector2 scale, out Vector2 offset, out MaterialProxyDiagnostic diagnostic)
         {
             propertyName = "_MainTex"; scale = Vector2.one; offset = Vector2.zero;

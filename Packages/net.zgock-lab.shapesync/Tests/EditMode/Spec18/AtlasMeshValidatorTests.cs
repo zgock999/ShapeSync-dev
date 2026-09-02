@@ -59,20 +59,52 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
         }
 
         [Test]
-        public void Validate_RequiresBaseColorAndNormalTextures()
+        public void Validate_RequiresBaseColorAndNormalTextures_AndUsesAdapterContentForNeutrality()
         {
             Texture2D texture = new Texture2D(128, 128);
             Assert.That(AtlasMeshValidator.TryValidateSemantics(texture, null, out StackMachineDiagnostic normal), Is.False);
             Assert.That(normal.domainCode, Is.EqualTo("AtlasNormalRequired"));
             Assert.That(AtlasMeshValidator.TryValidateSemantics(texture, texture, out StackMachineDiagnostic valid), Is.True, valid?.message);
-            Texture2D neutralPlaceholder = new Texture2D(8, 8) { name = "Shader_NoneNormal.normal" };
-            Assert.That(AtlasMeshValidator.IsNeutralNormalPlaceholder(neutralPlaceholder), Is.True);
-            Assert.That(AtlasMeshValidator.TryValidateSemantics(texture, neutralPlaceholder, out StackMachineDiagnostic placeholder), Is.True, placeholder?.message);
-            Texture2D unsupportedNormal = new Texture2D(8, 8) { name = "CustomNormal" };
-            Assert.That(AtlasMeshValidator.IsNeutralNormalPlaceholder(unsupportedNormal), Is.False);
-            Assert.That(AtlasMeshValidator.TryValidateSemantics(texture, unsupportedNormal, out StackMachineDiagnostic unsupported), Is.False);
+            Texture2D neutral = Solid(8, 8, new Color(.5f, .5f, 1f, 1f)); neutral.name = "DatabaseRenamedNormal";
+            Texture2D neutralUnsupported = Solid(12, 16, new Color(.5f, .5f, 1f, 1f)); neutralUnsupported.name = "DatabaseRenamedNonPotNormal";
+            Texture2D unsupportedNormal = Solid(8, 8, Color.red); unsupportedNormal.name = "Shader_NoneNormal.normal";
+            Material material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            UrpLitMaterialShaderAdapter adapter = ScriptableObject.CreateInstance<UrpLitMaterialShaderAdapter>();
+            material.EnableKeyword("_NORMALMAP");
+            Assert.That(AtlasMeshValidator.TryValidateSemantics(texture, neutral, material, adapter, "_BumpMap", out StackMachineDiagnostic contentNeutral), Is.True, contentNeutral?.message);
+            Assert.That(AtlasMeshValidator.TryValidateSemantics(texture, neutralUnsupported, material, adapter, "_BumpMap", out StackMachineDiagnostic unsupportedExtentNeutral), Is.True, unsupportedExtentNeutral?.message);
+            Assert.That(AtlasMeshValidator.TryValidateSemantics(texture, unsupportedNormal, material, adapter, "_BumpMap", out StackMachineDiagnostic unsupported), Is.False);
             Assert.That(unsupported.domainCode, Is.EqualTo("AtlasSourceExtentUnsupported"));
-            Object.DestroyImmediate(texture); Object.DestroyImmediate(neutralPlaceholder); Object.DestroyImmediate(unsupportedNormal);
+            Object.DestroyImmediate(adapter); Object.DestroyImmediate(material); Object.DestroyImmediate(texture); Object.DestroyImmediate(neutral); Object.DestroyImmediate(neutralUnsupported); Object.DestroyImmediate(unsupportedNormal);
+        }
+
+        [Test]
+        public void Validate_NeutralQueryUsesMaterialStateBeforeContentAndAcceptsCompressedQuantization()
+        {
+            Texture2D nonNeutral = Solid(8, 8, Color.red); nonNeutral.name = "DatabaseRenamedNormal";
+            Texture2D compressedNeutral = Solid(8, 8, new Color(.5f, .5f, 1f, 1f)); compressedNeutral.name = "CompressedDatabaseNormal";
+            Material material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            UrpLitMaterialShaderAdapter adapter = ScriptableObject.CreateInstance<UrpLitMaterialShaderAdapter>();
+            try
+            {
+                material.EnableKeyword("_NORMALMAP");
+                Assert.That(adapter.TryGetEffectiveNeutralTexture(material, "_BumpMap", nonNeutral, out bool contentResult, out MaterialProxyDiagnostic contentDiagnostic), Is.True, contentDiagnostic.message);
+                Assert.That(contentResult, Is.False);
+
+                // Compression is platform-dependent; where supported, the shared 8/255 RGB
+                // tolerance must still classify the quantized neutral value as neutral.
+                if (SystemInfo.SupportsTextureFormat(TextureFormat.DXT1)) compressedNeutral.Compress(false);
+                Assert.That(adapter.TryGetEffectiveNeutralTexture(material, "_BumpMap", compressedNeutral, out bool compressedResult, out MaterialProxyDiagnostic compressedDiagnostic), Is.True, compressedDiagnostic.message);
+                Assert.That(compressedResult, Is.True);
+
+                material.DisableKeyword("_NORMALMAP");
+                Assert.That(adapter.TryGetEffectiveNeutralTexture(material, "_BumpMap", nonNeutral, out bool stateResult, out MaterialProxyDiagnostic stateDiagnostic), Is.True, stateDiagnostic.message);
+                Assert.That(stateResult, Is.True);
+            }
+            finally
+            {
+                Object.DestroyImmediate(adapter); Object.DestroyImmediate(material); Object.DestroyImmediate(nonNeutral); Object.DestroyImmediate(compressedNeutral);
+            }
         }
 
         [Test]
@@ -310,6 +342,15 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
             public override string ExpectedShaderName => "Universal Render Pipeline/Unlit";
             public override bool TryGetAtlasBaseColorTransform(Material material, out string propertyName, out Vector2 scale, out Vector2 offset, out MaterialProxyDiagnostic diagnostic) { propertyName = "_BaseMap"; scale = material.GetTextureScale(propertyName); offset = material.GetTextureOffset(propertyName); diagnostic = default; return true; }
             protected override void BuildDefaultTemplates(List<MaterialPropertyBindingTemplate> destination) { }
+        }
+
+        private static Texture2D Solid(int width, int height, Color color)
+        {
+            var texture = new Texture2D(width, height, TextureFormat.RGBA32, false, true);
+            var pixels = new Color[width * height];
+            for (int i = 0; i < pixels.Length; i++) pixels[i] = color;
+            texture.SetPixels(pixels); texture.Apply(false, false);
+            return texture;
         }
 
         private static Mesh CreateMesh()

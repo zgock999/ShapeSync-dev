@@ -18,11 +18,12 @@ namespace zgock.ShapeSync.StackMachine
     public sealed class AtlasBakerMaterialInput
     {
         /// <summary>Creates one final material input.</summary>
-        public AtlasBakerMaterialInput(MaterialId materialId, Texture baseColor, Texture normal)
+        public AtlasBakerMaterialInput(MaterialId materialId, Texture baseColor, Texture normal, bool normalIsNeutral = false)
         {
             MaterialId = materialId;
             BaseColor = baseColor;
             Normal = normal;
+            NormalIsNeutral = normalIsNeutral;
         }
 
         /// <summary>Gets the final candidate material key.</summary>
@@ -31,6 +32,9 @@ namespace zgock.ShapeSync.StackMachine
         public Texture BaseColor { get; }
         /// <summary>Gets the actual final Normal texture.</summary>
         public Texture Normal { get; }
+        /// <summary>Gets whether the assigned adapter determined that the Normal semantic is neutral.</summary>
+        /// <remarks>A neutral source is still placed and resampled when its extent is supported. A neutral source with an unsupported extent has no source rectangle and is represented by the Normal page clear color.</remarks>
+        public bool NormalIsNeutral { get; }
     }
 
     /// <summary>One informational result of comparing Schema entries with final candidate material inputs.</summary>
@@ -123,7 +127,7 @@ namespace zgock.ShapeSync.StackMachine
 
         /// <summary>Gets the deterministic layout solved from the Schema.</summary>
         public AtlasLayoutResult Layout { get; }
-        /// <summary>Gets only semantic pages with an actual non-placeholder texture source.</summary>
+        /// <summary>Gets only semantic pages with an actual texture source.</summary>
         public IReadOnlyList<AtlasBakerPagePlan> Pages { get; }
         /// <summary>Gets non-terminal Schema/final-input reconciliation observations.</summary>
         public IReadOnlyList<AtlasBakerReconciliation> Reconciliation { get; }
@@ -240,7 +244,14 @@ namespace zgock.ShapeSync.StackMachine
             {
                 if (!inputs.TryGetValue(cell.MaterialId, out AtlasBakerMaterialInput input)) continue;
                 if (!TryAddSource(input.MaterialId, AtlasTextureSemantic.BaseColor, input.BaseColor, cell, sources, reconciliation, out diagnostic)) return false;
-                if (!AtlasMeshValidator.IsNeutralNormalPlaceholder(input.Normal) && !TryAddSource(input.MaterialId, AtlasTextureSemantic.Normal, input.Normal, cell, sources, reconciliation, out diagnostic)) return false;
+                // A neutral normal still has to participate in the Normal page when it
+                // is a real source texture. Otherwise a database-owned neutral texture
+                // such as a 1024px _BumpMap would bypass PLACE and remain at its source
+                // extent on the generated material. The only source-less case is the
+                // unsupported neutral placeholder, which is represented by the Normal
+                // page clear color instead. Supported neutral sources still go through
+                // PLACE so database-owned textures are resampled to the page extent.
+                if (!IsNeutralNormalWithoutSource(input) && !TryAddSource(input.MaterialId, AtlasTextureSemantic.Normal, input.Normal, cell, sources, reconciliation, out diagnostic)) return false;
             }
             sources.Sort(Source.Compare);
             var pageSources = new Dictionary<string, List<Source>>();
@@ -284,6 +295,10 @@ namespace zgock.ShapeSync.StackMachine
             diagnostic = null;
             return true;
         }
+
+        private static bool IsNeutralNormalWithoutSource(AtlasBakerMaterialInput input)
+            => input != null && input.NormalIsNeutral && input.Normal != null
+                && (!TextureGpuCapabilityProbe.IsPhase0Edge(input.Normal.width) || !TextureGpuCapabilityProbe.IsPhase0Edge(input.Normal.height));
 
         private bool TryValidateCurrentSourceIdentities(Dictionary<MaterialId, AtlasSchemaEntry> entries, Dictionary<MaterialId, AtlasBakerMaterialInput> inputs, out StackMachineDiagnostic diagnostic)
         {

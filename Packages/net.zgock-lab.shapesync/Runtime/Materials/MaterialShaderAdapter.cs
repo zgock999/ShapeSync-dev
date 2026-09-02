@@ -154,6 +154,107 @@ namespace zgock.ShapeSync.Materials
             return TryValidateMaterial(material, out diagnostic) && false;
         }
 
+        /// <summary>Determines whether an adapter-mapped texture is semantically neutral for the current Material.</summary>
+        /// <remarks>The adapter first evaluates current Material state in its override and uses content inspection only when state does not decide the result. The property name is deliberately generic so future Emission, Occlusion, and MatCap semantics can use the same query.</remarks>
+        public virtual bool TryGetEffectiveNeutralTexture(Material material, string propertyName, Texture texture, out bool isNeutral, out MaterialProxyDiagnostic diagnostic)
+        {
+            isNeutral = false;
+            if (!TryValidateMaterial(material, out diagnostic)) return false;
+            if (string.IsNullOrWhiteSpace(propertyName))
+            {
+                diagnostic = MaterialProxyDiagnostic.Fail(MaterialProxyDiagnosticCode.RequiredPropertyMissing, "Neutral texture query requires an adapter property name.");
+                return false;
+            }
+            if (!material.HasProperty(propertyName))
+            {
+                diagnostic = MaterialProxyDiagnostic.Fail(MaterialProxyDiagnosticCode.RequiredPropertyMissing, "Neutral texture query property is not present on the material.");
+                return false;
+            }
+            diagnostic = default;
+            return true;
+        }
+
+        /// <summary>Compares RGB content with an adapter-owned neutral value using the shared quantization tolerance.</summary>
+        protected static bool TryMatchNeutralTextureContent(Texture texture, Color expected, out bool isNeutral, out MaterialProxyDiagnostic diagnostic)
+        {
+            isNeutral = false;
+            diagnostic = default;
+            if (texture == null) return true;
+            if (!TryReadNeutralTexturePixels(texture, out Color[] pixels, out diagnostic)) return false;
+            // BC/DXT RGB endpoint quantization can move a 5-bit channel value by about
+            // 4/255 at worst; 8/255 leaves bounded headroom for that quantization while
+            // still rejecting visibly non-neutral texels.
+            const float channelTolerance = 8f / 255f;
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                Color actual = pixels[i];
+                if (Mathf.Abs(actual.r - expected.r) > channelTolerance
+                    || Mathf.Abs(actual.g - expected.g) > channelTolerance
+                    || Mathf.Abs(actual.b - expected.b) > channelTolerance)
+                    return true;
+            }
+            isNeutral = true;
+            return true;
+        }
+
+        private static bool TryReadNeutralTexturePixels(Texture source, out Color[] pixels, out MaterialProxyDiagnostic diagnostic)
+        {
+            pixels = null;
+            diagnostic = default;
+            if (source.width <= 0 || source.height <= 0)
+                return FailNeutralTextureRead("Texture has no readable extent.", out diagnostic);
+            if (source is Texture2D readableTexture && readableTexture.isReadable)
+            {
+                try
+                {
+                    pixels = readableTexture.GetPixels();
+                    return true;
+                }
+                catch (Exception exception)
+                {
+                    return FailNeutralTextureRead("Texture2D.GetPixels failed: " + exception.Message, out diagnostic);
+                }
+            }
+
+            RenderTexture previous = RenderTexture.active;
+            RenderTexture staging = null;
+            Texture2D readback = null;
+            try
+            {
+                // This is the same GPU-readback fallback required for unreadable source
+                // textures by the editor publish path; the 8x8 probe is intentionally small.
+                staging = RenderTexture.GetTemporary(source.width, source.height, 0,
+                    RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+                Graphics.Blit(source, staging);
+                RenderTexture.active = staging;
+                readback = new Texture2D(source.width, source.height, TextureFormat.RGBA32, false, true);
+                readback.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0, false);
+                readback.Apply(false, false);
+                pixels = readback.GetPixels();
+                return true;
+            }
+            catch (Exception exception)
+            {
+                return FailNeutralTextureRead("GPU texture readback failed: " + exception.Message, out diagnostic);
+            }
+            finally
+            {
+                RenderTexture.active = previous;
+                if (staging != null) RenderTexture.ReleaseTemporary(staging);
+                if (readback != null)
+                {
+                    if (Application.isPlaying) UnityEngine.Object.Destroy(readback);
+                    else UnityEngine.Object.DestroyImmediate(readback);
+                }
+            }
+        }
+
+        private static bool FailNeutralTextureRead(string message, out MaterialProxyDiagnostic diagnostic)
+        {
+            diagnostic = MaterialProxyDiagnostic.Fail(MaterialProxyDiagnosticCode.TextureReadbackFailed, message);
+            return false;
+        }
+
         /// <summary>Gets the adapter-owned BaseColor texture transform that Atlas must normalize.</summary>
         /// <remarks>Derived adapters override this for shaders whose BaseColor property is not <c>_MainTex</c>.</remarks>
         public virtual bool TryGetAtlasBaseColorTransform(Material material, out string propertyName, out Vector2 scale, out Vector2 offset, out MaterialProxyDiagnostic diagnostic)

@@ -89,7 +89,7 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
             var executions = new AtlasBakerExecutionResult[1];
             try
             {
-                AtlasBakerResult logical = Logical(source, placeholder);
+                AtlasBakerResult logical = Logical(source, placeholder, true);
                 yield return Execute(logical, executions);
                 using (AtlasBakerExecutionResult execution = executions[0])
                 {
@@ -116,7 +116,7 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
             var executions = new AtlasBakerExecutionResult[1];
             try
             {
-                yield return Execute(Logical(source, placeholder), executions);
+                yield return Execute(Logical(source, placeholder, true), executions);
                 using (AtlasBakerExecutionResult execution = executions[0])
                 {
                     Assert.That(execution.Pages, Has.Count.EqualTo(1));
@@ -145,12 +145,12 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
             }
         }
 
-        private static AtlasBakerResult Logical(Texture baseColor, Texture normal)
+        private static AtlasBakerResult Logical(Texture baseColor, Texture normal, bool normalIsNeutral = false)
         {
             var id = new MaterialId("", "body");
             AtlasSchemaDocument schema = FixtureDocument();
             var identity = new AtlasValidationIdentity("figure", "document", new[] { new AtlasSourceMaterialIdentity(id, "source:body") });
-            using (var operation = new AtlasBakerOperation(schema, identity, new[] { new AtlasBakerMaterialInput(id, baseColor, normal) }))
+            using (var operation = new AtlasBakerOperation(schema, identity, new[] { new AtlasBakerMaterialInput(id, baseColor, normal, normalIsNeutral) }))
             {
                 Assert.That(operation.Pump(), Is.EqualTo(AtlasBakerOperationStatus.Succeeded), operation.Diagnostic?.message);
                 Assert.That(operation.TryTakeResult(out AtlasBakerResult result, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
@@ -220,7 +220,7 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
         private static Texture2D ShaderNoneNormal()
         {
             var texture = Gradient(8, 8, new Color(.5f, .5f, 1f, 1f));
-            texture.name = "Shader_NoneNormal.normal";
+            texture.name = "DatabaseRenamedNormal";
             return texture;
         }
 

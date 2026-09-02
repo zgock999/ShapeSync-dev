@@ -8,6 +8,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using zgock.ShapeSync.Materials;
+using zgock.ShapeSync.StackMachine;
 
 namespace zgock.ShapeSync.Editor
 {
@@ -174,7 +175,9 @@ namespace zgock.ShapeSync.Editor
                         if (!textureCopies.TryGetValue(source, out Texture copy))
                         {
                             copy = UnityEngine.Object.Instantiate(source);
-                            copy.name = admission.LogicalName + "_" + source.name;
+                            copy.name = ShapeSyncEditorTextureUtility.IsLegacyNeutralNormalPlaceholder(source)
+                                ? ShapeSyncEditorTextureUtility.LegacyNeutralNormalPlaceholderName
+                                : admission.LogicalName + "_" + source.name;
                             textureCopies.Add(source, copy);
                             textures.Add(copy);
                         }

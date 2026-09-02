@@ -31,19 +31,65 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
         }
 
         [Test]
-        public void Pump_NeutralNormalPlaceholder_OmitsNormalPlaceAndKeepsBasePage()
+        public void Pump_NeutralNormalResult_OmitsNormalPlaceAndKeepsBasePage_RegardlessOfTextureName()
         {
             Texture2D baseColor = Texture(128, 128);
-            Texture2D placeholder = Texture(8, 8); placeholder.name = "Shader_NoneNormal.normal";
+            Texture2D placeholder = Texture(8, 8); placeholder.name = "DatabaseRenamedNormal";
             try
             {
-                var operation = new AtlasBakerOperation(Schema(Entry("body", 2, 2)), Current("body"), new[] { new AtlasBakerMaterialInput(Id("body"), baseColor, placeholder) });
+                var operation = new AtlasBakerOperation(Schema(Entry("body", 2, 2)), Current("body"), new[] { new AtlasBakerMaterialInput(Id("body"), baseColor, placeholder, true) });
                 Assert.That(operation.Pump(), Is.EqualTo(AtlasBakerOperationStatus.Succeeded), operation.Diagnostic?.message + " :: " + operation.Diagnostic?.detail);
                 Assert.That(operation.TryTakeResult(out AtlasBakerResult result, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
                 Assert.That(result.Pages.Count, Is.EqualTo(1));
                 Assert.That(result.Pages[0].Semantic, Is.EqualTo(AtlasTextureSemantic.BaseColor));
             }
             finally { Object.DestroyImmediate(baseColor); Object.DestroyImmediate(placeholder); }
+        }
+
+        [Test]
+        public void Pump_NeutralNormalSource_IsPlacedAndResampledWhenItIsNotTheEightByEightPlaceholder()
+        {
+            Texture2D baseColor = Texture(128, 128);
+            Texture2D neutral = Texture(128, 128); neutral.name = "DatabaseRenamedNormal";
+            try
+            {
+                var operation = new AtlasBakerOperation(Schema(Entry("body", 1, 1, 64)), Current("body"), new[] { new AtlasBakerMaterialInput(Id("body"), baseColor, neutral, true) });
+                Assert.That(operation.Pump(), Is.EqualTo(AtlasBakerOperationStatus.Succeeded), operation.Diagnostic?.message + " :: " + operation.Diagnostic?.detail);
+                Assert.That(operation.TryTakeResult(out AtlasBakerResult result, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
+                Assert.That(result.Pages.Count, Is.EqualTo(2));
+                AssertPage(result.Pages[1], AtlasTextureSemantic.Normal, new Color(.5f, .5f, 1f, 1f), neutral);
+            }
+            finally { Object.DestroyImmediate(baseColor); Object.DestroyImmediate(neutral); }
+        }
+
+        [Test]
+        public void Pump_NeutralNormalWithUnsupportedExtent_IsSourceLessRegardlessOfShape()
+        {
+            Texture2D baseColor = Texture(128, 128);
+            Texture2D neutral = Texture(12, 16); neutral.name = "DatabaseRenamedNormal";
+            try
+            {
+                var operation = new AtlasBakerOperation(Schema(Entry("body", 2, 2)), Current("body"), new[] { new AtlasBakerMaterialInput(Id("body"), baseColor, neutral, true) });
+                Assert.That(operation.Pump(), Is.EqualTo(AtlasBakerOperationStatus.Succeeded), operation.Diagnostic?.message + " :: " + operation.Diagnostic?.detail);
+                Assert.That(operation.TryTakeResult(out AtlasBakerResult result, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
+                Assert.That(result.Pages.Count, Is.EqualTo(1));
+                Assert.That(result.Pages[0].Semantic, Is.EqualTo(AtlasTextureSemantic.BaseColor));
+            }
+            finally { Object.DestroyImmediate(baseColor); Object.DestroyImmediate(neutral); }
+        }
+
+        [Test]
+        public void Pump_NonNeutralEightByEightNormalStillRejectsUnsupportedExtent()
+        {
+            Texture2D baseColor = Texture(128, 128);
+            Texture2D normal = Texture(8, 8); normal.name = "DatabaseRenamedNormal";
+            try
+            {
+                var operation = new AtlasBakerOperation(Schema(Entry("body", 2, 2)), Current("body"), new[] { new AtlasBakerMaterialInput(Id("body"), baseColor, normal, false) });
+                Assert.That(operation.Pump(), Is.EqualTo(AtlasBakerOperationStatus.Failed));
+                Assert.That(operation.Diagnostic.domainCode, Is.EqualTo("AtlasSourceExtentUnsupported"));
+            }
+            finally { Object.DestroyImmediate(baseColor); Object.DestroyImmediate(normal); }
         }
 
         [Test]

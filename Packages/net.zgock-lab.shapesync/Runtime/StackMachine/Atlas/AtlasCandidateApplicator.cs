@@ -129,9 +129,13 @@ namespace zgock.ShapeSync.StackMachine
                     return Reject("AtlasCandidateValidationReadRejected", planDiagnostic.message, out diagnostic);
                 if (!slot.Adapter.TryReadValues(candidate.Materials[i], readPlan, out MaterialProxySemanticValues values, out MaterialProxyDiagnostic valuesDiagnostic))
                     return Reject("AtlasCandidateValidationReadRejected", valuesDiagnostic.message, out diagnostic);
+                var normalTextureProperties = new List<string>();
+                if (!slot.Adapter.TryGetPublishTextureProperties(MaterialProxySemantic.NormalTexture, normalTextureProperties, out MaterialProxyDiagnostic normalPropertyDiagnostic))
+                    return Reject("AtlasCandidateValidationReadRejected", normalPropertyDiagnostic.message, out diagnostic);
                 targets.Add(new AtlasMeshValidator.Target(slot.MaterialId.RegistryId, slot.MaterialId, slot.SubmeshIndex, false,
                     candidate.Materials[i], slot.Adapter, values.baseColorTexture, values.normalTexture, cell.PageIndex,
-                    values.applyUvTransform, values.uvScale, values.uvOffset));
+                    values.applyUvTransform, values.uvScale, values.uvOffset,
+                    normalTextureProperties.Count == 0 ? null : normalTextureProperties[0]));
             }
             return AtlasMeshValidator.TryValidateResolved(candidate.Mesh, targets, out diagnostic);
         }

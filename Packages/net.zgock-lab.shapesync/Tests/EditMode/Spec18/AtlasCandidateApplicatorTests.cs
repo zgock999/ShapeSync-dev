@@ -130,14 +130,14 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
         }
 
         [Test]
-        public void Apply_NeutralNormalPlaceholderKeepsNormalBindingAndTransfersOnlyBasePage()
+        public void Apply_NeutralNormalResultKeepsNormalBindingAndTransfersOnlyBasePage()
         {
-            Texture2D sourceBase = Texture(); Texture2D neutral = new Texture2D(8, 8) { name = "Shader_NoneNormal.normal" };
+            Texture2D sourceBase = Texture(); Texture2D neutral = NeutralNormal();
             Material source = null; Material candidateMaterial = null; UrpLitMaterialShaderAdapter adapter = null; InMemoryHumanoidMesh candidate = null; RenderTexture pageBase = null;
             int pageReleases = 0;
             try
             {
-                AtlasBakerResult logical = Logical(sourceBase, neutral);
+                AtlasBakerResult logical = Logical(sourceBase, neutral, true);
                 Assert.That(logical.Pages, Has.Count.EqualTo(1));
                 source = new Material(Shader.Find("Universal Render Pipeline/Lit")); source.SetTexture("_BaseMap", sourceBase); source.SetTexture("_BumpMap", neutral);
                 candidateMaterial = new Material(source); adapter = ScriptableObject.CreateInstance<UrpLitMaterialShaderAdapter>(); candidate = Candidate(source, candidateMaterial, adapter);
@@ -195,12 +195,12 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
         [Test]
         public void Apply_ChangesOnlyAtlasTargetSlotAndLeavesUntargetedUvAndMaterialUntouched()
         {
-            Texture2D sourceBase = Texture(); Texture2D neutral = new Texture2D(8, 8) { name = "Shader_NoneNormal.normal" };
+            Texture2D sourceBase = Texture(); Texture2D neutral = NeutralNormal();
             Material targetSource = null; Material target = null; Material otherSource = null; Material other = null;
             UrpLitMaterialShaderAdapter targetAdapter = null; UrpUnlitMaterialShaderAdapter otherAdapter = null; InMemoryHumanoidMesh candidate = null; RenderTexture pageBase = null; Texture2D otherBase = null;
             try
             {
-                AtlasBakerResult logical = Logical(sourceBase, neutral);
+                AtlasBakerResult logical = Logical(sourceBase, neutral, true);
                 targetSource = new Material(Shader.Find("Universal Render Pipeline/Lit")); targetSource.SetTexture("_BaseMap", sourceBase); targetSource.SetTexture("_BumpMap", neutral);
                 target = new Material(targetSource);
                 otherSource = new Material(Shader.Find("Universal Render Pipeline/Unlit")); other = new Material(otherSource);
@@ -294,11 +294,11 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
         [Test]
         public void Apply_RejectsAtlasVertexSharedWithUntargetedSubmeshBeforeMutation()
         {
-            Texture2D sourceBase = Texture(); Texture2D neutral = new Texture2D(8, 8) { name = "Shader_NoneNormal.normal" };
+            Texture2D sourceBase = Texture(); Texture2D neutral = NeutralNormal();
             Material targetSource = null; Material target = null; Material otherSource = null; Material other = null; UrpLitMaterialShaderAdapter targetAdapter = null; UrpUnlitMaterialShaderAdapter otherAdapter = null; InMemoryHumanoidMesh candidate = null; RenderTexture pageBase = null;
             try
             {
-                AtlasBakerResult logical = Logical(sourceBase, neutral);
+                AtlasBakerResult logical = Logical(sourceBase, neutral, true);
                 targetSource = new Material(Shader.Find("Universal Render Pipeline/Lit")); targetSource.SetTexture("_BaseMap", sourceBase); targetSource.SetTexture("_BumpMap", neutral); target = new Material(targetSource);
                 otherSource = new Material(Shader.Find("Universal Render Pipeline/Unlit")); other = new Material(otherSource);
                 targetAdapter = ScriptableObject.CreateInstance<UrpLitMaterialShaderAdapter>(); otherAdapter = ScriptableObject.CreateInstance<UrpUnlitMaterialShaderAdapter>();
@@ -314,12 +314,12 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
             finally { candidate?.Dispose(); Destroy(sourceBase); Destroy(neutral); Destroy(targetSource); Destroy(target); Destroy(otherSource); Destroy(other); Destroy(targetAdapter); Destroy(otherAdapter); Destroy(pageBase); }
         }
 
-        private static AtlasBakerResult Logical(Texture baseColor, Texture normal)
+        private static AtlasBakerResult Logical(Texture baseColor, Texture normal, bool normalIsNeutral = false)
         {
             var id = new MaterialId("outfit", "body");
             var identity = new AtlasValidationIdentity("figure", "document", new[] { new AtlasSourceMaterialIdentity(id, "source-body") });
             var schema = new AtlasSchemaDocument(AtlasSchemaVersion.Current, 512, AtlasPackingAlgorithm.FirstFitBuddyV1, true, identity, new[] { new AtlasSchemaEntry(id, 0, 2, 2, false, 0) });
-            using (var operation = new AtlasBakerOperation(schema, identity, new[] { new AtlasBakerMaterialInput(id, baseColor, normal) }))
+            using (var operation = new AtlasBakerOperation(schema, identity, new[] { new AtlasBakerMaterialInput(id, baseColor, normal, normalIsNeutral) }))
             {
                 Assert.That(operation.Pump(), Is.EqualTo(AtlasBakerOperationStatus.Succeeded), operation.Diagnostic?.message);
                 Assert.That(operation.TryTakeResult(out AtlasBakerResult result, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
@@ -368,6 +368,14 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
             return candidate;
         }
         private static Texture2D Texture() => new Texture2D(128, 128, TextureFormat.RGBA32, false, true);
+        private static Texture2D NeutralNormal()
+        {
+            var texture = new Texture2D(8, 8, TextureFormat.RGBA32, false, true) { name = "DatabaseRenamedNormal" };
+            var pixels = new Color[64];
+            for (int i = 0; i < pixels.Length; i++) pixels[i] = new Color(.5f, .5f, 1f, 1f);
+            texture.SetPixels(pixels); texture.Apply(false, false);
+            return texture;
+        }
         private static RenderTexture RenderTexture() { var texture = new RenderTexture(512, 512, 0, RenderTextureFormat.ARGB32); texture.Create(); return texture; }
         private static void Destroy(Object value)
         {

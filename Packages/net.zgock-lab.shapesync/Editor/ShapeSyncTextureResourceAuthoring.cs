@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using zgock.ShapeSync.StackMachine;
 
 namespace zgock.ShapeSync.Editor
 {
@@ -91,7 +92,9 @@ namespace zgock.ShapeSync.Editor
                     foreach (Addition addition in additions ?? Array.Empty<Addition>())
                     {
                         Texture copy = UnityEngine.Object.Instantiate(addition.Source);
-                        copy.name = addition.Name;
+                        copy.name = ShapeSyncEditorTextureUtility.IsLegacyNeutralNormalPlaceholder(addition.Source)
+                            ? ShapeSyncEditorTextureUtility.LegacyNeutralNormalPlaceholderName
+                            : addition.Name;
                         copies.Add(copy);
                         context.AddSubAsset(copy);
                         if (!database.Registry.TryRegisterTextureResource(addition.Name, copy, out string addDiagnostic))

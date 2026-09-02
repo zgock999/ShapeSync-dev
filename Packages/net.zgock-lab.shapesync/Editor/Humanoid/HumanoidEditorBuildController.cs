@@ -473,8 +473,15 @@ namespace zgock.ShapeSync.Editor
                     return Reject("AtlasCandidateMaterialReadRejected", readPlanDiagnostic.message, out diagnostic);
                 if (!slot.Adapter.TryReadValues(material, readPlan, out MaterialProxySemanticValues values, out MaterialProxyDiagnostic readDiagnostic))
                     return Reject("AtlasCandidateMaterialReadRejected", readDiagnostic.message, out diagnostic);
+                var normalTextureProperties = new List<string>();
+                if (!slot.Adapter.TryGetPublishTextureProperties(MaterialProxySemantic.NormalTexture, normalTextureProperties, out MaterialProxyDiagnostic normalPropertyDiagnostic))
+                    return Reject("AtlasCandidateMaterialReadRejected", normalPropertyDiagnostic.message, out diagnostic);
+                bool normalIsNeutral = false;
+                if (values.normalTexture != null && normalTextureProperties.Count != 0
+                    && !slot.Adapter.TryGetEffectiveNeutralTexture(material, normalTextureProperties[0], values.normalTexture, out normalIsNeutral, out MaterialProxyDiagnostic neutralDiagnostic))
+                    return Reject("AtlasCandidateMaterialReadRejected", neutralDiagnostic.message, out diagnostic);
                 sources.Add(new AtlasSourceMaterialIdentity(slot.MaterialId, sourceIdentity));
-                inputs.Add(new AtlasBakerMaterialInput(slot.MaterialId, material.GetTexture(baseColorProperty), values.normalTexture));
+                inputs.Add(new AtlasBakerMaterialInput(slot.MaterialId, material.GetTexture(baseColorProperty), values.normalTexture, normalIsNeutral));
             }
             identity = new AtlasValidationIdentity(atlasFigureIdentity, atlasDocumentIdentity, sources);
             return true;

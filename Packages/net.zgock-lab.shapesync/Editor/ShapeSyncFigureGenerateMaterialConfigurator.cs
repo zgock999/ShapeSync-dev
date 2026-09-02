@@ -29,7 +29,7 @@ namespace zgock.ShapeSync.Editor
                 proxySo.ApplyModifiedPropertiesWithoutUndo();
                 Material[] outputMaterials = renderer.sharedMaterials.ToArray();
                 var textureClones = new Dictionary<Texture, Texture2D>();
-                foreach (var resource in snapshot.TextureResources.Where(value => value.Texture is Texture2D)) { Texture2D clone = (Texture2D)ShapeSyncEditorTextureUtility.Clone(resource.Texture); clone.name = resource.LogicalName; textureClones.Add(resource.Texture, clone); figure.OwnGeneratedAsset(clone); }
+                foreach (var resource in snapshot.TextureResources.Where(value => value.Texture is Texture2D)) { Texture2D clone = (Texture2D)ShapeSyncEditorTextureUtility.Clone(resource.Texture); clone.name = ShapeSyncEditorTextureUtility.IsLegacyNeutralNormalPlaceholder(resource.Texture) ? ShapeSyncEditorTextureUtility.LegacyNeutralNormalPlaceholderName : resource.LogicalName; textureClones.Add(resource.Texture, clone); figure.OwnGeneratedAsset(clone); }
                 foreach (var source in snapshot.MaterialEntries.OrderBy(x => x.MaterialSlot))
                 {
                     Material clone = UnityEngine.Object.Instantiate(source.MaterialAsset);

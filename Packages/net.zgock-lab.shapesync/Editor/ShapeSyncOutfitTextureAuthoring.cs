@@ -7,12 +7,21 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using zgock.ShapeSync.StackMachine;
 
 namespace zgock.ShapeSync.Editor
 {
     /// <summary>Creates editor-owned texture copies without requiring imported textures to be readable.</summary>
     internal static class ShapeSyncEditorTextureUtility
     {
+        // Compatibility-only identity used while preserving legacy source names during
+        // editor copies. Atlas neutrality is determined from MaterialShaderAdapter state/content.
+        internal const string LegacyNeutralNormalPlaceholderName = "Shader_NoneNormal.normal";
+
+        internal static bool IsLegacyNeutralNormalPlaceholder(Texture texture)
+            => texture != null && texture.width == 8 && texture.height == 8
+                && string.Equals(texture.name, LegacyNeutralNormalPlaceholderName, StringComparison.Ordinal);
+
         internal static Texture Clone(Texture source)
         {
             if (source is not Texture2D sourceTexture || sourceTexture.isReadable)
@@ -154,7 +163,9 @@ namespace zgock.ShapeSync.Editor
                 || existing.Usage != usage))
                 throw new InvalidOperationException("Existing Outfit Texture resource owner or usage does not match: " + resourceName);
             Texture copy = ShapeSyncEditorTextureUtility.Clone(source);
-            copy.name = resourceName;
+            copy.name = ShapeSyncEditorTextureUtility.IsLegacyNeutralNormalPlaceholder(source)
+                ? ShapeSyncEditorTextureUtility.LegacyNeutralNormalPlaceholderName
+                : resourceName;
             context.AddSubAsset(copy);
             if (existing == null)
             {

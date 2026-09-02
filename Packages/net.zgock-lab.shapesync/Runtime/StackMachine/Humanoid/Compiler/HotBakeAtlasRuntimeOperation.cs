@@ -106,7 +106,14 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
                     return Reject("AtlasCandidateMaterialReadRejected", readPlanDiagnostic.message, out diagnostic);
                 if (!slot.Adapter.TryReadValues(material, readPlan, out MaterialProxySemanticValues values, out MaterialProxyDiagnostic readDiagnostic))
                     return Reject("AtlasCandidateMaterialReadRejected", readDiagnostic.message, out diagnostic);
-                inputs.Add(new AtlasBakerMaterialInput(slot.MaterialId, material.GetTexture(baseColorProperty), values.normalTexture));
+                var normalTextureProperties = new List<string>();
+                if (!slot.Adapter.TryGetPublishTextureProperties(MaterialProxySemantic.NormalTexture, normalTextureProperties, out MaterialProxyDiagnostic normalPropertyDiagnostic))
+                    return Reject("AtlasCandidateMaterialReadRejected", normalPropertyDiagnostic.message, out diagnostic);
+                bool normalIsNeutral = false;
+                if (values.normalTexture != null && normalTextureProperties.Count != 0
+                    && !slot.Adapter.TryGetEffectiveNeutralTexture(material, normalTextureProperties[0], values.normalTexture, out normalIsNeutral, out MaterialProxyDiagnostic neutralDiagnostic))
+                    return Reject("AtlasCandidateMaterialReadRejected", neutralDiagnostic.message, out diagnostic);
+                inputs.Add(new AtlasBakerMaterialInput(slot.MaterialId, material.GetTexture(baseColorProperty), values.normalTexture, normalIsNeutral));
             }
             return true;
         }

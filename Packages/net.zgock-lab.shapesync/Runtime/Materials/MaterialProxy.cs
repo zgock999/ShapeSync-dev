@@ -42,7 +42,9 @@ namespace zgock.ShapeSync.Materials
         /// <summary>A suspended entry could not safely reuse its escrowed resources and was released for normal re-derivation.</summary>
         EscrowStale,
         /// <summary>The current Material does not expose a usable BaseColor texture for a canvas binding.</summary>
-        CurrentTextureUnavailable
+        CurrentTextureUnavailable,
+        /// <summary>A texture could not be read back for semantic content inspection.</summary>
+        TextureReadbackFailed
     }
 
     [Serializable]

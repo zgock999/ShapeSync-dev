@@ -11,6 +11,7 @@ using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using Object = UnityEngine.Object;
 using zgock.ShapeSync.Editor;
+using zgock.ShapeSync.StackMachine;
 
 #if UNITY_6000_2_OR_NEWER
 using ShapeSyncTreeViewState = UnityEditor.IMGUI.Controls.TreeViewState<int>;
@@ -267,6 +268,24 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec20
                 Assert.That(outfitPart.UseColorize, Is.False);
                 Assert.That(registry.TryValidateShapePartsForGeneration(new[] { figurePart }, out string figureValidationDiagnostic), Is.True, figureValidationDiagnostic);
                 Assert.That(registry.TryValidateShapePartsForGeneration(new[] { outfitPart }, out string outfitValidationDiagnostic), Is.True, outfitValidationDiagnostic);
+            }
+            finally { Object.DestroyImmediate(texture); }
+        }
+
+        [Test]
+        public void TextureResourceRename_RenamesUnityObjectWithoutChangingTextureContentContract()
+        {
+            Texture2D texture = new Texture2D(8, 8, TextureFormat.RGBA32, false, true);
+            Color[] pixels = new Color[64];
+            for (int i = 0; i < pixels.Length; i++) pixels[i] = new Color(.5f, .5f, 1f, 1f);
+            texture.SetPixels(pixels); texture.Apply(false, false);
+            Color before = texture.GetPixel(0, 0);
+            try
+            {
+                Assert.That(registry.TryRegisterTextureResource("NeutralNormal", texture, out string registerDiagnostic), Is.True, registerDiagnostic);
+                Assert.That(registry.TryRenameTextureResource("NeutralNormal", "Figure_Brow_Normal", out string renameDiagnostic), Is.True, renameDiagnostic);
+                Assert.That(texture.name, Is.EqualTo("Figure_Brow_Normal"));
+                Assert.That(texture.GetPixel(0, 0), Is.EqualTo(before));
             }
             finally { Object.DestroyImmediate(texture); }
         }
