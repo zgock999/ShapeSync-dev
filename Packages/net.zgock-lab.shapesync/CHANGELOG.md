@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.2.0-preview11] - Unreleased
+## [0.2.0-preview12] - Unreleased
 
 - Ship the default Texture StackMachine Factory Settings asset in the Core package.
 - Removed the retired embedded net.zgock-lab.shapesync.r3-core dependency.

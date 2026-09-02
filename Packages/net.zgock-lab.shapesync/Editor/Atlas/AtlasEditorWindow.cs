@@ -99,8 +99,9 @@ namespace zgock.ShapeSync.Editor.Atlas
             for (int i = 0; i < state.Entries.Count; i++)
             {
                 AtlasEditorEntryState entry = state.Entries[i];
-                MaterialProxySemanticValues? values = entry.Candidate.ValidationBinding?.configuredValues;
-                Texture source = values.HasValue && values.Value.baseColorTexture != null ? values.Value.baseColorTexture : values.HasValue ? values.Value.normalTexture : null;
+                Texture source = null;
+                if (AtlasEditorMaterialSourceResolver.TryResolve(entry.Candidate.ValidationBinding, out _, out MaterialProxySemanticValues values, out _))
+                    source = AtlasEditorMaterialSourceResolver.GetDisplaySourceTexture(values);
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
                 EditorGUILayout.LabelField(entry.Candidate.MaterialId.ToString() + "  " + FormatSourceTextureSize(source));
                 EditorGUILayout.LabelField("Source", entry.Candidate.SourceMaterialName);

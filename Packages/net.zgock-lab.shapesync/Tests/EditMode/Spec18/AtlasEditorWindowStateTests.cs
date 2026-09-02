@@ -262,7 +262,7 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
             Material material = entry.Candidate.ValidationBinding.renderer.sharedMaterial; material.SetTextureOffset("_BaseMap", Vector2.right);
 
             Assert.That(AtlasEditorValidationService.TryDryRun(state, out _, out StackMachineDiagnostic diagnostic), Is.False);
-            Assert.That(diagnostic.domainCode, Is.EqualTo("AtlasMainTextureTransformUnsupported"));
+            Assert.That(diagnostic.domainCode, Is.EqualTo("AtlasMainTextureTilingUnsupported"));
             Assert.That(state.CanGenerate, Is.False);
             Assert.That(state.LayoutPreview, Is.Null);
         }
@@ -285,6 +285,55 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
             Assert.That(diagnostic.detail, Does.Contain("owner=;materialId=body;submesh=0;pageIndex=0;cause=property=_DetailAlbedoMap"));
             Assert.That(state.CanGenerate, Is.False);
             Assert.That(state.LayoutPreview, Is.Null);
+        }
+
+        [Test]
+        public void DryRun_ResolvesCurrentMaterialWhenDatabaseFigureConfiguredValuesAreEmpty()
+        {
+            GameObject figure = PersistentFigure("DatabaseFigure", "body", true);
+            ShapeSyncDocumentAsset document = PersistentDocument();
+            var state = new AtlasEditorState(); state.SetFigure(figure); state.SetDocument(document);
+            Assert.That(state.TryListEntries(out _), Is.True);
+            AtlasEditorEntryState entry = state.Entries[0];
+            MaterialProxyEntry binding = entry.Candidate.ValidationBinding;
+            Texture expectedBaseColor = binding.renderer.sharedMaterial.GetTexture("_BaseMap");
+            Texture expectedNormal = binding.renderer.sharedMaterial.GetTexture("_BumpMap");
+            Assert.That(binding.configuredValues.baseColorTexture, Is.Null);
+            Assert.That(binding.configuredValues.normalTexture, Is.Null);
+            Assert.That(AtlasEditorMaterialSourceResolver.TryResolve(binding, out Material material, out MaterialProxySemanticValues values, out MaterialProxyDiagnostic sourceDiagnostic), Is.True, sourceDiagnostic.message);
+            Assert.That(material, Is.SameAs(binding.renderer.sharedMaterial));
+            Assert.That(values.baseColorTexture, Is.SameAs(expectedBaseColor));
+            Assert.That(values.normalTexture, Is.SameAs(expectedNormal));
+            Assert.That(AtlasEditorMaterialSourceResolver.GetDisplaySourceTexture(values), Is.SameAs(expectedBaseColor));
+
+            Assert.That(state.TrySetEntry(entry.Candidate.MaterialId, 0, AtlasEditorCellSelection.Whole, out _), Is.True);
+            Assert.That(AtlasEditorValidationService.TryDryRun(state, out _, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
+            Assert.That(binding.configuredValues.baseColorTexture, Is.Null, "Dry Run must not write resolved values back into configuredValues.");
+            Assert.That(binding.configuredValues.normalTexture, Is.Null, "Dry Run must not write resolved values back into configuredValues.");
+        }
+
+        [Test]
+        public void DryRun_MergesPartialConfiguredSemanticOverridesWithoutDroppingCurrentTextures()
+        {
+            GameObject figure = PersistentFigure("PartialOverrideFigure", "body", partialConfiguredValues: true);
+            ShapeSyncDocumentAsset document = PersistentDocument();
+            var state = new AtlasEditorState(); state.SetFigure(figure); state.SetDocument(document);
+            Assert.That(state.TryListEntries(out _), Is.True);
+            AtlasEditorEntryState entry = state.Entries[0];
+            MaterialProxyEntry binding = entry.Candidate.ValidationBinding;
+            Texture expectedBaseColor = binding.renderer.sharedMaterial.GetTexture("_BaseMap");
+            Texture expectedNormal = binding.renderer.sharedMaterial.GetTexture("_BumpMap");
+            Assert.That(binding.configuredValues.applyColor, Is.True);
+            Assert.That(binding.configuredValues.applyBaseColorTexture, Is.False);
+            Assert.That(binding.configuredValues.applyNormalTexture, Is.False);
+            Assert.That(AtlasEditorMaterialSourceResolver.TryResolve(binding, out _, out MaterialProxySemanticValues values, out MaterialProxyDiagnostic sourceDiagnostic), Is.True, sourceDiagnostic.message);
+            Assert.That(values.baseColorTexture, Is.SameAs(expectedBaseColor));
+            Assert.That(values.normalTexture, Is.SameAs(expectedNormal));
+            Assert.That(values.applyColor, Is.True);
+            Assert.That(values.color, Is.EqualTo(Color.magenta));
+
+            Assert.That(state.TrySetEntry(entry.Candidate.MaterialId, 0, AtlasEditorCellSelection.Whole, out _), Is.True);
+            Assert.That(AtlasEditorValidationService.TryDryRun(state, out _, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
         }
 
         [Test]
@@ -347,7 +396,7 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
             Assert.That(AtlasEditorWindow.HasAspectMismatch(source, entry), Is.False);
         }
 
-        private static GameObject PersistentFigure(string name, string entryName)
+        private static GameObject PersistentFigure(string name, string entryName, bool emptyConfiguredValues = false, bool partialConfiguredValues = false)
         {
             EnsureFolder();
             GameObject root = new GameObject(name); GameObject child = new GameObject("Renderer"); child.transform.SetParent(root.transform);
@@ -359,7 +408,12 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
             Texture2D normal = new Texture2D(128, 128); AssetDatabase.CreateAsset(normal, Path(name + "Normal", ".asset")); material.SetTexture("_BumpMap", normal);
             UrpLitMaterialShaderAdapter adapter = ScriptableObject.CreateInstance<UrpLitMaterialShaderAdapter>(); AssetDatabase.CreateAsset(adapter, Path(name + "Adapter", ".asset"));
             MaterialProxy proxy = root.AddComponent<MaterialProxy>();
-            Set(proxy, "entries", new List<MaterialProxyEntry> { new MaterialProxyEntry { entryName = entryName, renderer = renderer, materialChannel = 0, adapter = adapter, configuredValues = new MaterialProxySemanticValues { applyBaseColorTexture = true, baseColorTexture = baseColor, applyNormalTexture = true, normalTexture = normal } } });
+            MaterialProxySemanticValues configuredValues = emptyConfiguredValues
+                ? default
+                : partialConfiguredValues
+                    ? new MaterialProxySemanticValues { applyColor = true, color = Color.magenta }
+                    : new MaterialProxySemanticValues { applyBaseColorTexture = true, baseColorTexture = baseColor, applyNormalTexture = true, normalTexture = normal };
+            Set(proxy, "entries", new List<MaterialProxyEntry> { new MaterialProxyEntry { entryName = entryName, renderer = renderer, materialChannel = 0, adapter = adapter, configuredValues = configuredValues } });
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, Path(name, ".prefab")); Object.DestroyImmediate(root); return prefab;
         }
 
