@@ -13,12 +13,88 @@ using zgock.ShapeSync.StackMachine.Humanoid;
 
 namespace zgock.ShapeSync.Editor
 {
+    /// <summary>One Material output path and the MaterialId that owns its published name.</summary>
+    internal readonly struct HumanoidPublishMaterialOutput
+    {
+        internal HumanoidPublishMaterialOutput(MaterialId materialId, string assetPath)
+        {
+            MaterialId = materialId;
+            AssetPath = assetPath;
+        }
+
+        internal MaterialId MaterialId { get; }
+        internal string AssetPath { get; }
+    }
+
+    /// <summary>One individual Texture output, including the consumed per-Material index.</summary>
+    internal readonly struct HumanoidPublishTextureOutput
+    {
+        internal HumanoidPublishTextureOutput(MaterialId materialId, int index, string outputTextureKey, string assetPath)
+        {
+            MaterialId = materialId;
+            Index = index;
+            OutputTextureKey = outputTextureKey;
+            AssetPath = assetPath;
+        }
+
+        internal MaterialId MaterialId { get; }
+        internal int Index { get; }
+        internal string OutputTextureKey { get; }
+        internal string AssetPath { get; }
+    }
+
+    /// <summary>One Atlas page output path and its semantic identity.</summary>
+    internal readonly struct HumanoidPublishAtlasOutput
+    {
+        internal HumanoidPublishAtlasOutput(int pageIndex, string semantic, string assetPath)
+        {
+            PageIndex = pageIndex;
+            Semantic = semantic;
+            AssetPath = assetPath;
+        }
+
+        internal int PageIndex { get; }
+        internal string Semantic { get; }
+        internal string AssetPath { get; }
+    }
+
+    /// <summary>Immutable naming contract retained from staging through the final Prefab commit.</summary>
+    internal sealed class HumanoidPublishOutputContract
+    {
+        internal HumanoidPublishOutputContract(string outputFolder, string assetPrefix, string meshPath, string avatarPath,
+            IReadOnlyList<HumanoidPublishMaterialOutput> materials,
+            IReadOnlyList<HumanoidPublishTextureOutput> textures,
+            IReadOnlyList<HumanoidPublishAtlasOutput> atlasTextures)
+        {
+            OutputFolder = outputFolder;
+            AssetPrefix = assetPrefix;
+            MeshPath = meshPath;
+            AvatarPath = avatarPath;
+            Materials = materials ?? Array.Empty<HumanoidPublishMaterialOutput>();
+            Textures = textures ?? Array.Empty<HumanoidPublishTextureOutput>();
+            AtlasTextures = atlasTextures ?? Array.Empty<HumanoidPublishAtlasOutput>();
+        }
+
+        internal string OutputFolder { get; }
+        internal string AssetPrefix { get; }
+        internal string MeshPath { get; }
+        internal string AvatarPath { get; }
+        internal IReadOnlyList<HumanoidPublishMaterialOutput> Materials { get; }
+        internal IReadOnlyList<HumanoidPublishTextureOutput> Textures { get; }
+        internal IReadOnlyList<HumanoidPublishAtlasOutput> AtlasTextures { get; }
+    }
+
     /// <summary>One Editor-only individual asset staging result retained by the publish transaction until Prefab commit.</summary>
     internal sealed class HumanoidIndividualAssetStage
     {
         internal HumanoidIndividualAssetStage(Mesh mesh, Avatar avatar, Material[] materials, Texture2D[] textures, string[] assetPaths)
         {
             Mesh = mesh; Avatar = avatar; Materials = materials; Textures = textures; AssetPaths = assetPaths;
+        }
+
+        internal HumanoidIndividualAssetStage(Mesh mesh, Avatar avatar, Material[] materials, Texture2D[] textures, string[] assetPaths, HumanoidPublishOutputContract outputContract)
+        {
+            Mesh = mesh; Avatar = avatar; Materials = materials; Textures = textures; AssetPaths = assetPaths; OutputContract = outputContract;
         }
 
         internal Mesh Mesh { get; }
@@ -28,6 +104,8 @@ namespace zgock.ShapeSync.Editor
         internal IReadOnlyList<Texture2D> Textures { get; }
         /// <summary>Gets assets left on disk when a later publish phase cancels or fails. They are intentionally not deleted.</summary>
         internal IReadOnlyList<string> AssetPaths { get; }
+        /// <summary>Gets the immutable Spec17 §1.3 output naming contract captured during staging.</summary>
+        internal HumanoidPublishOutputContract OutputContract { get; }
     }
 
     /// <summary>Stages non-VRM individual assets from a completed in-memory Humanoid result; Prefab commit remains a later transaction.</summary>
@@ -80,10 +158,31 @@ namespace zgock.ShapeSync.Editor
                 var texturePaths = new Dictionary<HumanoidTextureReadbackEntry, string>();
                 if (!TryCollectAtlasPageBindings(payload, out List<AtlasPageBinding> atlasBindings, out diagnostic)) return false;
                 var atlasPaths = new Dictionary<AtlasBakerPageCompletion, string>();
-                if (!TryStageAtlasPages(outputFolder, assetPrefix, atlasBindings, atlasPaths, created, out diagnostic)) return FailWithResidual(created, diagnostic, out residualAssetPaths, out diagnostic);
-                if (!TryStageTextures(outputFolder, assetPrefix, entries, texturePaths, created, out diagnostic)) return FailWithResidual(created, diagnostic, out residualAssetPaths, out diagnostic);
+                var atlasOutputs = new List<HumanoidPublishAtlasOutput>();
+                if (!TryStageAtlasPages(outputFolder, assetPrefix, atlasBindings, atlasPaths, atlasOutputs, created, out diagnostic)) return FailWithResidual(created, diagnostic, out residualAssetPaths, out diagnostic);
+                var textureOutputs = new List<HumanoidPublishTextureOutput>();
+                if (!TryStageTextures(outputFolder, assetPrefix, entries, texturePaths, textureOutputs, created, out diagnostic)) return FailWithResidual(created, diagnostic, out residualAssetPaths, out diagnostic);
                 if (!TryStageMeshAndAvatar(outputFolder, assetPrefix, payload, created, out Mesh mesh, out Avatar avatar, out diagnostic)) return FailWithResidual(created, diagnostic, out residualAssetPaths, out diagnostic);
                 if (!TryStageMaterials(outputFolder, assetPrefix, payload, entries, texturePaths, atlasBindings, atlasPaths, created, out Material[] materials, out diagnostic)) return FailWithResidual(created, diagnostic, out residualAssetPaths, out diagnostic);
+                var materialOutputs = new List<HumanoidPublishMaterialOutput>();
+                var materialOutputIds = new HashSet<int>();
+                for (int i = 0; i < materials.Length; i++)
+                {
+                    Material material = materials[i];
+                    if (material == null || !materialOutputIds.Add(material.GetInstanceID())) continue;
+                    string materialPath = AssetDatabase.GetAssetPath(material);
+                    materialOutputs.Add(new HumanoidPublishMaterialOutput(payload.MaterialSlots[i].MaterialId, materialPath));
+                }
+                var outputContract = new HumanoidPublishOutputContract(
+                    outputFolder,
+                    assetPrefix,
+                    CombineAssetPath(outputFolder, assetPrefix + ".asset"),
+                    avatar == null ? null : CombineAssetPath(outputFolder, assetPrefix + "_avatar.asset"),
+                    materialOutputs,
+                    textureOutputs,
+                    atlasOutputs);
+                if (!HumanoidPublishPathValidator.TryValidateOutputNaming(outputContract, out diagnostic))
+                    return FailWithResidual(created, diagnostic, out residualAssetPaths, out diagnostic);
                 var textures = new List<Texture2D>();
                 var stagedTexturePaths = new HashSet<string>(StringComparer.Ordinal);
                 foreach (HumanoidTextureReadbackEntry entry in entries)
@@ -104,7 +203,7 @@ namespace zgock.ShapeSync.Editor
                     if (texture == null) return FailWithResidual(created, StackMachineDiagnostic.CreateDomain("humanoid", "PublishTextureAssetMissing", "Individual asset staging could not reload an imported Atlas page texture asset."), out residualAssetPaths, out diagnostic);
                     textures.Add(texture);
                 }
-                stage = new HumanoidIndividualAssetStage(mesh, avatar, materials, textures.ToArray(), created.ToArray());
+                stage = new HumanoidIndividualAssetStage(mesh, avatar, materials, textures.ToArray(), created.ToArray(), outputContract);
                 return true;
             }
             catch (Exception exception)
@@ -114,7 +213,7 @@ namespace zgock.ShapeSync.Editor
             }
         }
 
-        private static bool TryStageTextures(string folder, string assetPrefix, IReadOnlyList<HumanoidTextureReadbackEntry> entries, Dictionary<HumanoidTextureReadbackEntry, string> paths, List<string> created, out StackMachineDiagnostic diagnostic)
+        private static bool TryStageTextures(string folder, string assetPrefix, IReadOnlyList<HumanoidTextureReadbackEntry> entries, Dictionary<HumanoidTextureReadbackEntry, string> paths, List<HumanoidPublishTextureOutput> outputs, List<string> created, out StackMachineDiagnostic diagnostic)
         {
             diagnostic = null;
             var stagedByTexture = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -128,6 +227,7 @@ namespace zgock.ShapeSync.Editor
                 if (stagedByTexture.TryGetValue(textureKey, out string existingPath))
                 {
                     paths.Add(entry, existingPath);
+                    outputs.Add(new HumanoidPublishTextureOutput(entry.MaterialId, index, textureKey, existingPath));
                     continue;
                 }
                 Texture2D sourceTexture = entry.Texture as Texture2D;
@@ -136,15 +236,15 @@ namespace zgock.ShapeSync.Editor
                 // container path (for example, BasicFemale.vrm). Copying that path would
                 // publish the whole source container as a texture and reintroduce every
                 // source-model dependency into the Pure Humanoid output. Copy only a
-                // standalone main texture asset; embedded/sub-assets are encoded below.
-                bool copyPersistentAsset = sourceTexture != null
+                // standalone PNG main texture asset; every other source is encoded below
+                // so the Pure Humanoid naming contract always ends in .png.
+                bool copyPersistentPngAsset = sourceTexture != null
                     && !string.IsNullOrWhiteSpace(sourceAssetPath)
-                    && AssetDatabase.LoadMainAssetAtPath(sourceAssetPath) == sourceTexture;
-                string extension = copyPersistentAsset ? Path.GetExtension(sourceAssetPath) : ".png";
-                if (string.IsNullOrWhiteSpace(extension)) extension = ".asset";
-                string path = CombineAssetPath(folder, TextureAssetBaseName(assetPrefix, entry, index) + extension);
+                    && AssetDatabase.LoadMainAssetAtPath(sourceAssetPath) == sourceTexture
+                    && string.Equals(Path.GetExtension(sourceAssetPath), ".png", StringComparison.OrdinalIgnoreCase);
+                string path = CombineAssetPath(folder, TextureAssetBaseName(assetPrefix, entry, index) + ".png");
                 if (AssetDatabase.LoadMainAssetAtPath(path) != null || File.Exists(ToAbsolutePath(path))) return Reject("PublishAssetPathOccupied", "Individual asset staging found an occupied output asset path.", out diagnostic, entry.MaterialId.EntryId);
-                if (copyPersistentAsset)
+                if (copyPersistentPngAsset)
                 {
                     if (!AssetDatabase.CopyAsset(sourceAssetPath, path))
                         return Reject("PublishTextureAssetCopyFailed", "Individual asset staging could not copy a persistent source texture asset.", out diagnostic, sourceAssetPath);
@@ -162,11 +262,12 @@ namespace zgock.ShapeSync.Editor
                 }
                 stagedByTexture.Add(textureKey, path);
                 paths.Add(entry, path);
+                outputs.Add(new HumanoidPublishTextureOutput(entry.MaterialId, index, textureKey, path));
             }
             return true;
         }
 
-        private static bool TryStageAtlasPages(string folder, string assetPrefix, IReadOnlyList<AtlasPageBinding> bindings, Dictionary<AtlasBakerPageCompletion, string> paths, List<string> created, out StackMachineDiagnostic diagnostic)
+        private static bool TryStageAtlasPages(string folder, string assetPrefix, IReadOnlyList<AtlasPageBinding> bindings, Dictionary<AtlasBakerPageCompletion, string> paths, List<HumanoidPublishAtlasOutput> outputs, List<string> created, out StackMachineDiagnostic diagnostic)
         {
             diagnostic = null;
             for (int i = 0; i < bindings.Count; i++)
@@ -184,6 +285,7 @@ namespace zgock.ShapeSync.Editor
                 ImportAsset(path);
                 if (!HumanoidTexturePublishReadback.TryConfigureImporter(path, entry, out diagnostic)) return false;
                 paths.Add(page, path);
+                outputs.Add(new HumanoidPublishAtlasOutput(page.PageIndex, suffix, path));
             }
             return true;
         }

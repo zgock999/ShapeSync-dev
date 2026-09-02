@@ -181,13 +181,12 @@ namespace zgock.ShapeSync.Editor
             if (texture == null) return Reject("PublishTextureSourceMissing", "Texture publish requires a Texture2D source.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry));
             if (!texture.isReadable)
             {
-                // VRM/GLTF importers commonly expose embedded Texture2D sub-assets
-                // without CPU-readable pixels. They are persistent source assets even
-                // though they are not the container's main asset, so copy the GPU
-                // sample into a readable staging texture. Runtime/transient textures
-                // remain an explicit reject because there is no stable source asset
-                // whose pixels can be reproduced after the publish transaction.
-                if (!IsPersistentTextureSubAsset(texture))
+                // Importers commonly expose persistent Texture2D assets without
+                // CPU-readable pixels. Read those through the GPU so the output can
+                // still satisfy the PNG-only publish contract. Runtime/transient
+                // textures remain an explicit reject because there is no stable source
+                // asset whose pixels can be reproduced after the publish transaction.
+                if (!IsPersistentTextureAsset(texture))
                     return Reject("PublishTextureSourceNotReadable", "A non-asset Texture2D must be readable before it can be published independently.", out diagnostic, entry.MaterialId.EntryId, EntryPropertyDetail(entry, texture));
                 return TryEncodePersistentUnreadableTexturePng(texture, entry, out png, out diagnostic);
             }
@@ -246,11 +245,10 @@ namespace zgock.ShapeSync.Editor
             }
         }
 
-        private static bool IsPersistentTextureSubAsset(Texture2D texture)
+        private static bool IsPersistentTextureAsset(Texture2D texture)
         {
             string assetPath = AssetDatabase.GetAssetPath(texture);
-            return !string.IsNullOrWhiteSpace(assetPath)
-                && AssetDatabase.LoadMainAssetAtPath(assetPath) != texture;
+            return !string.IsNullOrWhiteSpace(assetPath);
         }
 
         internal static bool TryConfigureImporter(string assetPath, HumanoidTextureReadbackEntry entry, out StackMachineDiagnostic diagnostic)

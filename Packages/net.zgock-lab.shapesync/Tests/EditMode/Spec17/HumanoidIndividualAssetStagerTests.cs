@@ -49,6 +49,10 @@ namespace zgock.ShapeSync.Tests.EditMode
                 Assert.That(source.GetTexture("_BumpMap"), Is.SameAs(sampler));
                 Assert.That(target.GetTexture("_BaseMap"), Is.SameAs(baseTexture));
                 Assert.That(target.GetTexture("_BumpMap"), Is.SameAs(normalTexture));
+                HumanoidPublishOutputContract outputContract = (HumanoidPublishOutputContract)stage.GetType().GetProperty("OutputContract", Flags).GetValue(stage);
+                Assert.That(outputContract.AssetPrefix, Is.EqualTo(Prefix));
+                Assert.That(outputContract.Textures, Has.Count.EqualTo(2));
+                Assert.That(HumanoidPublishPathValidator.TryValidateOutputNaming(outputContract, out StackMachineDiagnostic namingDiagnostic), Is.True, namingDiagnostic?.message);
                 int assetPathCount = 0; foreach (object ignored in (IEnumerable)stage.GetType().GetProperty("AssetPaths", Flags).GetValue(stage)) assetPathCount++;
                 Assert.That(assetPathCount, Is.EqualTo(4));
             }
@@ -85,8 +89,49 @@ namespace zgock.ShapeSync.Tests.EditMode
                 Assert.That(skirt.GetTexture("_BaseMap"), Is.SameAs(shared));
                 int stagedTextureCount = 0; foreach (object ignored in (IEnumerable)stage.GetType().GetProperty("Textures", Flags).GetValue(stage)) stagedTextureCount++;
                 Assert.That(stagedTextureCount, Is.EqualTo(1));
+                HumanoidPublishOutputContract outputContract = (HumanoidPublishOutputContract)stage.GetType().GetProperty("OutputContract", Flags).GetValue(stage);
+                Assert.That(outputContract.Textures, Has.Count.EqualTo(2), "Each MaterialId consumes an index even when the source Texture is shared.");
+                Assert.That(outputContract.Textures[0].Index, Is.EqualTo(0));
+                Assert.That(outputContract.Textures[1].Index, Is.EqualTo(0));
+                Assert.That(outputContract.Textures[1].AssetPath, Is.EqualTo(outputContract.Textures[0].AssetPath), "Cross-Material dedup must retain the first-published Texture path.");
+                Assert.That(HumanoidPublishPathValidator.TryValidateOutputNaming(outputContract, out StackMachineDiagnostic namingDiagnostic), Is.True, namingDiagnostic?.message);
             }
             finally { result?.Dispose(); Destroy(shirtSource); Destroy(skirtSource); Destroy(shirtTarget); Destroy(skirtTarget); Destroy(sampler); Destroy(adapter); DeleteFolder(); }
+        }
+
+        [Test]
+        public void OutputNamingContract_RejectsNonPngWrongPrefixAndNonContiguousIndex()
+        {
+            HumanoidBuildResult result = null; Material source = null; Material target = null; Texture2D sampler = null; RenderTexture texture = null; UrpUnlitMaterialShaderAdapter adapter = null;
+            try
+            {
+                CreateFolder();
+                sampler = new Texture2D(2, 2); sampler.Apply(false, false);
+                source = new Material(Shader.Find("Universal Render Pipeline/Unlit")); source.SetTexture("_BaseMap", sampler);
+                target = new Material(source); texture = CreateTexture(sampler); target.SetTexture("_BaseMap", texture);
+                adapter = ScriptableObject.CreateInstance<UrpUnlitMaterialShaderAdapter>();
+                result = new HumanoidBuildResult(CreateMesh(source, target, adapter, new MaterialId(string.Empty, "body")));
+
+                Assert.That(InvokeStage(Root, "DocumentNameMustNotBeUsed", result, out object stage, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
+                HumanoidPublishOutputContract contract = (HumanoidPublishOutputContract)stage.GetType().GetProperty("OutputContract", Flags).GetValue(stage);
+                HumanoidPublishTextureOutput textureOutput = contract.Textures[0];
+
+                var nonPng = new HumanoidPublishTextureOutput(textureOutput.MaterialId, textureOutput.Index, textureOutput.OutputTextureKey, textureOutput.AssetPath.Replace(".png", ".asset"));
+                var nonPngContract = new HumanoidPublishOutputContract(contract.OutputFolder, contract.AssetPrefix, contract.MeshPath, contract.AvatarPath, contract.Materials, new[] { nonPng }, contract.AtlasTextures);
+                Assert.That(HumanoidPublishPathValidator.TryValidateOutputNaming(nonPngContract, out StackMachineDiagnostic nonPngDiagnostic), Is.False);
+                Assert.That(nonPngDiagnostic.domainCode, Is.EqualTo("PublishTextureExtensionInvalid"));
+
+                var wrongPrefix = new HumanoidPublishTextureOutput(textureOutput.MaterialId, textureOutput.Index, textureOutput.OutputTextureKey, Root + "/DocumentNameMustNotBeUsed_body_0.png");
+                var wrongPrefixContract = new HumanoidPublishOutputContract(contract.OutputFolder, contract.AssetPrefix, contract.MeshPath, contract.AvatarPath, contract.Materials, new[] { wrongPrefix }, contract.AtlasTextures);
+                Assert.That(HumanoidPublishPathValidator.TryValidateOutputNaming(wrongPrefixContract, out StackMachineDiagnostic wrongPrefixDiagnostic), Is.False);
+                Assert.That(wrongPrefixDiagnostic.domainCode, Is.EqualTo("PublishTextureNameInvalid"));
+
+                var nonContiguous = new HumanoidPublishTextureOutput(textureOutput.MaterialId, textureOutput.Index + 1, textureOutput.OutputTextureKey, textureOutput.AssetPath);
+                var nonContiguousContract = new HumanoidPublishOutputContract(contract.OutputFolder, contract.AssetPrefix, contract.MeshPath, contract.AvatarPath, contract.Materials, new[] { nonContiguous }, contract.AtlasTextures);
+                Assert.That(HumanoidPublishPathValidator.TryValidateOutputNaming(nonContiguousContract, out StackMachineDiagnostic nonContiguousDiagnostic), Is.False);
+                Assert.That(nonContiguousDiagnostic.domainCode, Is.EqualTo("PublishTextureIndexInvalid"));
+            }
+            finally { result?.Dispose(); Destroy(source); Destroy(target); Destroy(sampler); Release(texture); Destroy(adapter); DeleteFolder(); }
         }
 
         [Test]
@@ -121,6 +166,30 @@ namespace zgock.ShapeSync.Tests.EditMode
         }
 
         [Test]
+        public void Stage_EncodesPersistentNonPngTextureAsPng()
+        {
+            const string sourcePath = ShapeSyncTestAssetPaths.ConsumerTempRoot + "/zgock/ShapeSync/Tests/EditMode/Spec17/__Spec17_6_PreservedSourceTexture.asset";
+            HumanoidBuildResult result = null; Material source = null; Material target = null; Texture2D sampler = null; UrpUnlitMaterialShaderAdapter adapter = null;
+            try
+            {
+                CreateFolder();
+                sampler = new Texture2D(2, 2, TextureFormat.RGBA32, false, false);
+                sampler.SetPixel(0, 0, Color.magenta); sampler.Apply(false, false);
+                AssetDatabase.CreateAsset(sampler, sourcePath); AssetDatabase.SaveAssets();
+                sampler = AssetDatabase.LoadAssetAtPath<Texture2D>(sourcePath);
+                source = new Material(Shader.Find("Universal Render Pipeline/Unlit")); source.SetTexture("_BaseMap", sampler);
+                target = new Material(source); adapter = ScriptableObject.CreateInstance<UrpUnlitMaterialShaderAdapter>();
+                result = new HumanoidBuildResult(CreateMesh(source, target, adapter, new MaterialId(string.Empty, "body")));
+
+                Assert.That(InvokeStage(Root, "Look", result, out _, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
+                string outputPath = Root + "/" + Prefix + "_body_0.png";
+                Assert.That(AssetDatabase.LoadAssetAtPath<Texture2D>(outputPath), Is.Not.Null);
+                Assert.That(File.Exists(Path.GetFullPath(Root + "/" + Prefix + "_body_0.asset")), Is.False);
+            }
+            finally { result?.Dispose(); AssetDatabase.DeleteAsset(sourcePath); Destroy(source); Destroy(target); Destroy(sampler); Destroy(adapter); DeleteFolder(); }
+        }
+
+        [Test]
         public void Stage_CopiesPreservedShaderTexturePropertyIntoOutputFolder()
         {
             const string sourcePath = ShapeSyncTestAssetPaths.ConsumerTempRoot + "/zgock/ShapeSync/Tests/EditMode/Spec17/__Spec17_6_PreservedSourceTexture.asset";
@@ -145,8 +214,8 @@ namespace zgock.ShapeSync.Tests.EditMode
                 Assert.That(baseOutput, Is.Not.SameAs(sampler));
                 Assert.That(preservedOutput, Is.Not.SameAs(sampler));
                 Assert.That(baseOutput, Is.Not.SameAs(preservedOutput));
-                Assert.That(AssetDatabase.GetAssetPath(baseOutput), Does.EndWith(Prefix + "_body_0.asset"));
-                Assert.That(AssetDatabase.GetAssetPath(preservedOutput), Does.EndWith(Prefix + "_body_1.asset"));
+                Assert.That(AssetDatabase.GetAssetPath(baseOutput), Does.EndWith(Prefix + "_body_0.png"));
+                Assert.That(AssetDatabase.GetAssetPath(preservedOutput), Does.EndWith(Prefix + "_body_1.png"));
             }
             finally { result?.Dispose(); AssetDatabase.DeleteAsset(sourcePath); Destroy(source); Destroy(target); Destroy(sampler); Destroy(adapter); DeleteFolder(); }
         }

@@ -35,6 +35,7 @@ namespace zgock.ShapeSync.Editor
             diagnostic = null;
             if (candidate == null) return Reject("PublishCandidateRequired", "Prefab commit requires an unpublished Pure Humanoid candidate.", out diagnostic);
             if (stage == null || stage.Mesh == null) return Reject("PublishStageRequired", "Prefab commit requires applied individual assets.", out diagnostic);
+            if (stage.OutputContract == null) return Reject("PublishOutputContractMissing", "Prefab commit requires the Spec17 output naming contract captured during staging.", out diagnostic);
             if (string.IsNullOrWhiteSpace(documentName)) return Reject("PublishDocumentNameRequired", "Prefab commit requires a document name.", out diagnostic);
             if (string.IsNullOrWhiteSpace(outputFolder) || !AssetDatabase.IsValidFolder(outputFolder)) return Reject("PublishOutputFolderRequired", "Prefab commit requires an existing Assets/ output folder.", out diagnostic);
             if (!HumanoidIndividualAssetStager.TryGetOutputFolderName(outputFolder, out string assetPrefix)) return Reject("PublishOutputFolderNameRequired", "Prefab commit requires an output folder name.", out diagnostic);
@@ -53,6 +54,7 @@ namespace zgock.ShapeSync.Editor
                 if (prefab == null) return Reject("PublishPrefabSaveFailed", "Prefab commit did not create a persistent Prefab asset.", out diagnostic);
                 SaveAssets();
                 if (!TryVerifyReload(assetPath, stage, out diagnostic)) return false;
+                if (!HumanoidPublishPathValidator.TryValidateOutputContract(assetPath, stage.OutputContract, out diagnostic)) return false;
                 string outputPath = Path.GetDirectoryName(assetPath)?.Replace('\\', '/') ?? string.Empty;
                 if (!HumanoidPublishPathValidator.TryValidateOutputReferences(assetPath, outputPath, out diagnostic)) return false;
                 GameObject persistentPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
