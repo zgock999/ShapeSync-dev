@@ -156,8 +156,14 @@ namespace zgock.ShapeSync.Editor
                 if (!materialPaths.Add(path)) return Reject("PublishMaterialNameDuplicate", "Pure Humanoid output contains duplicate published Material paths.", out diagnostic, path);
             }
 
-            if (contract.AtlasTextures.Count > 0 && contract.Textures.Count > 0)
-                return Reject("PublishAtlasIndividualTextureInvalid", "Atlas-enabled Pure Humanoid output must not contain Material-derived individual Texture PNGs.", out diagnostic);
+            // Atlas-owned BaseColor / Normal references are removed from the
+            // individual collector when the candidate Material points at a page.
+            // `contract.Textures` therefore contains only live non-Atlas maps
+            // (for example shader-specific Emission / Matcap properties) and
+            // pass-through materials that are intentionally outside the Schema.
+            // Those assets remain required dependencies of the published
+            // Material and must not be rejected merely because Atlas pages are
+            // also present.
 
             var nextIndexByMaterial = new Dictionary<MaterialId, int>();
             var firstPathByTextureKey = new Dictionary<string, string>(StringComparer.Ordinal);

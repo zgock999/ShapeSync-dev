@@ -14,21 +14,21 @@ using zgock.ShapeSync.StackMachine.Humanoid;
 
 namespace zgock.ShapeSync.StackMachine.Tests.Spec18
 {
-    /// <summary>Focuses page-keyed Atlas staging without reverting to per-material PNG ownership.</summary>
+    /// <summary>Focuses page-keyed Atlas staging while retaining live non-Atlas texture dependencies.</summary>
     public sealed class AtlasPageStagerTests
     {
         private const string Root = ShapeSyncTestAssetPaths.Spec18AtlasPageStagerRoot;
         private static readonly BindingFlags Flags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public;
 
         [Test]
-        public void Stage_BaseColorAndNormalPagesAreSavedOnceAndSharedByPersistentMaterials()
+        public void Stage_AtlasPagesAndLiveNonAtlasTexturesAreSavedOnceAndSharedByPersistentMaterials()
         {
             HumanoidBuildResult result = null; Material sourceA = null; Material sourceB = null; Material targetA = null; Material targetB = null; Texture2D sampler = null; RenderTexture basePage = null; RenderTexture normalPage = null; UrpLitMaterialShaderAdapter adapter = null;
             try
             {
                 DeleteFolder(); AssetDatabase.CreateFolder(ShapeSyncTestAssetPaths.ConsumerFolderPath("zgock/ShapeSync/Tests/EditMode/Spec18"), "__AtlasPageStager");
                 sampler = new Texture2D(4, 4); sampler.Apply(false, false);
-                sourceA = new Material(Shader.Find("Universal Render Pipeline/Lit")); sourceB = new Material(sourceA); sourceA.SetTexture("_BaseMap", sampler); sourceB.SetTexture("_BaseMap", sampler); sourceA.SetTexture("_BumpMap", sampler); sourceB.SetTexture("_BumpMap", sampler);
+                sourceA = new Material(Shader.Find("Universal Render Pipeline/Lit")); sourceB = new Material(sourceA); sourceA.SetTexture("_BaseMap", sampler); sourceB.SetTexture("_BaseMap", sampler); sourceA.SetTexture("_BumpMap", sampler); sourceB.SetTexture("_BumpMap", sampler); sourceA.SetTexture("_EmissionMap", sampler); sourceB.SetTexture("_EmissionMap", sampler);
                 targetA = new Material(sourceA); targetB = new Material(sourceB); basePage = CreatePage(); normalPage = CreatePage(); targetA.SetTexture("_BaseMap", basePage); targetB.SetTexture("_BaseMap", basePage); targetA.SetTexture("_BumpMap", normalPage); targetB.SetTexture("_BumpMap", normalPage);
                 adapter = ScriptableObject.CreateInstance<UrpLitMaterialShaderAdapter>();
                 var mesh = new Mesh { subMeshCount = 2 };
@@ -46,11 +46,15 @@ namespace zgock.ShapeSync.StackMachine.Tests.Spec18
                 Texture2D normal = AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/__AtlasPageStager_atlas2_normal.png");
                 Assert.That(atlas, Is.Not.Null);
                 Assert.That(normal, Is.Not.Null);
-                Assert.That(Directory.GetFiles(Path.GetFullPath(Root), "*.png"), Has.Length.EqualTo(2));
+                Assert.That(Directory.GetFiles(Path.GetFullPath(Root), "*.png"), Has.Length.EqualTo(3), "Atlas pages and the live non-Atlas Emission dependency are all required by the published Materials.");
                 Assert.That(AssetDatabase.LoadAssetAtPath<Material>(Root + "/__AtlasPageStager_a_body.mat").GetTexture("_BaseMap"), Is.EqualTo(atlas));
                 Assert.That(AssetDatabase.LoadAssetAtPath<Material>(Root + "/__AtlasPageStager_b_body.mat").GetTexture("_BaseMap"), Is.EqualTo(atlas));
                 Assert.That(AssetDatabase.LoadAssetAtPath<Material>(Root + "/__AtlasPageStager_a_body.mat").GetTexture("_BumpMap"), Is.EqualTo(normal));
                 Assert.That(AssetDatabase.LoadAssetAtPath<Material>(Root + "/__AtlasPageStager_b_body.mat").GetTexture("_BumpMap"), Is.EqualTo(normal));
+                Texture2D emission = AssetDatabase.LoadAssetAtPath<Material>(Root + "/__AtlasPageStager_a_body.mat").GetTexture("_EmissionMap") as Texture2D;
+                Assert.That(emission, Is.Not.Null);
+                Assert.That(emission, Is.EqualTo(AssetDatabase.LoadAssetAtPath<Material>(Root + "/__AtlasPageStager_b_body.mat").GetTexture("_EmissionMap")));
+                Assert.That(AssetDatabase.GetAssetPath(emission), Does.EndWith("__AtlasPageStager_a_body_0.png"));
                 AssertAtlasImporter(Root + "/__AtlasPageStager_atlas2_basecolor.png", true);
                 AssertAtlasImporter(Root + "/__AtlasPageStager_atlas2_normal.png", false);
             }
