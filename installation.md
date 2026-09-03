@@ -212,7 +212,7 @@ ShapeSync のテクスチャ変形エンジン（Texture StackMachine）は、GP
 4. **Unity エディタを再起動する**（※再起動するまで新しい Graphics API は適用されません）。
 
 ### 4. 設定の根拠（参照資料）
-本付記は、公開資料 `Docs/codex/README.md` の以下の各記述に基づいています。
+本付記は、公開資料 `README.md` の以下の各記述に基づいています。
 * `## Requirements`: D3D12 / Vulkan の非同期コンピュート要求、Unity 6.0 (D3D11初期値) と Unity 6.3 (D3D12初期値) の挙動、D3D11 非サポートの明記。
 * `### Choose the project template`: Unity 6.0 での D3D11 から D3D12 への変更必須の記述。
 * `### 4. Confirm or install URP`: Windows における Graphics APIs 設定手順とエディタ再起動の必要性。
