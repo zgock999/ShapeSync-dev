@@ -56,15 +56,15 @@
 
 | Entry 名 | 元サイズ | Page | Occupancy（専有面積・向き） |
 | :--- | :--- | :---: | :--- |
-| **`Body`** | `2048 x 2048` | `0` | **`1⁄4`** |
-| **`Brow`** | `1024 x 256` | `0` | **`1⁄16 Horizontal`** |
-| **`EyeWhite`** | `1024 x 512` | `0` | **`1⁄32 Horizontal`** |
-| **`Eyelash`** | `1024 x 256` | `0` | **`1⁄16 Horizontal`** |
-| **`Eyeline`** | `1024 x 256` | `0` | **`1⁄16 Horizontal`** |
-| **`Face`** | `1024 x 1024` | `0` | **`1⁄4`** |
-| **`Highlight`** | `1024 x 512` | `0` | **`1⁄8 Horizontal`** |
-| **`Iris`** | `1024 x 512` | `0` | **`1⁄8 Horizontal`** |
-| **`Mouth`** | `512 x 512` | `0` | **`1⁄64`** |
+| **`Body`** | `2048 x 2048` | `0` | **`1/4`** |
+| **`Brow`** | `1024 x 256` | `0` | **`1/16 Horizontal`** |
+| **`EyeWhite`** | `1024 x 512` | `0` | **`1/32 Horizontal`** |
+| **`Eyelash`** | `1024 x 256` | `0` | **`1/16 Horizontal`** |
+| **`Eyeline`** | `1024 x 256` | `0` | **`1/16 Horizontal`** |
+| **`Face`** | `1024 x 1024` | `0` | **`1/4`** |
+| **`Highlight`** | `1024 x 512` | `0` | **`1/8 Horizontal`** |
+| **`Iris`** | `1024 x 512` | `0` | **`1/8 Horizontal`** |
+| **`Mouth`** | `512 x 512` | `0` | **`1/64`** |
 
 ![Page 0 割当前半](./images/23.2-13/12-3-1.png)
 *▲図 12-3-1: Page 0（素体パーツ前半: Body, Brow, EyeWhite, Eyelash, Eyeline）の Page 番号および Occupancy 設定*
@@ -77,9 +77,9 @@
 
 | Entry 名 | 元サイズ | Page | Occupancy（専有面積・向き） |
 | :--- | :--- | :---: | :--- |
-| **`Shoes1/Shoes1`** | `512 x 1024` | `1` | **`1⁄8 Vertical`** |
-| **`Skirt1/Skirt1`** | `1024 x 512` | `1` | **`1⁄8 Horizontal`** |
-| **`Tops1/Tops1`** | `2048 x 2048` | `1` | **`1⁄4`** |
+| **`Shoes1/Shoes1`** | `512 x 1024` | `1` | **`1/8 Vertical`** |
+| **`Skirt1/Skirt1`** | `1024 x 512` | `1` | **`1/8 Horizontal`** |
+| **`Tops1/Tops1`** | `2048 x 2048` | `1` | **`1/4`** |
 
 ### 3.3 対象外（Ignore）の設定（`Hair1_*`）
 髪型パーツは UV 構造の都合上、アトラス統合を行うと UV 交錯エラーが発生するため、統合対象外（`ignore`）に設定します。
@@ -89,7 +89,7 @@
 | **`Hair1/Hair1`** | `512 x 1024` | `0` | **`ignore`** |
 | **`Hair1/Hair2`** | `512 x 1024` | `0` | **`ignore`** |
 
-![Page 1 および Hair1_* 設定](./images/23.2-13/12-4.png)
+![Page 1 および Hair1 の設定](./images/23.2-13/12-4.png)
 *▲図 12-4: Page 1（衣装パーツ群: Shoes1, Skirt1, Tops1）の割当と Hair1_*（Hair1/Hair1, Hair1/Hair2）の ignore（対象外）設定*
 
 ---
@@ -188,12 +188,12 @@
 * **警告例**:
   `Shoes1/Shoes1: source 512 x 1024 does not match Atlas cell 1024 x 1024. PLACE will resample the source into this cell.`
 * **原因**:
-  元テクスチャのアスペクト比（縦長/横長）と、`Occupancy` で指定したセルの向き（`Horizontal` / `Vertical` / 正方形 `1⁄4` 等）が一致していない場合に表示されます。
+  元テクスチャのアスペクト比（縦長/横長）と、`Occupancy` で指定したセルの向き（`Horizontal` / `Vertical` / 正方形 `1/4` 等）が一致していない場合に表示されます。
 * **解決策**:
-  警告を無視せず、元テクスチャの縦横比に合わせて適切な向き（例: 縦長なら `1⁄8 Vertical`、横長なら `1⁄8 Horizontal`）を選び直してください。
+  警告を無視せず、元テクスチャの縦横比に合わせて適切な向き（例: 縦長なら `1/8 Vertical`、横長なら `1/8 Horizontal`）を選び直してください。
 
 ![アスペクト比率不一致の警告画面](./images/23.2-13/12-5.png)
-*▲図 12-5: Shoes1/Shoes1 に 1⁄4 を指定したことで表示されたアスペクト比率不一致・リサンプルに関する警告（黄色 HelpBox）*
+*▲図 12-5: Shoes1/Shoes1 に 1/4 を指定したことで表示されたアスペクト比率不一致・リサンプルに関する警告（黄色 HelpBox）*
 
 ### Q2. Dry Run 時に `AtlasUv0OutOfRange` エラーが表示される
 * **エラー内容**:
