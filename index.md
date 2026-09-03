@@ -31,7 +31,7 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 | 9 | **[第9章: VRM 連携](./vrmintegration.html)** | 表情と Physics 用 VRM を登録し、生成と動作確認を行う | 公開中 |
 | 10 | **[第10章: Document 保存](./documentstorage.html)** | ここまでの Shape をまとめ、Document を保存する | 公開中 |
 | 11 | **[第11章: Humanoid Compiler](./humanoidcompiler.html)** | 作成した Document から Humanoid を生成する | 公開中 |
-| 12 | **第12章: Atlas** | Atlas Editor による設定と Humanoid 再生成 | 準備中 |
+| 12 | **[第12章: Atlas](./atlas.html)** | Atlas Editor による設定と Humanoid 再生成 | 公開中 |
 | 13 | **第13章: Hot Bake** | Figure / Document / Atlas による Runtime Humanoid 再生 | 準備中 |
 
 ---
@@ -134,8 +134,18 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 * Scene 配置と Pure Humanoid 構造（Unity 標準 Animator / Avatar を持ち ShapeSync 実行時コンポーネントを含まない構成）の確認
 * **[よくあるトラブルと解決策（トラブルシューティング）](./humanoidcompiler.html#6-よくあるトラブルと解決策トラブルシューティング)**
 
-### 第12章 〜 第13章（準備中）
-各章のチュートリアル本文は順次公開予定です。
+### [第12章: Atlas](./atlas.html)（公開中）
+* Atlas の目的（テクスチャ枚数・VRAM 使用量の削減と Draw Call 低減）と仕様
+* Atlas Editor の起動と Figure（`BasicFemale.prefab`）/ Document（`ShapeSyncDocumentA.asset`）指定
+* Page 0（素体パーツ）および Page 1（衣装パーツ）の割り当て
+* Hair1 の UV 交錯を考慮した `ignore` 設定とアスペクト比率警告の確認
+* `Dry Run` による配置検証と Atlas Schema（`Assets/ShapeSync/AtlasSchema.asset`）の保存
+* Humanoid Compiler での Atlas Schema 適用と新規フォルダー（`Assets/ShapeSync/Compiler/AtlasA/`）への再生成
+* `AtlasA` 接頭語の生成アセット確認と Main Texture 1枚集約効果の解説
+* **[よくあるトラブルと解決策（トラブルシューティング）](./atlas.html#7-よくあるトラブルと警告エラー例トラブルシューティング)**
+
+### 第13章: Hot Bake（準備中）
+Figure / Document / Atlas による Runtime Humanoid 再生のチュートリアル本文は順次公開予定です。
 
 ---
 
