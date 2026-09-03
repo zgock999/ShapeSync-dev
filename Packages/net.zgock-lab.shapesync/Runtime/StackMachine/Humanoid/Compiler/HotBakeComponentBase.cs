@@ -28,8 +28,19 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
         private HumanoidBuildResult atlasResult;
         private TextureStackMachineHost resolvedNormalHost;
         private TextureStackMachineHost resolvedMaterialHost;
+        private StackMachineDiagnostic lastDiagnostic;
+        private ulong diagnosticAttempt;
+        private bool diagnosticWasSurfaced;
         /// <summary>Gets the latest structured component admission, execution, or lifecycle diagnostic.</summary>
-        public StackMachineDiagnostic LastDiagnostic { get; private set; }
+        public StackMachineDiagnostic LastDiagnostic
+        {
+            get => lastDiagnostic;
+            private set
+            {
+                lastDiagnostic = value;
+                if (value != null) SurfaceDiagnostic(value);
+            }
+        }
         /// <summary>Gets whether this component currently owns a compile transaction.</summary>
         public bool IsCompileActive => driver?.Operation != null;
         /// <summary>Gets the scene-scoped artifact set promoted by this component's completed transaction.</summary>
@@ -44,6 +55,28 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
         protected TextureStackMachineHost ScopeHost => ResolvedNormalHost != null ? ResolvedNormalHost : ResolvedMaterialHost;
         /// <summary>Records one component-lifecycle diagnostic for derived component owners.</summary>
         protected void SetLastDiagnostic(StackMachineDiagnostic diagnostic) { LastDiagnostic = diagnostic; }
+
+        private void BeginDiagnosticAttempt()
+        {
+            diagnosticAttempt++;
+            if (diagnosticAttempt == 0) diagnosticAttempt = 1;
+            diagnosticWasSurfaced = false;
+        }
+
+        private void SurfaceDiagnostic(StackMachineDiagnostic diagnostic)
+        {
+            if (diagnosticWasSurfaced || IsIntentionalSupersession(diagnostic)) return;
+            diagnosticWasSurfaced = true;
+            string code = string.IsNullOrEmpty(diagnostic.domainCode) ? diagnostic.code.ToString() : diagnostic.domainCode;
+            Debug.LogError("Hot Bake '" + name + "' failed [" + code + "]: " + StackMachineDiagnostic.Format(diagnostic, "No structured diagnostic was returned."), this);
+        }
+
+        // Keep this list exhaustive for supersession diagnostic codes; add new supersession codes here when they are introduced.
+        private static bool IsIntentionalSupersession(StackMachineDiagnostic diagnostic)
+        {
+            string code = diagnostic?.domainCode;
+            return code == "RequestCoalesced" || code == "RequestStale" || code == "RequestCancelled" || code == "HotBakeStaleGenerationDiscarded";
+        }
 #if SHAPESYNC_USE_UNIVRM
         /// <summary>Gets whether the current build configuration requests optional VRM physics transport.</summary>
         protected bool IsPhysicsTransportEnabled => physicsTransport;
@@ -85,6 +118,7 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
         /// <remarks>Use this public trigger for late input arrival, retry, and explicit re-bake. It never overlaps an already owned transaction.</remarks>
         public virtual bool Compile(out StackMachineDiagnostic diagnostic)
         {
+            BeginDiagnosticAttempt();
             diagnostic = null;
             if (driver != null) { diagnostic = StackMachineDiagnostic.CreateDomain("hotbake", "HotBakeCompileActive", "Hot Bake component already owns one compile transaction."); LastDiagnostic = diagnostic; return false; }
             if (figurePrefab == null || document == null || (requireAtlas && atlas == null))
@@ -101,6 +135,7 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
         /// <remarks>Hybrid Hot Bake uses this for the current committed ShapeDirector state; Startup/API asset admission remains unchanged for Spawner and Figure.</remarks>
         protected bool BeginRuntimeDocumentCompile(ShapeSyncDocument runtimeDocument, out StackMachineDiagnostic diagnostic)
         {
+            BeginDiagnosticAttempt();
             diagnostic = null;
             if (driver != null)
             {

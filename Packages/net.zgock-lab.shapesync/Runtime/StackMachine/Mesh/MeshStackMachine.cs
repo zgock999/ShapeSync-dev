@@ -819,7 +819,7 @@ namespace zgock.ShapeSync.StackMachine
         /// <summary>Builds and queues one Normal-entry recipe on the scene Texture StackMachine host.</summary>
         /// <param name="entryName">The configured Proxy entry name.</param>
         /// <param name="snapshot">The latest raw non-PBM DDB weight snapshot.</param>
-        /// <param name="origin">The caller-owned origin key for stale-result control.</param>
+        /// <param name="origin">The host-issued origin token retained by this logical Normal request series for stale-result control.</param>
         /// <param name="handle">The queued Texture execution handle on success.</param>
         /// <param name="diagnostic">The structured rejection diagnostic on failure.</param>
         /// <returns><see langword="true"/> when the recipe was accepted by the Texture StackMachine host.</returns>

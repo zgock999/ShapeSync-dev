@@ -28,7 +28,7 @@ namespace zgock.ShapeSync.Tests.PlayMode
             try
             {
                 Assert.That(TextureExecutionPlan.TryCreate(CreateCopyStub(red), out TextureExecutionPlan plan, out StackMachineDiagnostic compileDiagnostic), Is.True, compileDiagnostic?.message);
-                Assert.That(new TextureExecutor(host).TryExecute(plan, new TextureExecutionOriginKey(190401), null, out TextureExecutionHandle handle, out StackMachineDiagnostic dispatchDiagnostic), Is.True, dispatchDiagnostic?.message);
+                Assert.That(new TextureExecutor(host).TryExecute(plan, host.CreateOrigin(), null, out TextureExecutionHandle handle, out StackMachineDiagnostic dispatchDiagnostic), Is.True, dispatchDiagnostic?.message);
                 yield return Wait(handle);
                 Assert.That(handle.Succeeded, Is.True, handle.Diagnostic?.message);
                 Assert.That(handle.Result.TryTakeDelivery(out TextureDelivery delivery), Is.True);
@@ -56,7 +56,7 @@ namespace zgock.ShapeSync.Tests.PlayMode
             try
             {
                 var executor = new TextureExecutor(host);
-                Assert.That(executor.TryExecute(CreateStub(first), new TextureExecutionOriginKey(190301), new TextureExecutionOptions(retainSourceLease: true), out TextureExecutionHandle firstHandle, out StackMachineDiagnostic firstDiagnostic), Is.True, firstDiagnostic?.message);
+                Assert.That(executor.TryExecute(CreateStub(first), host.CreateOrigin(), new TextureExecutionOptions(retainSourceLease: true), out TextureExecutionHandle firstHandle, out StackMachineDiagnostic firstDiagnostic), Is.True, firstDiagnostic?.message);
                 yield return Wait(firstHandle);
                 Assert.That(firstHandle.Succeeded, Is.True, firstHandle.Diagnostic?.message);
                 Assert.That(firstHandle.Result.TryTakeDelivery(out TextureDelivery firstDelivery), Is.True);
@@ -65,14 +65,14 @@ namespace zgock.ShapeSync.Tests.PlayMode
                 Assert.That(lease.IsValid, Is.True);
                 Assert.That(host.IngestDispatchCount, Is.EqualTo(1));
 
-                Assert.That(executor.TryExecute(CreateStub(first), new TextureExecutionOriginKey(190302), new TextureExecutionOptions(lease), out TextureExecutionHandle reusedHandle, out StackMachineDiagnostic reusedDiagnostic), Is.True, reusedDiagnostic?.message);
+                Assert.That(executor.TryExecute(CreateStub(first), host.CreateOrigin(), new TextureExecutionOptions(lease), out TextureExecutionHandle reusedHandle, out StackMachineDiagnostic reusedDiagnostic), Is.True, reusedDiagnostic?.message);
                 yield return Wait(reusedHandle);
                 Assert.That(reusedHandle.Succeeded, Is.True, reusedHandle.Diagnostic?.message);
                 Assert.That(reusedHandle.Result.TryTakeDelivery(out TextureDelivery reusedDelivery), Is.True);
                 reusedDelivery.Dispose();
                 Assert.That(host.IngestDispatchCount, Is.EqualTo(1), "A valid retained source lease must not issue KIngest again.");
 
-                Assert.That(executor.TryExecute(CreateStub(replacement), new TextureExecutionOriginKey(190303), new TextureExecutionOptions(lease), out TextureExecutionHandle replacedHandle, out StackMachineDiagnostic replacedDiagnostic), Is.True, replacedDiagnostic?.message);
+                Assert.That(executor.TryExecute(CreateStub(replacement), host.CreateOrigin(), new TextureExecutionOptions(lease), out TextureExecutionHandle replacedHandle, out StackMachineDiagnostic replacedDiagnostic), Is.True, replacedDiagnostic?.message);
                 yield return Wait(replacedHandle);
                 Assert.That(replacedHandle.Succeeded, Is.True, replacedHandle.Diagnostic?.message);
                 Assert.That(replacedHandle.Result.TryTakeDelivery(out TextureDelivery replacedDelivery), Is.True);
@@ -105,7 +105,7 @@ namespace zgock.ShapeSync.Tests.PlayMode
             try
             {
                 var executor = new TextureExecutor(host);
-                Assert.That(executor.TryExecute(CreateCopyStub(red), new TextureExecutionOriginKey(190311), new TextureExecutionOptions(retainOutputLease: true), out TextureExecutionHandle retainedHandle, out StackMachineDiagnostic retainedDiagnostic), Is.True, retainedDiagnostic?.message);
+                Assert.That(executor.TryExecute(CreateCopyStub(red), host.CreateOrigin(), new TextureExecutionOptions(retainOutputLease: true), out TextureExecutionHandle retainedHandle, out StackMachineDiagnostic retainedDiagnostic), Is.True, retainedDiagnostic?.message);
                 yield return Wait(retainedHandle);
                 Assert.That(retainedHandle.Succeeded, Is.True, retainedHandle.Diagnostic?.message);
                 Assert.That(retainedHandle.Result.TryTakeDelivery(out TextureDelivery noDelivery), Is.False);
@@ -113,7 +113,7 @@ namespace zgock.ShapeSync.Tests.PlayMode
                 Assert.That(retainedHandle.Result.TryTakeOutputLease(out outputLease), Is.True);
                 Assert.That(host.OutstandingOutputLeaseCount, Is.EqualTo(1));
 
-                Assert.That(executor.TryExecute(CreateAddToOutputStub(blue), new TextureExecutionOriginKey(190312), new TextureExecutionOptions(outputLease: outputLease), out TextureExecutionHandle publishedHandle, out StackMachineDiagnostic publishedDiagnostic), Is.True, publishedDiagnostic?.message);
+                Assert.That(executor.TryExecute(CreateAddToOutputStub(blue), host.CreateOrigin(), new TextureExecutionOptions(outputLease: outputLease), out TextureExecutionHandle publishedHandle, out StackMachineDiagnostic publishedDiagnostic), Is.True, publishedDiagnostic?.message);
                 yield return Wait(publishedHandle);
                 Assert.That(publishedHandle.Succeeded, Is.True, publishedHandle.Diagnostic?.message);
                 Assert.That(publishedHandle.Result.TryTakeDelivery(out TextureDelivery delivery), Is.True);
@@ -149,16 +149,16 @@ namespace zgock.ShapeSync.Tests.PlayMode
             try
             {
                 var firstExecutor = new TextureExecutor(firstHost);
-                Assert.That(firstExecutor.TryExecute(CreateCopyStub(red), new TextureExecutionOriginKey(190321), new TextureExecutionOptions(retainSourceLease: true, retainOutputLease: true), out TextureExecutionHandle retainedHandle, out StackMachineDiagnostic retainedDiagnostic), Is.True, retainedDiagnostic?.message);
+                Assert.That(firstExecutor.TryExecute(CreateCopyStub(red), firstHost.CreateOrigin(), new TextureExecutionOptions(retainSourceLease: true, retainOutputLease: true), out TextureExecutionHandle retainedHandle, out StackMachineDiagnostic retainedDiagnostic), Is.True, retainedDiagnostic?.message);
                 yield return Wait(retainedHandle);
                 Assert.That(retainedHandle.Result.TryTakeSourceLease(out sourceLease), Is.True);
                 Assert.That(retainedHandle.Result.TryTakeOutputLease(out outputLease), Is.True);
 
-                Assert.That(new TextureExecutor(secondHost).TryExecute(CreateCopyStub(red), new TextureExecutionOriginKey(190320), new TextureExecutionOptions(sourceLease: sourceLease), out _, out StackMachineDiagnostic foreignSourceHost), Is.False);
+                Assert.That(new TextureExecutor(secondHost).TryExecute(CreateCopyStub(red), secondHost.CreateOrigin(), new TextureExecutionOptions(sourceLease: sourceLease), out _, out StackMachineDiagnostic foreignSourceHost), Is.False);
                 Assert.That(foreignSourceHost.domainCode, Is.EqualTo("SourceLeaseHostMismatch"));
-                Assert.That(new TextureExecutor(secondHost).TryExecute(CreateCopyStub(red), new TextureExecutionOriginKey(190322), new TextureExecutionOptions(outputLease: outputLease), out _, out StackMachineDiagnostic foreignHost), Is.False);
+                Assert.That(new TextureExecutor(secondHost).TryExecute(CreateCopyStub(red), secondHost.CreateOrigin(), new TextureExecutionOptions(outputLease: outputLease), out _, out StackMachineDiagnostic foreignHost), Is.False);
                 Assert.That(foreignHost.domainCode, Is.EqualTo("OutputLeaseHostMismatch"));
-                Assert.That(firstExecutor.TryExecute(CreateOutputOnlyStub(256), new TextureExecutionOriginKey(190323), new TextureExecutionOptions(outputLease: outputLease), out _, out StackMachineDiagnostic extentMismatch), Is.False);
+                Assert.That(firstExecutor.TryExecute(CreateOutputOnlyStub(256), firstHost.CreateOrigin(), new TextureExecutionOptions(outputLease: outputLease), out _, out StackMachineDiagnostic extentMismatch), Is.False);
                 Assert.That(extentMismatch.domainCode, Is.EqualTo("OutputLeaseExtentMismatch"));
             }
             finally
@@ -185,13 +185,13 @@ namespace zgock.ShapeSync.Tests.PlayMode
             try
             {
                 var executor = new TextureExecutor(host);
-                Assert.That(executor.TryExecute(CreateCopyStub(red), new TextureExecutionOriginKey(190341), new TextureExecutionOptions(retainSourceLease: true), out TextureExecutionHandle initial, out StackMachineDiagnostic initialDiagnostic), Is.True, initialDiagnostic?.message);
+                Assert.That(executor.TryExecute(CreateCopyStub(red), host.CreateOrigin(), new TextureExecutionOptions(retainSourceLease: true), out TextureExecutionHandle initial, out StackMachineDiagnostic initialDiagnostic), Is.True, initialDiagnostic?.message);
                 yield return Wait(initial);
                 Assert.That(initial.Result.TryTakeDelivery(out TextureDelivery initialDelivery), Is.True);
                 initialDelivery.Dispose();
                 Assert.That(initial.Result.TryTakeSourceLease(out sourceLease), Is.True);
 
-                Assert.That(executor.TryExecute(CreateCopyStub(red), new TextureExecutionOriginKey(190342), new TextureExecutionOptions(sourceLease: sourceLease), out TextureExecutionHandle cancelled, out StackMachineDiagnostic cancelledDiagnostic), Is.True, cancelledDiagnostic?.message);
+                Assert.That(executor.TryExecute(CreateCopyStub(red), host.CreateOrigin(), new TextureExecutionOptions(sourceLease: sourceLease), out TextureExecutionHandle cancelled, out StackMachineDiagnostic cancelledDiagnostic), Is.True, cancelledDiagnostic?.message);
                 cancelled.Dispose();
                 Assert.That(cancelled.IsCompleted, Is.True);
                 Assert.That(cancelled.Diagnostic.domainCode, Is.EqualTo("RequestCancelled"));
@@ -223,13 +223,13 @@ namespace zgock.ShapeSync.Tests.PlayMode
             try
             {
                 var executor = new TextureExecutor(host);
-                Assert.That(executor.TryExecute(CreateCopyStub(red), new TextureExecutionOriginKey(190351), new TextureExecutionOptions(retainSourceLease: true), out TextureExecutionHandle initial, out StackMachineDiagnostic initialDiagnostic), Is.True, initialDiagnostic?.message);
+                Assert.That(executor.TryExecute(CreateCopyStub(red), host.CreateOrigin(), new TextureExecutionOptions(retainSourceLease: true), out TextureExecutionHandle initial, out StackMachineDiagnostic initialDiagnostic), Is.True, initialDiagnostic?.message);
                 yield return Wait(initial);
                 Assert.That(initial.Result.TryTakeDelivery(out TextureDelivery initialDelivery), Is.True);
                 initialDelivery.Dispose();
                 Assert.That(initial.Result.TryTakeSourceLease(out sourceLease), Is.True);
 
-                Assert.That(executor.TryExecute(CreateCopyStub(red), new TextureExecutionOriginKey(190352), new TextureExecutionOptions(sourceLease: sourceLease), out TextureExecutionHandle submitted, out StackMachineDiagnostic submittedDiagnostic), Is.True, submittedDiagnostic?.message);
+                Assert.That(executor.TryExecute(CreateCopyStub(red), host.CreateOrigin(), new TextureExecutionOptions(sourceLease: sourceLease), out TextureExecutionHandle submitted, out StackMachineDiagnostic submittedDiagnostic), Is.True, submittedDiagnostic?.message);
                 yield return null;
                 Assert.That(host.HasSubmittedRequest, Is.True);
                 submitted.Dispose();
@@ -260,13 +260,13 @@ namespace zgock.ShapeSync.Tests.PlayMode
             try
             {
                 var executor = new TextureExecutor(host);
-                Assert.That(executor.TryExecute(CreateCopyStub(red), new TextureExecutionOriginKey(190361), new TextureExecutionOptions(retainSourceLease: true), out TextureExecutionHandle initial, out StackMachineDiagnostic initialDiagnostic), Is.True, initialDiagnostic?.message);
+                Assert.That(executor.TryExecute(CreateCopyStub(red), host.CreateOrigin(), new TextureExecutionOptions(retainSourceLease: true), out TextureExecutionHandle initial, out StackMachineDiagnostic initialDiagnostic), Is.True, initialDiagnostic?.message);
                 yield return Wait(initial);
                 Assert.That(initial.Result.TryTakeDelivery(out TextureDelivery initialDelivery), Is.True);
                 initialDelivery.Dispose();
                 Assert.That(initial.Result.TryTakeSourceLease(out sourceLease), Is.True);
 
-                Assert.That(executor.TryExecute(CreateOutputOnlyStub(host.Capability.FixedGridEdge), new TextureExecutionOriginKey(190362), out _, out StackMachineDiagnostic conflict), Is.False);
+                Assert.That(executor.TryExecute(CreateOutputOnlyStub(host.Capability.FixedGridEdge), host.CreateOrigin(), out _, out StackMachineDiagnostic conflict), Is.False);
                 Assert.That(conflict.domainCode, Is.EqualTo("HallReservationFailed"));
                 Assert.That(conflict.detail, Does.Contain("retainedSourceLeases=1"));
             }
@@ -290,7 +290,7 @@ namespace zgock.ShapeSync.Tests.PlayMode
             Texture2D red = Solid(Color.red);
             try
             {
-                Assert.That(new TextureExecutor(host).TryExecute(CreateCopyStub(red), new TextureExecutionOriginKey(190371), new TextureExecutionOptions(retainSourceLease: true, retainOutputLease: true), out TextureExecutionHandle handle, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
+                Assert.That(new TextureExecutor(host).TryExecute(CreateCopyStub(red), host.CreateOrigin(), new TextureExecutionOptions(retainSourceLease: true, retainOutputLease: true), out TextureExecutionHandle handle, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
                 yield return Wait(handle);
                 Assert.That(host.OutstandingSourceLeaseCount, Is.EqualTo(1));
                 Assert.That(host.OutstandingOutputLeaseCount, Is.EqualTo(1));
@@ -422,7 +422,7 @@ namespace zgock.ShapeSync.Tests.PlayMode
             TextureOutputLease outputLease = null;
             try
             {
-                Assert.That(new TextureExecutor(host).TryExecute(CreateCopyStub(red), new TextureExecutionOriginKey(190331), new TextureExecutionOptions(retainSourceLease: true, retainOutputLease: true), out TextureExecutionHandle handle, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
+                Assert.That(new TextureExecutor(host).TryExecute(CreateCopyStub(red), host.CreateOrigin(), new TextureExecutionOptions(retainSourceLease: true, retainOutputLease: true), out TextureExecutionHandle handle, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
                 yield return Wait(handle);
                 Assert.That(handle.Result.TryTakeSourceLease(out sourceLease), Is.True);
                 Assert.That(handle.Result.TryTakeOutputLease(out outputLease), Is.True);

@@ -211,7 +211,6 @@ namespace zgock.ShapeSync.StackMachine
         [SerializeField] private MaterialAttacher materialAttacher;
         [SerializeField] private TextureBindingTemplate textureBindingTemplate;
         private MaterialStackMachineOperation active;
-        private static ulong nextOrigin = 1;
 
         /// <summary>Gets or sets the co-located Attacher that performs existing one-entry commits.</summary>
         public MaterialAttacher MaterialAttacher { get => materialAttacher; set => materialAttacher = value; }
@@ -392,7 +391,7 @@ namespace zgock.ShapeSync.StackMachine
             {
                 MaterialStackMachineBlock block = plan.Blocks[i];
                 if (block.TextureSource == null) continue;
-                if (!TryCreateTextureStub(block, textureBindingTemplate, materialAttacher.Proxy, out TextureRecipeStub stub, out StackMachineDiagnostic textureDiagnostic) || !executor.TryExecute(stub, new TextureExecutionOriginKey(nextOrigin++), out TextureExecutionHandle handle, out textureDiagnostic))
+                if (!TryCreateTextureStub(block, textureBindingTemplate, materialAttacher.Proxy, out TextureRecipeStub stub, out StackMachineDiagnostic textureDiagnostic) || !executor.TryExecute(stub, textureHost.CreateOrigin(), out TextureExecutionHandle handle, out textureDiagnostic))
                 {
                     diagnostic = textureDiagnostic;
                     candidate.Reject(textureDiagnostic);
@@ -465,7 +464,7 @@ namespace zgock.ShapeSync.StackMachine
             {
                 MaterialStackMachineBlock block = plan.Blocks[i];
                 if (block.TextureSource == null) continue;
-                if (!TryCreateTextureStub(block, binding, materialAttacher.Proxy, out TextureRecipeStub stub, out StackMachineDiagnostic textureDiagnostic) || !executor.TryExecute(stub, new TextureExecutionOriginKey(nextOrigin++), out TextureExecutionHandle handle, out textureDiagnostic))
+                if (!TryCreateTextureStub(block, binding, materialAttacher.Proxy, out TextureRecipeStub stub, out StackMachineDiagnostic textureDiagnostic) || !executor.TryExecute(stub, textureHost.CreateOrigin(), out TextureExecutionHandle handle, out textureDiagnostic))
                 {
                     diagnostic = textureDiagnostic;
                     candidate.Reject(textureDiagnostic);

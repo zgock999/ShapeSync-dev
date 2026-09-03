@@ -28,13 +28,14 @@ namespace zgock.ShapeSync.StackMachine
         private int[] normalKernels;
         private bool initialized;
         private readonly Queue<QueuedRequest> pending = new Queue<QueuedRequest>();
-        private readonly Dictionary<ulong, QueuedRequest> pendingByOrigin = new Dictionary<ulong, QueuedRequest>();
+        private readonly Dictionary<TextureExecutionOriginKey, QueuedRequest> pendingByOrigin = new Dictionary<TextureExecutionOriginKey, QueuedRequest>();
         private readonly HashSet<TextureDelivery> outstandingDeliveries = new HashSet<TextureDelivery>();
         private readonly HashSet<TextureDelivery> handedOffDeliveries = new HashSet<TextureDelivery>();
         private readonly HashSet<TextureSourceLease> outstandingSourceLeases = new HashSet<TextureSourceLease>();
         private readonly HashSet<TextureOutputLease> outstandingOutputLeases = new HashSet<TextureOutputLease>();
         private QueuedRequest submitted;
         private bool lifecycleEndingNotified;
+        private ulong nextOrigin = 1;
 
         private void Awake() => TextureStaticMachineFactory.Invalidate(gameObject.scene);
 
@@ -111,6 +112,20 @@ namespace zgock.ShapeSync.StackMachine
         public long LiveTransientGpuBytes => GetLiveTransientGpuBytes();
         /// <summary>Gets the number of source-to-grid ingest dispatches issued since host initialization.</summary>
         internal int IngestDispatchCount { get; private set; }
+
+        /// <summary>Issues one opaque origin token owned by this scene-local host.</summary>
+        /// <remarks>
+        /// Callers retain the returned token for one logical request series and pass it again when a newer
+        /// unsubmitted request is intended to replace the previous request. Tokens do not require explicit release;
+        /// host teardown invalidates their owner identity. The sequence is deliberately host-local and is never exposed
+        /// as a caller-construction API.
+        /// </remarks>
+        /// <returns>A new host-issued origin token.</returns>
+        public TextureExecutionOriginKey CreateOrigin()
+        {
+            if (nextOrigin == 0) throw new InvalidOperationException("TextureStackMachineHost origin token space is exhausted.");
+            return new TextureExecutionOriginKey(this, nextOrigin++);
+        }
 
         /// <summary>Validates current live-grid capacity for one compiled request without reserving halls or enqueueing GPU work.</summary>
         /// <remarks>This is an admission check only. A later enqueue may still reject when another consumer occupies the grid first.</remarks>
@@ -213,6 +228,11 @@ namespace zgock.ShapeSync.StackMachine
                 diagnostic = StackMachineDiagnostic.CreateDomain("texture", "QueueInputRequired", "Texture plan, binding context, and execution handle are required.");
                 return false;
             }
+            if (origin.IsValid && !origin.BelongsTo(this))
+            {
+                diagnostic = StackMachineDiagnostic.CreateDomain("texture", "OriginHostMismatch", "Texture execution received an origin token issued by another TextureStackMachineHost.");
+                return false;
+            }
             if (UsesNormalOperations(plan) && !TryEnsureNormalKernels(out diagnostic)) return false;
 
             TextureSourceLease sourceLease = options?.SourceLease;
@@ -251,13 +271,13 @@ namespace zgock.ShapeSync.StackMachine
                 return false;
             }
 
-            if (origin.IsValid && pendingByOrigin.TryGetValue(origin.Value, out QueuedRequest existing))
+            if (origin.IsValid && pendingByOrigin.TryGetValue(origin, out QueuedRequest existing))
             {
                 existing.handle.CompleteFailure(StackMachineDiagnostic.CreateDomain("texture", "RequestCoalesced", "The unsubmitted request was replaced by a newer request with the same origin."));
                 Release(existing);
                 RemovePending(existing);
             }
-            if (origin.IsValid && submitted != null && submitted.origin.Value == origin.Value) submitted.stale = true;
+            if (origin.IsValid && submitted != null && submitted.origin == origin) submitted.stale = true;
 
             if (!TryValidateDeliveryReservation(plan.OutputWidth, plan.OutputHeight, out diagnostic))
             {
@@ -273,7 +293,7 @@ namespace zgock.ShapeSync.StackMachine
                 return false;
             }
             pending.Enqueue(request);
-            if (origin.IsValid) pendingByOrigin.Add(origin.Value, request);
+            if (origin.IsValid) pendingByOrigin.Add(origin, request);
             diagnostic = null;
             return true;
         }
@@ -324,7 +344,7 @@ namespace zgock.ShapeSync.StackMachine
             }
             if (pending.Count == 0) return;
             QueuedRequest request = pending.Dequeue();
-            if (request.origin.IsValid) pendingByOrigin.Remove(request.origin.Value);
+            if (request.origin.IsValid) pendingByOrigin.Remove(request.origin);
             if (!TrySubmit(request, out StackMachineDiagnostic diagnostic))
             {
                 request.handle.CompleteFailure(diagnostic);
@@ -625,7 +645,7 @@ namespace zgock.ShapeSync.StackMachine
                 if (!ReferenceEquals(item, request)) retained.Enqueue(item);
             }
             while (retained.Count > 0) pending.Enqueue(retained.Dequeue());
-            if (request.origin.IsValid) pendingByOrigin.Remove(request.origin.Value);
+            if (request.origin.IsValid) pendingByOrigin.Remove(request.origin);
         }
 
         private void Release(QueuedRequest request)

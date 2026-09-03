@@ -2,6 +2,7 @@
 // Copyright (c) 2026 zgock999
 
 using NUnit.Framework;
+using UnityEngine;
 using zgock.ShapeSync.Materials;
 
 namespace zgock.ShapeSync.StackMachine.Tests
@@ -330,11 +331,29 @@ namespace zgock.ShapeSync.StackMachine.Tests
         }
 
         [Test]
-        public void TextureExecutionOriginKey_UsesZeroAsTheOnlyInvalidValue()
+        public void TextureExecutionOriginKey_IsIssuedByHostAndIncludesHostIdentity()
         {
-            Assert.That(new TextureExecutionOriginKey(0).IsValid, Is.False);
-            Assert.That(new TextureExecutionOriginKey(42).IsValid, Is.True);
-            Assert.That(new TextureExecutionOriginKey(42), Is.EqualTo(new TextureExecutionOriginKey(42)));
+            var firstRoot = new GameObject("Spec14_FirstOriginHost");
+            var secondRoot = new GameObject("Spec14_SecondOriginHost");
+            try
+            {
+                TextureStackMachineHost firstHost = firstRoot.AddComponent<TextureStackMachineHost>();
+                TextureStackMachineHost secondHost = secondRoot.AddComponent<TextureStackMachineHost>();
+                TextureExecutionOriginKey first = firstHost.CreateOrigin();
+                TextureExecutionOriginKey second = firstHost.CreateOrigin();
+                TextureExecutionOriginKey foreign = secondHost.CreateOrigin();
+
+                Assert.That(default(TextureExecutionOriginKey).IsValid, Is.False);
+                Assert.That(first.IsValid, Is.True);
+                Assert.That(first.Value, Is.Not.EqualTo(second.Value));
+                Assert.That(first, Is.Not.EqualTo(foreign), "Origin equality must include the issuing host identity.");
+                Assert.That(first, Is.EqualTo(first));
+            }
+            finally
+            {
+                Object.DestroyImmediate(firstRoot);
+                Object.DestroyImmediate(secondRoot);
+            }
         }
 
         [Test]

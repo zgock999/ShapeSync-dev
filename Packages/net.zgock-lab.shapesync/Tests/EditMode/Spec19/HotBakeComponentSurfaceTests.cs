@@ -7,6 +7,8 @@ using NUnit.Framework;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.TestTools;
+using System.Text.RegularExpressions;
 using Object = UnityEngine.Object;
 using zgock.ShapeSync.StackMachine;
 using zgock.ShapeSync.StackMachine.Humanoid;
@@ -193,9 +195,27 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec19
             try
             {
                 var component = root.AddComponent<HotBakeSpawner>();
+                ExpectHotBakeError("HotBakeStartupInputIncomplete");
                 Assert.That(component.Compile(out StackMachineDiagnostic diagnostic), Is.False);
                 Assert.That(diagnostic.domainCode, Is.EqualTo("HotBakeStartupInputIncomplete"));
                 Assert.That(component.IsCompileActive, Is.False);
+            }
+            finally { Object.DestroyImmediate(root); }
+        }
+
+        [Test]
+        public void TerminalFailure_SurfacesOnceAndIntentionalSupersessionRemainsSilent()
+        {
+            var root = new GameObject("Spec19_HotBakeDiagnosticSurface");
+            try
+            {
+                var component = root.AddComponent<TestComponent>();
+                LogAssert.Expect(LogType.Error, new Regex(@"^Hot Bake 'Spec19_HotBakeDiagnosticSurface' failed \[HotBakeTerminalFailure\]:"));
+                component.EmitDiagnostic(StackMachineDiagnostic.CreateDomain("hotbake", "HotBakeTerminalFailure", "Terminal Hot Bake failure."));
+                component.EmitDiagnostic(StackMachineDiagnostic.CreateDomain("hotbake", "HotBakeTerminalFailure", "Repeated terminal Hot Bake failure."));
+                component.EmitDiagnostic(StackMachineDiagnostic.CreateDomain("texture", "RequestStale", "An intended supersession remained structured only."));
+                LogAssert.NoUnexpectedReceived();
+                Assert.That(component.LastDiagnostic.domainCode, Is.EqualTo("RequestStale"));
             }
             finally { Object.DestroyImmediate(root); }
         }
@@ -288,6 +308,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec19
                     component.Document = fixture.Document;
                     component.RequireAtlas = true;
 
+                    ExpectHotBakeError("HotBakeStartupInputIncomplete");
                     Assert.That(component.Compile(out StackMachineDiagnostic missingAtlas), Is.False);
                     Assert.That(missingAtlas.domainCode, Is.EqualTo("HotBakeStartupInputIncomplete"));
 
@@ -365,6 +386,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec19
                     component.FigurePrefab = fixture.Prefab;
                     component.Document = fixture.Document;
                     component.Atlas = invalidAtlas;
+                    ExpectHotBakeError("HotBakeAtlasSchemaInvalid");
                     Assert.That(component.Compile(out StackMachineDiagnostic diagnostic), Is.False);
                     Assert.That(diagnostic.domainCode, Is.EqualTo("HotBakeAtlasSchemaInvalid"));
                     Assert.That(component.IsCompileActive, Is.False);
@@ -386,6 +408,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec19
                     component.Document = fixture.Document;
                     Assert.That(component.Compile(out StackMachineDiagnostic accepted), Is.True, accepted?.message);
 
+                    ExpectHotBakeError("HotBakeCompileActive");
                     Assert.That(component.Compile(out StackMachineDiagnostic duplicate), Is.False);
                     Assert.That(duplicate.domainCode, Is.EqualTo("HotBakeCompileActive"));
                     component.CancelCompile();
@@ -512,6 +535,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec19
                     GameObject previousFirst = component.SpawnedInstances[0];
                     HotBakeArtifactSet previousArtifact = component.ArtifactSet;
                     component.Document = null;
+                    ExpectHotBakeError("HotBakeStartupInputIncomplete");
                     Assert.That(component.Compile(out StackMachineDiagnostic rejectedReplacement), Is.False);
                     Assert.That(rejectedReplacement.domainCode, Is.EqualTo("HotBakeStartupInputIncomplete"));
                     Assert.That(component.ArtifactSet, Is.SameAs(previousArtifact));
@@ -565,6 +589,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec19
                     component.SpawnTargets.Add(null);
                     typeof(HotBakeSpawner).GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(component, null);
                     MethodInfo update = typeof(HotBakeSpawner).GetMethod("Update", BindingFlags.Instance | BindingFlags.NonPublic);
+                    ExpectHotBakeError("HotBakeSpawnTargetRequired");
                     for (int step = 0; step < 12 && component.IsCompileActive; step++) update.Invoke(component, null);
 
                     Assert.That(component.ArtifactSet, Is.Not.Null);
@@ -604,6 +629,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec19
                     for (int step = 0; step < 12 && component.IsCompileActive; step++) update.Invoke(component, null);
                     Assert.That(component.ArtifactSet, Is.Not.Null);
 
+                    ExpectHotBakeError("HotBakeHostDestroyed");
                     Object.DestroyImmediate(hostRoot);
                     update.Invoke(component, null);
                     Assert.That(component.TrySpawnAll(out StackMachineDiagnostic diagnostic), Is.False);
@@ -678,6 +704,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec19
                     var component = figureRoot.AddComponent<HotBakeFigure>();
                     component.FigurePrefab = fixture.Prefab;
                     component.Document = fixture.Document;
+                    ExpectHotBakeError("AnimatorRequired");
                     typeof(HotBakeFigure).GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(component, null);
                     Assert.That(component.IsCompileActive, Is.False);
                     Assert.That(component.SpawnedInstances, Is.Empty);
@@ -1280,6 +1307,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec19
                     for (int i = 0; i < 24 && component.BakedRoot == null && component.LastDiagnostic == null; i++) update.Invoke(component, null);
                     Assert.That(component.ArtifactSet, Is.Not.Null);
 
+                    ExpectHotBakeError("HotBakeHostDestroyed");
                     Object.DestroyImmediate(hostRoot);
                     update.Invoke(component, null);
                     Assert.That(component.ArtifactSet, Is.Null);
@@ -1315,6 +1343,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec19
                     SkinnedMeshRenderer liveRenderer = figure.GetComponentInChildren<SkinnedMeshRenderer>();
                     Assert.That(component.TrySetRunMode(true, out StackMachineDiagnostic enter), Is.True, enter?.message);
                     Assert.That(liveRenderer.enabled, Is.False);
+                    ExpectHotBakeError("HotBakeHostDestroyed");
                     Object.DestroyImmediate(hostRoot);
                     hostRoot = null;
                     update.Invoke(component, null);
@@ -1386,6 +1415,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec19
 
                     HotBakeArtifactSceneScope scope = (HotBakeArtifactSceneScope)typeof(HybridHotBakeFigure).GetField("artifactScope", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(component);
                     scope.InvalidateForOutfitTopology();
+                    ExpectHotBakeError("HotBakeArtifactOutfitInvalidated");
                     update.Invoke(component, null);
                     Assert.That(component.ArtifactSet, Is.Null);
                     Assert.That(component.BakedRoot, Is.Null);
@@ -1478,6 +1508,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec19
                     typeof(HybridHotBakeFigure).GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(component, null);
                     CommitPhysicalShapes(director, new List<ShapeSyncShape>());
                     MethodInfo update = typeof(HybridHotBakeFigure).GetMethod("Update", BindingFlags.Instance | BindingFlags.NonPublic);
+                    ExpectHotBakeError("HotBakeHybridWeightedBoneMissing");
                     for (int i = 0; i < 24 && component.LastDiagnostic == null && component.BakedRoot == null; i++) update.Invoke(component, null);
 
                     Assert.That(component.LastDiagnostic.domainCode, Is.EqualTo("HotBakeHybridWeightedBoneMissing"));
@@ -1632,6 +1663,11 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec19
 
 #endif
 
+        private static void ExpectHotBakeError(string diagnosticCode)
+        {
+            LogAssert.Expect(LogType.Error, new Regex(@"\[" + Regex.Escape(diagnosticCode) + @"\]"));
+        }
+
         private static bool ContainsNonSceneHierarchyObject(GameObject root)
         {
             Transform[] transforms = root.GetComponentsInChildren<Transform>(true);
@@ -1691,6 +1727,7 @@ namespace zgock.ShapeSync.Tests.EditMode.Spec19
             public TextureStackMachineHost EffectiveMaterialHost => ResolvedMaterialHost;
             public HumanoidBuildOperationStatus PumpAndCommit(HotBakeArtifactSceneScope scope, out StackMachineDiagnostic diagnostic)
                 => PumpAndCommitCompile(scope, out diagnostic);
+            public void EmitDiagnostic(StackMachineDiagnostic diagnostic) => SetLastDiagnostic(diagnostic);
             public void InvokeDestroyLifecycle() => OnDestroy();
         }
 

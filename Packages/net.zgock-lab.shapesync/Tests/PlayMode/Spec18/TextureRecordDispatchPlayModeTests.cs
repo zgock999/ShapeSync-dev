@@ -32,7 +32,7 @@ namespace zgock.ShapeSync.Tests.PlayMode
                 var document = new MaterialRecipeDocument { wordSource = "256 128 RECTSIZE $out 0.02 0.04 0.06 1 FILL_OUT $source 16 20 32 16 160 72 32 16 PLACE", outputLogicalName = "out", outputWidth = 128, outputHeight = 128 };
                 foreach (string name in new[] { "source", "out" }) document.bindings.Add(new StackMachineBindingDeclaration { logicalName = name, declaredKind = StackMachineBindingKind.Resource });
                 var stub = new TextureRecipeStub(document, new[] { new TextureBindingEntry { logicalName = "source", kind = TextureBindingKind.SourceTexture, sourceTexture = source }, new TextureBindingEntry { logicalName = "out", kind = TextureBindingKind.OutputHall } });
-                Assert.That(new TextureExecutor(host).TryExecute(stub, new TextureExecutionOriginKey(1804), out TextureExecutionHandle handle, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
+                Assert.That(new TextureExecutor(host).TryExecute(stub, host.CreateOrigin(), out TextureExecutionHandle handle, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
                 while (!handle.IsCompleted) yield return null;
                 Assert.That(handle.Succeeded, Is.True, handle.Diagnostic?.message);
                 Assert.That(handle.Result.TryTakeDelivery(out TextureDelivery delivery), Is.True);

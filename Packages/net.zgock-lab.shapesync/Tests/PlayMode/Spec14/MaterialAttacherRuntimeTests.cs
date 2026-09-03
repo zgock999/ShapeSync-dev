@@ -28,7 +28,7 @@ namespace zgock.ShapeSync.Tests.PlayMode
             try
             {
                 MaterialAttacher attacher = ConfigureUnlitTarget(target, out SkinnedMeshRenderer renderer, out _, out source, out adapter);
-                TextureExecutionHandle first = StartFill(host, Color.red, 101);
+                TextureExecutionHandle first = StartFill(host, Color.red);
                 while (!first.IsCompleted) yield return null;
                 Assert.That(first.Succeeded, Is.True, first.Diagnostic?.message);
                 Assert.That(first.Result.TryTakeDelivery(out TextureDelivery firstDelivery), Is.True);
@@ -37,7 +37,7 @@ namespace zgock.ShapeSync.Tests.PlayMode
                 Assert.That(attacher.TryApply("Body", firstValues, firstDelivery, out MaterialAttacherResult firstApply), Is.True, firstApply.diagnostic.message);
                 Assert.That(renderer.sharedMaterial.GetTexture("_BaseMap"), Is.SameAs(firstTexture));
 
-                TextureExecutionHandle second = StartFill(host, Color.blue, 102);
+                TextureExecutionHandle second = StartFill(host, Color.blue);
                 while (!second.IsCompleted) yield return null;
                 Assert.That(second.Succeeded, Is.True, second.Diagnostic?.message);
                 Assert.That(second.Result.TryTakeDelivery(out TextureDelivery secondDelivery), Is.True);
@@ -78,22 +78,23 @@ namespace zgock.ShapeSync.Tests.PlayMode
             try
             {
                 MaterialAttacher attacher = ConfigureUnlitTarget(target, out SkinnedMeshRenderer renderer, out _, out source, out adapter);
-                TextureExecutionHandle committed = StartFill(host, Color.red, 105);
+                TextureExecutionHandle committed = StartFill(host, Color.red);
                 while (!committed.IsCompleted) yield return null;
                 Assert.That(committed.Result.TryTakeDelivery(out TextureDelivery committedDelivery), Is.True);
                 Texture committedTexture = committedDelivery.Texture;
                 var values = new MaterialProxySemanticValues { applyBaseColorTexture = true, baseColorTexture = committedTexture };
                 Assert.That(attacher.TryApply("Body", values, committedDelivery, out MaterialAttacherResult apply), Is.True, apply.diagnostic.message);
 
-                TextureExecutionHandle cancelled = StartFill(host, Color.green, 106);
+                TextureExecutionHandle cancelled = StartFill(host, Color.green);
                 cancelled.Dispose();
                 Assert.That(cancelled.IsCompleted, Is.True);
                 Assert.That(cancelled.Succeeded, Is.False);
                 Assert.That(cancelled.Result, Is.Null);
 
-                TextureExecutionHandle coalesced = StartFill(host, Color.blue, 107);
-                TextureExecutionHandle replacement = StartFill(host, Color.white, 107);
-                Assert.That(coalesced.IsCompleted, Is.True);
+                TextureExecutionOriginKey coalescingOrigin = host.CreateOrigin();
+                TextureExecutionHandle coalesced = StartFill(host, Color.blue, coalescingOrigin);
+                TextureExecutionHandle replacement = StartFill(host, Color.white, coalescingOrigin);
+                Assert.That(coalesced.IsCompleted, Is.True, "Coalescing token was not reused; pending request count=" + host.PendingRequestCount + ", origin value=" + coalescingOrigin.Value);
                 Assert.That(coalesced.Succeeded, Is.False);
                 while (!replacement.IsCompleted) yield return null;
                 if (replacement.Result != null) replacement.Result.Dispose();
@@ -130,7 +131,7 @@ namespace zgock.ShapeSync.Tests.PlayMode
                 secondarySource = new Material(source);
                 secondaryRenderer.sharedMaterial = secondarySource;
                 AddEntry(proxy, new MaterialProxyEntry { entryName = "Face", renderer = secondaryRenderer, materialChannel = 0, adapter = adapter });
-                TextureExecutionHandle deliveryHandle = StartFill(host, Color.red, 108);
+                TextureExecutionHandle deliveryHandle = StartFill(host, Color.red);
                 while (!deliveryHandle.IsCompleted) yield return null;
                 Assert.That(deliveryHandle.Result.TryTakeDelivery(out TextureDelivery delivery), Is.True);
                 Assert.That(attacher.TryApply("Body", new MaterialProxySemanticValues { applyBaseColorTexture = true, baseColorTexture = delivery.Texture }, delivery, out MaterialAttacherResult apply), Is.True, apply.diagnostic.message);
@@ -181,12 +182,15 @@ namespace zgock.ShapeSync.Tests.PlayMode
             return attacher;
         }
 
-        private static TextureExecutionHandle StartFill(TextureStackMachineHost host, Color color, ulong origin)
+        private static TextureExecutionHandle StartFill(TextureStackMachineHost host, Color color)
+            => StartFill(host, color, host.CreateOrigin());
+
+        private static TextureExecutionHandle StartFill(TextureStackMachineHost host, Color color, TextureExecutionOriginKey origin)
         {
             var document = new MaterialRecipeDocument { wordSource = color.r + " " + color.g + " " + color.b + " " + color.a + " FILL $out COPY DROP", outputLogicalName = "out", outputWidth = 128, outputHeight = 128 };
             document.bindings.Add(new StackMachineBindingDeclaration { logicalName = "out", declaredKind = StackMachineBindingKind.Resource });
             var stub = new TextureRecipeStub(document, new[] { new TextureBindingEntry { logicalName = "out", kind = TextureBindingKind.OutputHall } });
-            Assert.That(new TextureExecutor(host).TryExecute(stub, new TextureExecutionOriginKey(origin), out TextureExecutionHandle handle, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
+            Assert.That(new TextureExecutor(host).TryExecute(stub, origin, out TextureExecutionHandle handle, out StackMachineDiagnostic diagnostic), Is.True, diagnostic?.message);
             return handle;
         }
 

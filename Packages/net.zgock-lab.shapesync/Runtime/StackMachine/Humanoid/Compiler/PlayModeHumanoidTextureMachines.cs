@@ -10,7 +10,7 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
     {
         private readonly TextureExecutor executor;
         private TextureExecutionHandle handle;
-        private ulong nextOrigin = 1;
+        private readonly TextureExecutionOriginKey origin;
 
         /// <summary>Creates a Mesh adapter bound to one scene-local Texture StackMachine host.</summary>
         /// <remarks>Hot Bake publishes a Pure Humanoid, so the resolved Humanoid rest pose is part of its output contract.</remarks>
@@ -18,10 +18,11 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
             : base(true)
         {
             executor = new TextureExecutor(host);
+            origin = host == null ? default : host.CreateOrigin();
         }
 
         protected override bool TryStartNormal(TextureExecutionPlan plan, out StackMachineDiagnostic diagnostic)
-            => executor.TryExecute(plan, new TextureExecutionOriginKey(nextOrigin++), null, out handle, out diagnostic);
+            => executor.TryExecute(plan, origin, null, out handle, out diagnostic);
 
         protected override bool TryPumpNormal(out bool pending, out StackMachineDiagnostic diagnostic)
         {
@@ -54,13 +55,17 @@ namespace zgock.ShapeSync.StackMachine.Humanoid
     {
         private readonly TextureExecutor executor;
         private TextureExecutionHandle handle;
-        private ulong nextOrigin = 1;
+        private readonly TextureExecutionOriginKey origin;
 
         /// <summary>Creates a Material adapter bound to one scene-local Texture StackMachine host.</summary>
-        public PlayModeHumanoidMaterialStackMachine(TextureStackMachineHost host) { executor = new TextureExecutor(host); }
+        public PlayModeHumanoidMaterialStackMachine(TextureStackMachineHost host)
+        {
+            executor = new TextureExecutor(host);
+            origin = host == null ? default : host.CreateOrigin();
+        }
 
         protected override bool TryStartTexture(TextureExecutionPlan plan, out StackMachineDiagnostic diagnostic)
-            => executor.TryExecute(plan, new TextureExecutionOriginKey(nextOrigin++), null, out handle, out diagnostic);
+            => executor.TryExecute(plan, origin, null, out handle, out diagnostic);
 
         protected override bool TryPumpTexture(out bool pending, out StackMachineDiagnostic diagnostic)
         {

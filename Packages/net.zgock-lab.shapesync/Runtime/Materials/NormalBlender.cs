@@ -46,7 +46,6 @@ namespace zgock.ShapeSync.Materials
         [SerializeField] private DynamicBoneBlender dynamicBoneBlender;
         [SerializeField] private List<string> entries = new List<string>();
         private readonly Dictionary<string, EntryState> states = new Dictionary<string, EntryState>(StringComparer.Ordinal);
-        private static ulong nextOrigin = 1;
         private MaterialProxy proxy;
         private MeshStackMachine meshStackMachine;
         // Retained source halls are caller-owned by this component.  Keep the host lifecycle
@@ -136,7 +135,7 @@ namespace zgock.ShapeSync.Materials
             for (int i = 0; i < entries.Count; i++)
             {
                 string entryName = entries[i];
-                if (!states.TryGetValue(entryName, out EntryState state)) { state = new EntryState { origin = new TextureExecutionOriginKey(nextOrigin++) }; states.Add(entryName, state); }
+                if (!states.TryGetValue(entryName, out EntryState state)) { state = new EntryState(); states.Add(entryName, state); }
                 state.revision++; state.inFlight?.Dispose(); state.inFlight = null; state.diagnostic = null; state.pending = true;
             }
         }
@@ -150,6 +149,12 @@ namespace zgock.ShapeSync.Materials
                 if (!states.TryGetValue(entryName, out EntryState state) || !state.pending || state.inFlight != null) continue;
                 state.pending = false;
                 if (state.sourceLease != null && !state.sourceLease.IsValid) state.sourceLease = null;
+                if (!TextureStaticMachineFactory.TryGetTSM(out TextureStackMachineHost originHost, out StackMachineDiagnostic originDiagnostic))
+                {
+                    state.diagnostic = originDiagnostic;
+                    continue;
+                }
+                if (!state.origin.BelongsTo(originHost)) state.origin = originHost.CreateOrigin();
                 var options = new TextureExecutionOptions(sourceLease: state.sourceLease, retainSourceLease: true);
                 if (!meshStackMachine.TrySubmitNormal(entryName, latestSnapshot, state.origin, options, out TextureExecutionHandle handle, out StackMachineDiagnostic diagnostic))
                 {

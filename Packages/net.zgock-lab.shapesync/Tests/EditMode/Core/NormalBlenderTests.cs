@@ -58,7 +58,7 @@ namespace zgock.ShapeSync.Tests.EditMode
         }
 
         [Test]
-        public void NormalBlender_QueuesEveryEntryWithOneStableOrigin()
+        public void NormalBlender_DefersOriginIssuanceUntilAHostIsResolved()
         {
             var root = new GameObject("NormalBlender");
             try
@@ -74,9 +74,8 @@ namespace zgock.ShapeSync.Tests.EditMode
                 var originField = face.GetType().GetField("origin");
                 TextureExecutionOriginKey faceOrigin = (TextureExecutionOriginKey)originField.GetValue(face);
                 TextureExecutionOriginKey bodyOrigin = (TextureExecutionOriginKey)originField.GetValue(body);
-                Assert.That(faceOrigin.IsValid, Is.True);
-                Assert.That(bodyOrigin.IsValid, Is.True);
-                Assert.That(bodyOrigin.Value, Is.Not.EqualTo(faceOrigin.Value));
+                Assert.That(faceOrigin.IsValid, Is.False, "NormalBlender must obtain origins from the resolved Texture host, not construct caller-owned values during enable.");
+                Assert.That(bodyOrigin.IsValid, Is.False);
                 Assert.That((bool)face.GetType().GetField("pending").GetValue(face), Is.True, "Without a DDB, enable must still derive the base Normal from the empty snapshot.");
                 Assert.That((bool)body.GetType().GetField("pending").GetValue(body), Is.True, "Without a DDB, enable must still derive the base Normal from the empty snapshot.");
                 Assert.That(blender.TryRetry(out _), Is.True);

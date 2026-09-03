@@ -17,7 +17,7 @@ namespace zgock.ShapeSync.StackMachine
         private TextureExecutionHandle handle;
         private TextureOutputLease outputLease;
         private int partitionIndex;
-        private ulong nextOrigin = 1;
+        private TextureExecutionOriginKey origin;
         private bool disposed;
 
         /// <summary>Creates an executor bound to the supplied scene-local host.</summary>
@@ -44,6 +44,7 @@ namespace zgock.ShapeSync.StackMachine
             if (!AtlasBakerPageRecipePartitioner.TryCreate(page, partitionCapability ?? host.Capability, out partitions, out diagnostic)) return false;
             activePage = page;
             partitionIndex = 0;
+            origin = host.CreateOrigin();
             if (TryStartPartition(out diagnostic)) return true;
             Cancel();
             return false;
@@ -90,6 +91,7 @@ namespace zgock.ShapeSync.StackMachine
             AtlasBakerPagePlan page = activePage;
             outputLease?.Dispose();
             outputLease = null;
+            origin = default;
             handle.Dispose();
             handle = null;
             activePage = null;
@@ -105,6 +107,7 @@ namespace zgock.ShapeSync.StackMachine
             handle = null;
             outputLease?.Dispose();
             outputLease = null;
+            origin = default;
             activePage = null;
             partitions = null;
         }
@@ -130,7 +133,7 @@ namespace zgock.ShapeSync.StackMachine
             if (!host.TryValidateAdmission(plan, outputLease != null, out diagnostic)) return false;
             bool final = partitionIndex == partitions.Count - 1;
             var options = new TextureExecutionOptions(outputLease: outputLease, retainOutputLease: !final);
-            if (!executor.TryExecute(plan, new TextureExecutionOriginKey(nextOrigin++), options, out handle, out diagnostic)) return false;
+            if (!executor.TryExecute(plan, origin, options, out handle, out diagnostic)) return false;
             return true;
         }
     }

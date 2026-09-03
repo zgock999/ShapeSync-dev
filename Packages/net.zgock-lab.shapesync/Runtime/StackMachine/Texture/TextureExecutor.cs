@@ -3,26 +3,40 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace zgock.ShapeSync.StackMachine
 {
-    /// <summary>Opaque key used to coalesce unsubmitted requests from one Texture consumer.</summary>
+    /// <summary>Host-issued opaque token used to coalesce unsubmitted requests from one Texture consumer.</summary>
+    /// <remarks>
+    /// A token is created only by its owning <see cref="TextureStackMachineHost"/>. A caller keeps one token for
+    /// one logical request series and reuses it when a newer request should replace the previous unsubmitted request.
+    /// The host identity is part of equality, so a token from an unloaded or previous scene cannot be accepted by a
+    /// different host. The token is a lightweight value and has no explicit release operation; host teardown makes it unusable.
+    /// </remarks>
     public readonly struct TextureExecutionOriginKey : IEquatable<TextureExecutionOriginKey>
     {
-        /// <summary>Creates an opaque nonzero origin key.</summary>
-        /// <param name="value">Nonzero caller-owned value used to identify one coalescing origin.</param>
-        public TextureExecutionOriginKey(ulong value) { Value = value; }
-        /// <summary>Gets the opaque key value. Zero is invalid.</summary>
-        public ulong Value { get; }
-        /// <summary>Gets whether this key can participate in queue coalescing.</summary>
-        public bool IsValid => Value != 0;
+        private readonly TextureStackMachineHost host;
+        private readonly ulong value;
+
+        internal TextureExecutionOriginKey(TextureStackMachineHost host, ulong value)
+        {
+            this.host = host;
+            this.value = value;
+        }
+
+        /// <summary>Gets the host-issued sequence value for diagnostics and white-box inspection.</summary>
+        public ulong Value => value;
+        /// <summary>Gets whether this host-issued token can participate in queue coalescing.</summary>
+        public bool IsValid => !ReferenceEquals(host, null) && value != 0;
+        internal bool BelongsTo(TextureStackMachineHost candidate) => IsValid && ReferenceEquals(host, candidate);
         /// <inheritdoc />
-        public bool Equals(TextureExecutionOriginKey other) => Value == other.Value;
+        public bool Equals(TextureExecutionOriginKey other) => ReferenceEquals(host, other.host) && value == other.value;
         /// <inheritdoc />
         public override bool Equals(object obj) => obj is TextureExecutionOriginKey other && Equals(other);
         /// <inheritdoc />
-        public override int GetHashCode() => Value.GetHashCode();
+        public override int GetHashCode() => ((ReferenceEquals(host, null) ? 0 : RuntimeHelpers.GetHashCode(host)) * 397) ^ value.GetHashCode();
         /// <inheritdoc />
         public static bool operator ==(TextureExecutionOriginKey left, TextureExecutionOriginKey right) => left.Equals(right);
         /// <inheritdoc />
@@ -384,7 +398,7 @@ namespace zgock.ShapeSync.StackMachine
 
         /// <summary>Compiles and queues one non-persistent Texture recipe.</summary>
         /// <param name="stub">In-memory recipe document and bindings to compile.</param>
-        /// <param name="origin">Nonzero caller-owned coalescing origin.</param>
+        /// <param name="origin">Origin token issued by this executor's host.</param>
         /// <param name="handle">Execution handle on success; otherwise <see langword="null"/>.</param>
         /// <param name="diagnostic">Validation, compilation, or exact host queue diagnostic on failure; otherwise <see langword="null"/>.</param>
         /// <returns><see langword="true"/> when the compiled request was accepted by the host queue.</returns>
@@ -396,7 +410,7 @@ namespace zgock.ShapeSync.StackMachine
 
         /// <summary>Compiles and queues one recipe with optional retained source halls.</summary>
         /// <param name="stub">In-memory recipe document and bindings to compile.</param>
-        /// <param name="origin">Nonzero caller-owned coalescing origin.</param>
+        /// <param name="origin">Origin token issued by this executor's host.</param>
         /// <param name="options">Optional source-lease reuse or retention settings.</param>
         /// <param name="handle">Execution handle on success; otherwise <see langword="null"/>.</param>
         /// <param name="diagnostic">Validation, compilation, or exact host queue diagnostic on failure; otherwise <see langword="null"/>.</param>
@@ -411,7 +425,7 @@ namespace zgock.ShapeSync.StackMachine
             }
             if (!origin.IsValid)
             {
-                diagnostic = StackMachineDiagnostic.CreateDomain("texture", "OriginKeyRequired", "Texture execution requires a nonzero origin key.");
+                diagnostic = StackMachineDiagnostic.CreateDomain("texture", "OriginKeyRequired", "Texture execution requires an origin token issued by the TextureStackMachineHost.");
                 return false;
             }
             if (!host.TryInitialize(out diagnostic)) return false;
@@ -457,7 +471,7 @@ namespace zgock.ShapeSync.StackMachine
             }
             if (!origin.IsValid)
             {
-                diagnostic = StackMachineDiagnostic.CreateDomain("texture", "OriginKeyRequired", "Texture execution requires a nonzero origin key.");
+                diagnostic = StackMachineDiagnostic.CreateDomain("texture", "OriginKeyRequired", "Texture execution requires an origin token issued by the TextureStackMachineHost.");
                 return false;
             }
             if (!host.TryInitialize(out diagnostic)) return false;
