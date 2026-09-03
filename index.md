@@ -32,7 +32,7 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 | 10 | **[第10章: Document 保存](./documentstorage.html)** | ここまでの Shape をまとめ、Document を保存する | 公開中 |
 | 11 | **[第11章: Humanoid Compiler](./humanoidcompiler.html)** | 作成した Document から Humanoid を生成する | 公開中 |
 | 12 | **[第12章: Atlas](./atlas.html)** | Atlas Editor による設定と Humanoid 再生成 | 公開中 |
-| 13 | **第13章: Hot Bake** | Figure / Document / Atlas による Runtime Humanoid 再生 | 準備中 |
+| 13 | **[第13章: Hot Bake](./hotbake.html)** | Figure / Document / Atlas による Runtime Humanoid 再生 | 公開中 |
 
 ---
 
@@ -144,8 +144,14 @@ ShapeSync を使うことで、ベースとなるキャラクター（Figure）�
 * `AtlasA` 接頭語の生成アセット確認と Main Texture 1枚集約効果の解説
 * **[よくあるトラブルと解決策（トラブルシューティング）](./atlas.html#7-よくあるトラブルと警告エラー例トラブルシューティング)**
 
-### 第13章: Hot Bake（準備中）
-Figure / Document / Atlas による Runtime Humanoid 再生のチュートリアル本文は順次公開予定です。
+### [第13章: Hot Bake](./hotbake.html)（公開中）
+* Hot Bake の仕組み（Editor 事前ビルドと Runtime 動的組み立ての違い）
+* Empty GameObject への `Animator` および `HotBake Figure` コンポーネント追加
+* 1体目（`HotBakeFigureA`）の設定（Figure: `BasicFemale.prefab`、Document: `ShapeSyncDocumentA.asset`、Atlas: `AtlasSchema.asset`、`Require Atlas: ON`、`Physics Transport: ON`）
+* `Walking.controller` 設定と Play Mode での 1体目単独歩行確認
+* 2体目（`HotBakeFigureB`）の複製・配置（Position: `(1,0,0)`）と設定（Document: `ShapeSyncDocumentB.asset`、Atlas: `None`、`Require Atlas: OFF`、`Physics Transport: ON`）
+* 服装の異なる 2体の Humanoid の同時動的生成と並行歩行（2体同時 Walking）動作確認
+* **[よくあるトラブルと解決策（トラブルシューティング）](./hotbake.html#43-うまく生成されない場合の確認トラブルシューティング)**
 
 ---
 
