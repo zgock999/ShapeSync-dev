@@ -167,7 +167,7 @@ layout:
 <repository-directory>/
   Packages/             finalized output from the previous steps
   TestProject/          copied validation project
-  Docs/                 package-facing installation, packaging, API, and guides
+  Docs/                 package-facing installation, packaging, and API build docs
   README.md             repository root README
   LICENSE               repository root license
   .gitignore            package-repository-specific ignore rules
@@ -184,7 +184,7 @@ composite evidence/test stage:
 
 `Assemble-PackageRepository.ps1` is the reproducible deployment-input step.
 It copies the two finalized package folders, root license files, the root
-README, the package-facing documents, and the full `Docs/Guides/` tree. It
+README, and the package-facing documents. It
 copies `TestProject/` while excluding generated `Library/`, `Temp/`, `Obj/`,
 `Build/`, `Builds/`, `Logs/`, `UserSettings/`, and `Assets/Packages/` output.
 The script verifies the required package, documentation, README-link, and
@@ -193,12 +193,82 @@ root. The generated root `.gitignore` is
 `Tools/Spec22/PackageRepository.gitignore`; it intentionally does not ignore
 the tracked root `Packages/` directory.
 
-The assembled repository root is the input for the remote deployment and
-anonymous Git URL installation checks in Spec22.5. The local finalized release
-tree remains the input for package metadata and license audits.
+The assembled repository root is the input for package `main`/tag deployment
+and its anonymous Git URL installation checks in Spec22.5. The Spec23.5
+post-deploy check uses a fresh consumer against the same package tag to verify
+that the separate `gh-pages` tree does not affect package resolution. The
+local finalized release tree remains the input for package metadata and
+license audits.
+
+## 7. Publish the documentation tree
+
+The public documentation is deployed separately from the package repository's
+`main` branch. Use a clean `gh-pages` worktree or checkout as the deployment
+target; do not add the public documentation tree to the package release tree.
+
+Prepare the public staging tree with this layout:
+
+```text
+<pages-stage>/
+  index.md
+  CC0Animation.unitypackage
+  ja/                  13 Japanese chapters, index.md, and images/
+  en/                  13 English chapters, index.md, and images/
+  api/                 generated Core and VRM API reference
+```
+
+Copy only the 14 slug-named canonical Markdown files from each language
+workspace. Do not copy writer drafts, outlines, execution results, or the
+workspace directory as a whole. Keep Japanese and English `images/` trees
+independent even when their current bytes are identical.
+
+The root `index.md` is the integrated entry point. It links to `./ja/`,
+`./en/`, `./api/`, and `./CC0Animation.unitypackage`. When a language page
+links to the root-level package, use `../CC0Animation.unitypackage` after the
+language tree has been placed below `/ja/` or `/en/`. This is the public-layout
+transformation rule; it does not modify canonical content. Likewise,
+language-local chapter links are published with the
+`.html` extension while the canonical files remain `.md`.
+
+Generate the API site using `Docs/ApiReferenceBuild.md`, then copy the
+generated site into the staging `/api/` directory. Generated DocFX output is
+committed only to `gh-pages`; it must not be copied into package `main`.
+After copying the VRM site, run
+`Tools/Spec23/Flatten-VrmPublicSite.ps1` for the staged
+`/api/vrm/` directory. This promotes the generated landing files so that the
+public VRM reference is `/api/vrm/`; `/api/vrm/vrm/` is not the public landing
+path.
+
+Before publishing, verify the root and both language Indexes, all chapter and
+image references, the API landing page, and the unitypackage download link.
+Commit the finalized staging tree on `gh-pages` and push that branch without
+rewriting published history. Record the commit, file counts, URL checks, and
+the complete `ShapeSync-dev` absolute-URL inventory for the later Spec24 rename.
+
+Generate the absolute-URL inventory from the complete public tree with
+`Tools/Spec23/Export-PublicUrlInventory.ps1`. The audit scans all textual
+public assets, records each URL and its locations, and fails on private Azure
+DevOps hosts. Do not use a `ShapeSync-dev`-only search as the URL audit.
+
+After the `gh-pages` push, repeat the consumer installation check against the
+published package repository. Use a new clean Unity project for each lane:
+
+1. Core-only: restore NuGet `R3`, then install the Core package from its Git
+   URL at the release tag and confirm the resolved Git package and a clean
+   Unity compile.
+2. UniVRM: install UniVRM, the Core package, and the companion package from
+   their Git URLs at the same release tag, then confirm the resolved packages
+   and a clean Unity compile.
+
+Record the package-lock source and resolved commit, the NuGet restore result,
+the Unity version, and the compile result for both lanes. Compare the package
+repository main/tag refs recorded immediately before the `gh-pages` push with
+the refs after the push; a `gh-pages` change must not alter either install
+target.
 
 ## Scope boundary
 
 This process prepares and audits a local release candidate. Remote repository
-deployment, anonymous Git URL installation, tag publication, and final
-external acceptance are separate release actions and belong to Spec22.5.
+deployment to `gh-pages` and its post-deploy consumer installation check are
+Spec23.5 release actions. Package `main`/tag publication belongs to Spec22.5;
+final external acceptance remains a separate release action.

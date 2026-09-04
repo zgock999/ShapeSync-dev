@@ -1,5 +1,10 @@
 # Installation and Dependencies
 
+This document covers package installation and consumer-project prerequisites.
+The beginner-friendly tutorials and API reference are published separately
+from the package repository and are reached through the integrated public
+documentation Index linked from the repository README.
+
 ## Requirements
 
 ShapeSync requires Unity 6.0 LTS or later. Development and validation use

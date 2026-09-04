@@ -1,8 +1,10 @@
 # ShapeSync API Reference Build Manual
 
-This manual explains how to generate the local ShapeSync API reference with
-DocFX. It is an authoring and review tool: generated metadata and HTML output
-are ignored by Git and must not be committed.
+This manual explains how to generate the ShapeSync API reference with DocFX.
+Generated metadata and local HTML output are temporary build products and must
+not be committed to the package repository's `main` branch. The reviewed site
+is copied to the public `gh-pages` tree under `/api/` and committed there as a
+release asset.
 
 ## Scope
 
@@ -36,6 +38,7 @@ It does not require UniVRM or `SHAPESYNC_USE_UNIVRM`.
 ```powershell
 dotnet tool run docfx metadata docfx.json --logLevel error
 dotnet tool run docfx build docfx.json --warningsAsErrors
+./Sanitize-PublicSite.ps1 -SiteRoot _site
 ```
 
 Open `_site/index.html` after a successful build.
@@ -49,9 +52,44 @@ The VRM reference is intentionally separate from Core.
 ```powershell
 dotnet tool run docfx metadata docfx.vrm.json --logLevel error
 dotnet tool run docfx build docfx.vrm.json --warningsAsErrors
+./Sanitize-PublicSite.ps1 -SiteRoot _site-vrm
 ```
 
 Open `_site-vrm/vrm/index.html` after a successful build.
+
+## Publish the generated reference
+
+Build the Core and optional VRM sites separately, then assemble the public API
+staging directory. Keep the two generated sites distinct so users can choose
+the Core reference or the VRM companion reference:
+
+```text
+<pages-stage>/api/
+  core/   contents of Docs/Docfx/_site/
+  vrm/    contents of Docs/Docfx/_site-vrm/ with its generated vrm/*
+          landing files promoted to the public vrm/ root
+```
+
+The VRM DocFX source keeps its landing page under `vrm/` so that the local
+generated site can be built independently. The public layout must flatten
+that one generated landing-page directory: publish the contents of
+`_site-vrm/vrm/` as `/api/vrm/`, while keeping `_site-vrm/api/` and
+`_site-vrm/public/` below `/api/vrm/`. Run
+`Tools/Spec23/Flatten-VrmPublicSite.ps1` after copying the generated site.
+The public landing page is therefore `/api/vrm/`; do not publish the landing
+page only at `/api/vrm/vrm/`.
+
+Copy the generated output only into the `gh-pages` worktree. Do not copy
+`Docs/Docfx/obj/`, `_site/`, or `_site-vrm/` into package `main`, and do not
+place the generated site under the package assembly's `Packages/` tree. After
+the staging tree passes the link and HTTP checks, continue with the publish
+step below.
+
+Before copying either generated site, run the sanitization command shown above.
+It removes DocFX contribution metadata and edit links, then fails if a private
+Azure DevOps host remains in generated HTML. After the staging tree passes the
+link, external-URL inventory, and HTTP checks, commit the generated API files
+on `gh-pages` without rewriting published history.
 
 ## Clean rebuild
 
@@ -68,6 +106,8 @@ Then rerun the relevant metadata and build commands above.
 ## Acceptance checks
 
 - Both commands must finish with `0 warning(s)` and `0 error(s)`.
+- Both generated sites must pass `Sanitize-PublicSite.ps1`; private source URLs
+  must not be present in the HTML output.
 - Core TOC must contain only `zgock.ShapeSync` and `zgock.ShapeSync.Editor`.
 - VRM TOC must contain only `zgock.ShapeSync.VrmIntegration` and its `.Editor`
   namespace.
