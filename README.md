@@ -239,11 +239,7 @@ Use the exact URL above, including `.git`, the package subfolder, and the
 
 - [Installation and dependencies](Docs/Installation.md)
 - [Release packaging process](Docs/Packaging.md)
-- [Getting Started (Japanese)](Docs/Guides/tutorial.html)
-- [Getting Started (English)](Docs/Guides/tutorial_en.html)
-- [Advanced Features (Japanese)](Docs/Guides/advanced.html)
-- [Advanced Features (English)](Docs/Guides/advanced_en.html)
-- [VRM Integration Guide (Japanese)](Docs/Guides/vrm.html)
+- [ShapeSync Documentation](https://zgock999.github.io/ShapeSync-dev/)
 - [Building the API reference](Docs/ApiReferenceBuild.md)
 
 ## Testing
